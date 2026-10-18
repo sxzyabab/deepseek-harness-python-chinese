@@ -1,10 +1,1 @@
-__all__=['桌面更新失败种类表','桌面更新呈现','桌面更新桥','桌面更新视图']
-
-桌面更新失败种类表=(#Web 文案分类，不暴露原始更新诊断
-    'check','check-network','download','download-network',
-    'install','install-network','stop-failed','tasks-changed','tasks-unavailable',
-)
-
-桌面更新呈现={'phase':'idle'}#phase 另可带 version/percent/failure
-桌面更新桥={'status':None,'open':None,'subscribe':None}#可选载体接口
-桌面更新视图={'failed':False,'opening':False}#可带 presentation
+'桌面更新没有运行时类。呈现是字典，phase 为 idle、checking、available、downloading、verifying、installing、ready、error，另有 version、percent、failure。失败种类是 check、check-network、download、download-network、install、install-network、stop-failed、tasks-changed、tasks-unavailable。桥有 status、open、subscribe。视图有 presentation、failed、opening。'

@@ -1,200 +1,142 @@
-from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
-from ....基础设施.通用工具 import 启动守护线程,观察者集合
-from ..异常 import 预设错误,页面失败文案#本包异常与页面失败句
+from ...存储 import 创建快照存储
 
-__all__=['权限目录','预设错误']#仅中文公开名
+__all__=['权限目录']
 
-class 快照存储:#简易 SnapshotStore
-    '值 + 订阅'
-    def __init__(自身,初值):
-        '记下初值'
-        自身.状态=初值#当前
-        自身.监听者=观察者集合()#订阅者
-
-    def getSnapshot(自身):
-        '当前值'
-        return 自身.状态#值
-
-    def subscribe(自身,回调):
-        '登记'
-        return 自身.监听者.订阅(回调)#退订器
-
-    def set(自身,下一份):
-        '写入并通知'
-        自身.状态=下一份#覆盖
-        自身.监听者.通知()#触发
-
-class 读任务:#一次目录读取
-    '线程加期约'
-    def __init__(自身,函数):
-        '开跑。函数返回期约'
-        自身.期约=期约()#本次读取
-        def 在线程执行():
-            '执行读取'
-            try:#读
-                产出=函数()#期约
-            except 预设错误 as 错误:#失败改成洗过的文案再拒绝
-                自身.期约.拒绝(预设错误(页面失败文案(错误)))
-                return
-            except BaseException as 错误:#其它失败改成预设错误，读取方能看见洗过的文案
-                自身.期约.拒绝(预设错误(页面失败文案(错误)))
-                return
-            产出.然后(自身.期约.解决,自身.期约.拒绝)#接上
-        启动守护线程(在线程执行)#后台
-
-class 权限目录:#进程级最新结果获胜的目录
-    '整份浏览器进程一份完整权限目录'
+class 权限目录:
+    '整份浏览器进程一份权限目录。斜杠弹出和撰写器席共用'
     def __init__(自身,上下文):
-        '先订失效源再读，关掉安装/读取竞态'
-        自身.上下文=上下文#根
-        自身.store=快照存储({'value':None})#完整快照
-        自身.invalidations=快照存储({'count':0})#失效滴答
-        自身.连接=上下文.获取服务('connection')#连接句柄
-        自身.停目录=上下文.remote.on('permission-presets/catalog-changed',自身.目录已变)#目录变
-        自身.停世代=自身.连接.generation.subscribe(自身.同步世代)#世代
-        自身.世代标识=None#当前世代 id
-        自身.已初始化=False#是否已同步过
-        自身.纪元=0#读纪元
-        自身.待决=None#进行中读取
-        自身.失败=预设错误('permission catalog has no complete value')#最近失败
-        自身.已拆除=False#拆除
-        自身.同步世代()#首同步
+        '先订失效源再读，关掉安装和第一次读取之间的空档'
+        自身.上下文=上下文
+        自身.存储=创建快照存储({'value':None})
+        自身.失效滴答=创建快照存储({'count':0})
+        自身.连接=上下文.获取服务('connection')
+        自身.世代标识=None
+        自身.已初始化=False
+        自身.纪元=0
+        自身.待决=None
+        自身.失败=Exception('permission catalog has no complete value')
+        自身.已拆除=False
+        def 目录已变(*位置参数):
+            '目录通知先作废已显示的选项，再读一份新的'
+            自身.失效()
+            自身.刷新()
+        自身.停目录=上下文.remote.on('permission-presets/catalog-changed',目录已变)
+        def 世代已变(*位置参数):
+            '连接世代换了就丢掉旧宿主的目录'
+            自身.同步世代()
+        自身.停世代=自身.连接.generation.subscribe(世代已变)
+        自身.同步世代()
 
-    def 目录已变(自身):
-        '目录通知'
-        自身.失效()#滴答
-        自身.刷新()#再读
+    def 当前世代(自身):
+        '活动连接的世代 id。没有连接则 None'
+        快照=自身.连接.generation.getSnapshot()
+        if isinstance(快照,dict) and 'id' in 快照:
+            return 快照['id']
+        return None
 
     def 失效(自身):
-        '给仍握着选项的消费者一拍'
-        自身.invalidations.set({'count':自身.invalidations.getSnapshot()['count']+1})#加一
+        '给还握着旧选项的界面一拍。拆除之后不会再进来'
+        自身.失效滴答.set({'count':自身.失效滴答.getSnapshot()['count']+1})
 
     def 刷新(自身):
-        '对活动世代强制完整再读'
-        if 自身.已拆除 is True:#已拆
+        '对活动世代强制再读一份完整目录'
+        if 自身.已拆除:
             return
-        快=自身.连接.generation.getSnapshot()#世代
-        世代标识=快['id'] if 快 is not None and 'id' in 快 else None#id
-        if 世代标识 is None:#无世代
+        世代标识=自身.当前世代()
+        if 世代标识 is None:
             return
-        if 世代标识!=自身.世代标识:#世代变了
-            自身.同步世代()#同步
+        if 世代标识!=自身.世代标识:
+            自身.同步世代()
             return
-        自身.开始读(世代标识)#读
+        自身.开始读取(世代标识)
 
     def 加载(自身):
-        '命令弹出打开时取当前世代完整目录。进行中刷新先结算。返回期约'
-        if 自身.待决 is None and 自身.store.getSnapshot()['value'] is None:#还没有值
-            自身.刷新()#开读
-        结算=期约()#本次加载
-        def 看():
-            '有值则解决，进行中则等它再看'
-            if 自身.已拆除 is True:#已拆
-                结算.拒绝(预设错误('permission catalog directory is disposed'))#已拆
-                return
-            快=自身.连接.generation.getSnapshot()#世代
-            世代标识=快['id'] if 快 is not None and 'id' in 快 else None#id
-            if 世代标识 is None:#无连接
-                结算.拒绝(预设错误('permission catalog has no active Host connection'))#抛
-                return
-            if 世代标识!=自身.世代标识:#世代变了
-                自身.同步世代()#同步
-            待决=自身.待决#进行中
-            if 待决 is not None:
-                def 再看(_值=None):
-                    '进行中的读取落定后再看'
-                    看()
-                待决.期约.然后(再看,再看)#等
-                return
-            态=自身.store.getSnapshot()#快照
-            if 态['value'] is not None:#有值
-                结算.解决(态['value'])#目录
-                return
-            结算.拒绝(自身.失败)#失败
-        看()
-        return 结算
+        '弹出打开时取当前世代的完整目录。进行中的刷新先落定'
+        if 自身.待决 is None and 自身.存储.getSnapshot()['value'] is None:
+            自身.刷新()
+        while 自身.已拆除 is not True:
+            世代标识=自身.当前世代()
+            if 世代标识 is None:
+                raise Exception('permission catalog has no active Host connection')
+            if 世代标识!=自身.世代标识:
+                自身.同步世代()
+                continue
+            if 自身.待决 is not None:
+                状态=自身.存储.getSnapshot()
+                if 状态['value'] is not None:
+                    return 状态['value']
+                raise 自身.失败
+            状态=自身.存储.getSnapshot()
+            if 状态['value'] is not None:
+                return 状态['value']
+            raise 自身.失败
+        raise Exception('permission catalog directory is disposed')
 
-    def dispose(自身):
-        '停订阅并收回迟到结算的写入权'
-        if 自身.已拆除 is True:#已拆
+    def 拆除(自身):
+        '停止订阅，并让还没写回的读取作废'
+        if 自身.已拆除:
             return
-        自身.已拆除=True#拆
-        自身.纪元+=1#作废
+        自身.已拆除=True
+        自身.纪元=自身.纪元+1
         自身.待决=None
-        自身.停世代()#卸世代
-        自身.停目录()#卸目录
+        自身.停世代()
+        自身.停目录()
 
     def 同步世代(自身):
-        '世代丢失/替换时硬清旧 Host 值'
-        if 自身.已拆除 is True:#已拆
+        '世代丢掉或换代时清掉旧宿主的目录，再为新世代读一份'
+        if 自身.已拆除:
             return
-        快=自身.连接.generation.getSnapshot()#世代
-        世代标识=快['id'] if 快 is not None and 'id' in 快 else None#id
-        if 自身.已初始化 is True and 世代标识==自身.世代标识:#未变
+        世代标识=自身.当前世代()
+        if 自身.已初始化 and 世代标识==自身.世代标识:
             return
-        if 自身.已初始化 is True:#真变了才撤选项
-            自身.失效()#滴答
-        自身.已初始化=True#已同步
+        if 自身.已初始化:
+            自身.失效()
+        自身.已初始化=True
         自身.世代标识=世代标识
-        自身.纪元+=1#作废旧读
+        自身.纪元=自身.纪元+1
         自身.待决=None
-        自身.失败=预设错误('permission catalog has no complete value')#重置失败
-        自身.store.set({'value':None})#清值
-        if 世代标识 is not None:#有世代
-            自身.开始读(世代标识)#读
+        自身.失败=Exception('permission catalog has no complete value')
+        自身.存储.set({'value':None})
+        if 世代标识 is not None:
+            自身.开始读取(世代标识)
 
-    def 开始读(自身,世代标识):
-        '独立一读；同世代最新纪元获胜'
-        自身.纪元+=1#新纪元
-        纪元=自身.纪元#本读
-        自身.失败=预设错误('permission catalog has no complete value')#重置
-        def 读():
-            '拉完整目录，返回期约'
-            目录结果=期约()#本次目录
-            def 已目录(结果):
-                '远程返回'
-                if 结果['ok'] is not True:#失败
-                    错=结果['error']#错误
-                    目录结果.拒绝(预设错误(str(错['code'])+': '+str(错['message'])))#码+消息
-                    return
-                目录结果.解决(结果['value'])#目录
-            try:#RPC
-                自身.上下文.remote.permissionPresets.catalog().然后(已目录,目录结果.拒绝)#RPC
-            except Exception as 错误:#同步失败
-                目录结果.拒绝(错误)
-            return 目录结果
-        操作=读任务(读)#开跑
-        def 清待决():
-            '仍是自己则清'
-            if 自身.待决 is 操作:#仍是自己
-                自身.待决=None
-        def 结算成功(值):
-            '写回'
-            if 自身.接受(纪元,世代标识) is False:#过期
-                清待决()
-                return
-            自身.store.set({'value':值})#写入
-            清待决()
-        def 结算失败(错误):
-            '记下失败'
-            if 自身.接受(纪元,世代标识) is False:#过期
-                清待决()
-                return
-            if isinstance(错误,预设错误):#业务失败
-                自身.失败=错误
-                自身.store.set({'value':None})
-            清待决()
-        操作.期约.然后(结算成功,结算失败)#后台结算
+    def 开始读取(自身,世代标识):
+        '同一世代里纪元最新的一次读取才写回'
+        纪元=自身.纪元+1
+        自身.纪元=纪元
+        自身.失败=Exception('permission catalog has no complete value')
+        操作={'纪元':纪元}
         自身.待决=操作
+        try:
+            try:
+                结果=自身.上下文.remote.permissionPresets.catalog()
+                if 结果['ok'] is not True:
+                    错误体=结果['error']
+                    if isinstance(错误体,dict):
+                        码=错误体['code']
+                        消息=错误体['message']
+                    else:
+                        码=错误体.code
+                        消息=错误体.message
+                    raise Exception(str(码)+': '+str(消息))
+                if 自身.接受(纪元,世代标识) is not True:
+                    return
+                自身.存储.set({'value':结果['value']})
+            except Exception as 错误:
+                if 自身.接受(纪元,世代标识) is not True:
+                    return
+                自身.失败=错误
+                自身.存储.set({'value':None})
+        finally:
+            if 自身.待决 is 操作:
+                自身.待决=None
 
     def 接受(自身,纪元,世代标识):
-        '拆除、刷新纪元、真实连接世代三重栅'
-        if 自身.已拆除 is True:#已拆
-            return False#拒
-        if 纪元!=自身.纪元:#过期
-            return False#拒
-        if 世代标识!=自身.世代标识:#世代变
-            return False#拒
-        快=自身.连接.generation.getSnapshot()#活世代
-        活=快['id'] if 快 is not None and 'id' in 快 else None#id
-        return 活==世代标识#仍是
+        '拆除、纪元或连接世代对不上的读取不能写回'
+        if 自身.已拆除:
+            return False
+        if 纪元!=自身.纪元:
+            return False
+        if 世代标识!=自身.世代标识:
+            return False
+        return 自身.当前世代()==世代标识

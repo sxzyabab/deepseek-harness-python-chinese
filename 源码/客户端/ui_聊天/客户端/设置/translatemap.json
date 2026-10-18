@@ -1,3 +1,7 @@
 {
-    "TranscriptViewRow":"转录视图行"
+    "TranscriptViewRow":"转录视图行",
+    "PreferenceRow":"偏好行",
+    "PerformanceUsageRow":"性能用量行",
+    "LinkOpeningRow":"链接打开行",
+    "PreferenceRow.module":"偏好行.module"
 }

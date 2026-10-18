@@ -95,7 +95,7 @@ def 解析参数(原文):
     except (json.JSONDecodeError,ValueError,TypeError):#非法 JSON
         return 原文#保持原文
 
-def 结果文本(块列表):
+def 拼接结果文本(块列表):
     '拼接工具结果面向模型的文本块'
     文本=''#累积
     for 块 in 块列表:#逐块
@@ -210,7 +210,7 @@ def 投影json运行(上下文,智能体,汇,选项=None):
                 'type':'tool_result',
                 'callId':消息['toolCallId'],
                 'status':'error' if 消息.get('isError') is True else 'completed',
-                'result':结果文本(消息['content']),
+                'result':拼接结果文本(消息['content']),
             })#写出
             return
 

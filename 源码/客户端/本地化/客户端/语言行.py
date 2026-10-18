@@ -1,169 +1,142 @@
-from nicegui import ui as 界面
-from ...ui_基础界面组件.icons import 图标下chevron14
+from ...模块.客户端.通告 import 取握手窗口
+import os
+from ...ui_对话.异常 import 注入模块样式文件,模块节点,标样式模块
+from ...ui_基础界面组件.icons import 图标下箭头描边常规
 from ...ui_基础界面组件.菜单 import 菜单
-from ..异常 import 页面失败文案
 
-__all__=['语言行','样式表']#仅中文公开名
+__all__=['语言行']
 
-样式表='''
-.语言行{display:flex;align-items:center;gap:8px;width:100%;padding:16px 0;border-bottom:1px solid var(--dsw-alias-border-l2)}
-.语言文{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding-right:48px}
-.语言标题{font-size:14px;font-weight:400;line-height:22px;color:var(--dsw-alias-label-primary)}
-button.q-btn.语言选择{display:inline-flex;align-items:center;gap:12px;height:36px;min-height:36px;padding:0 14px;border:none;border-radius:18px;background:var(--dsw-alias-bg-module-platform) !important;box-shadow:none !important;color:var(--dsw-alias-label-primary) !important;font-size:14px;line-height:22px;cursor:pointer}
-button.q-btn.语言选择 .q-btn__content{gap:12px;flex-wrap:nowrap}
-button.q-btn.语言选择:hover{background:var(--dsw-alias-interactive-bg-hover) !important}
-.语言选择文{font-size:14px;line-height:22px;color:var(--dsw-alias-label-primary)}
-.语言箭头{flex:none;color:var(--dsw-alias-label-tertiary)}
-'''#样式表结束
+样式模块='LanguageRow'
+样式路径=os.path.join(os.path.dirname(__file__),'语言行.module.css')
 
-样式已登记=False
-
-def 登记样式():
-    '语言行样式每个进程只登记一次'
-    global 样式已登记
-    if 样式已登记 is True:
-        return
-    界面.add_css(样式表)
-    样式已登记=True
-
-class 语言选择锚:
-    '菜单在渲染里调用本锚的渲染；构造时不画'
-    def __init__(自身,标签,打开,点击):
-        '记下当前语言、展开态与点击'
-        自身.标签=标签 if isinstance(标签,str) else ''#显示名
-        自身.打开=打开 is True#是否展开
-        自身.点击=点击#翻转菜单
-
-    def 渲染(自身):
-        '画出语言药丸与下拉箭头。构造时不调用本方法'
-        展开='true' if 自身.打开 is True else 'false'#无障碍展开态
-        钮=界面.button(on_click=自身.点击).props('flat no-caps type=button aria-haspopup=menu aria-expanded='+展开).classes('语言选择')#药丸
-        with 钮:#文案与箭头
-            if 自身.标签!='':#有显示名
-                界面.label(自身.标签).classes('语言选择文')#当前语言
-            图标下chevron14({'className':'语言箭头'})#下拉箭头
-        return 钮#锚
 
 class 语言行:
-    '设置常规条目分区的语言行：打开菜单切换偏好。属性是槽位合成的 dict'
+    '常规设置里的语言行。标题用中文表原文，菜单切换已登记语言'
     def __init__(自身,属性):
-        '记下 props，菜单默认关闭，槽位只调用构造'
-        自身.属性=属性 if isinstance(属性,dict) else {}#合成 props
-        自身.打开=False#菜单是否打开
-        自身.根=None#可反复清空的行
-        自身.画面失败=None
-        自身.渲染()#槽位只调用构造
+        '记下份额，菜单默认关闭，并画出这一行'
+        自身.属性=属性
+        自身.打开=False
+        自身.根=None
+        自身.按钮=None
+        自身.菜单=None
+        自身.退订=[]
+        自身.已订=False
+        自身.绘制中=False
+        自身.待重画=False
+        自身.渲染()
 
     def 更新(自身,属性):
-        '刷新合成 props'
-        自身.属性=属性 if isinstance(属性,dict) else {}#最新 props
+        '换份额'
+        自身.属性=属性
 
-    def 切换菜单(自身):
-        '切换菜单开闭'
-        自身.打开=not 自身.打开#翻转
+    def 关闭(自身):
+        '关掉菜单'
+        自身.打开=False
+        自身.渲染()
 
     def 选定(自身,标识):
-        '写入偏好并关闭菜单。setLocale 是注入面键名'
-        if 'setLocale' in 自身.属性 and callable(自身.属性['setLocale']):#有写入
-            自身.属性['setLocale'](标识)#切换
-        自身.打开=False#关闭
+        '先关菜单，再写入偏好'
+        自身.打开=False
+        自身.属性['setLocale'](标识)
+        if 自身.绘制中:
+            自身.待重画=True
+            return
+        自身.渲染()
 
-    def 视图(自身):
-        '从仓库镜像出当前标签与选项。仓库快照是 dict'
-        属性=自身.属性#合成 props
-        if 't' in 属性 and callable(属性['t']):#有文案席
-            标题=属性['t']('language.title')#标题
-        else:#槽位尚未给文案
-            标题='语言'#词表标题
-        当前=''#当前 id
-        选项=[]#选项行
-        if 'useStore' in 属性 and callable(属性['useStore']):#有存储钩
-            用存储=属性['useStore']#选择器钩
-            def 选当前(态):
-                '当前语言 id'
-                if isinstance(态,dict) is False or 'active' not in 态:#缺键
-                    return ''#空
-                return 态['active']#当前
-            def 选选项(态):
-                '选项行；空列表仍是列表'
-                if isinstance(态,dict) is False or 'options' not in 态:#缺键
-                    return []#空
-                值=态['options']#选项
-                if isinstance(值,list):#列表
-                    return 值#原列表
-                return []#其余当空
-            当前=用存储(选当前)#当前语言
-            取到=用存储(选选项)#选项
-            if isinstance(取到,list):#列表
-                选项=取到#收下
-        标签=当前#回退为 id
-        for 行 in 选项:#找显示名
-            if isinstance(行,dict) and 'id' in 行 and 行['id']==当前:#命中
-                if 'label' in 行:#有显示名
-                    标签=行['label']#显示名
-                break#找到
-        return {#视图模型
-            'title':标题,#标题
-            'active':当前,#当前 id
-            'activeLabel':标签,#显示名
-            'options':选项,#选项
-            'open':自身.打开,#菜单开闭
-        }#视图结束
+    def 切换(自身,事件=None):
+        '点按钮开关菜单'
+        自身.打开=not 自身.打开
+        自身.渲染()
 
-    def 菜单条目(自身,选项):
-        '把选项收成菜单行。空列表仍然返回空列表'
-        条目=[]#行
-        for 行 in 选项:#逐项
-            if isinstance(行,dict) is False or 'id' not in 行:#缺 id
-                continue#下
-            标签=行['label'] if 'label' in 行 else 行['id']#显示名
-            条目.append({'id':行['id'],'label':标签})#一行
-        return 条目#列表
+    def 拆除(自身):
+        '退掉仓库订阅'
+        for 退 in 自身.退订:
+            退()
+        自身.退订=[]
+        自身.已订=False
 
     def 渲染(自身):
-        '先画标题与语言菜单，再返回行。语言选择锚在这里才画'
-        登记样式()
-        视=自身.视图()#视图
-        条目=自身.菜单条目(视['options'])#菜单行
-        自身.画面失败=None
-        if 自身.根 is not None:#已有行
-            try:#清空后重画
-                自身.根.clear()#清空
-            except Exception as 错误:
-                自身.根=None
-                自身.画面失败=页面失败文案(错误)
-        if 自身.根 is None:#新建行
-            自身.根=界面.element('div').classes('语言行')#行
-        def 点锚():
-            '打开或关闭语言菜单'
-            自身.切换菜单()#翻转
-            自身.渲染()#重画
-        def 选定(标识):
-            '写入该语言；菜单随后用 onClose 重画'
-            自身.选定(标识)#写入并关闭
-        def 关闭():
-            '收起菜单并重画'
-            自身.打开=False#关闭
-            自身.渲染()#重画
-        with 自身.根:#行内
-            if isinstance(自身.画面失败,str) and 自身.画面失败!='':
-                界面.label(自身.画面失败)
-            with 界面.element('div').classes('语言文'):#标题列
-                界面.label(视['title']).classes('语言标题')#标题
-            锚=语言选择锚(视['activeLabel'],自身.打开 is True,点锚)#药丸；菜单来画
-            菜单({#语言菜单
-                'open':自身.打开 is True,#开合
-                'onClose':关闭,#关闭
-                'items':条目,#选项
-                'selectedId':视['active'],#当前
-                'onSelect':选定,#写入
-                'align':'end',#靠右
-                'anchor':锚,#药丸
-            }).渲染()#父组件调用渲染
-        return 自身.根#行
-
-    def __call__(自身,属性=None):
-        '对齐 React 组件调用'
-        if 属性 is not None:#有新 props
-            自身.更新(属性)#刷新
-        return 自身.渲染()#渲染
+        '标题固定为语言。当前名称和选项来自语言行仓库'
+        if 自身.绘制中:
+            自身.待重画=True
+            return 自身.根
+        自身.绘制中=True
+        try:
+            属性=自身.属性
+            窗口=属性.get('window')
+            if 窗口 is None:
+                窗口=取握手窗口()
+            文档=窗口.document
+            注入模块样式文件(文档,'dsh-locale-language-row',样式路径,样式模块)
+            def 选当前(状态):
+                '当前语言 id'
+                return 状态['active']
+            def 选选项(状态):
+                '可选语言'
+                return 状态['options']
+            当前=属性['useStore'](选当前)
+            选项=属性['useStore'](选选项)
+            标签=当前
+            for 项 in 选项:
+                if 项['id']==当前:
+                    if 项.get('label') is not None:
+                        标签=项['label']
+                    break
+            if 自身.根 is None:
+                自身.根=模块节点(文档,'div',样式模块,'row')
+                文区=模块节点(文档,'div',样式模块,'rowText')
+                题=模块节点(文档,'div',样式模块,'title')
+                题.textContent='语言'
+                文区.appendChild(题)
+                自身.根.appendChild(文区)
+                自身.按钮=模块节点(文档,'button',样式模块,'selector')
+                自身.按钮.setAttribute('type','button')
+                自身.按钮.setAttribute('aria-haspopup','menu')
+                自身.按钮.addEventListener('click',自身.切换)
+            自身.按钮.setAttribute('aria-expanded','true' if 自身.打开 else 'false')
+            while 自身.按钮.firstChild is not None:
+                自身.按钮.removeChild(自身.按钮.firstChild)
+            自身.按钮.appendChild(文档.createTextNode(标签))
+            图=图标下箭头描边常规({
+                'window':窗口,
+                'className':'chevron',
+            })
+            标样式模块(图,样式模块)
+            自身.按钮.appendChild(图)
+            菜单属性={
+                'window':窗口,
+                'open':自身.打开,
+                'onClose':自身.关闭,
+                'items':[{'id':项['id'],'label':项['label']} for 项 in 选项],
+                'selectedId':当前,
+                'onSelect':自身.选定,
+                'align':'end',
+                'portal':True,
+                'anchor':自身.按钮,
+                'parent':自身.根,
+            }
+            if 自身.菜单 is None:
+                自身.菜单=菜单(菜单属性)
+            else:
+                自身.菜单.更新(菜单属性)
+            自身.菜单.渲染()
+            if 自身.已订 is False:
+                自身.已订=True
+                def 变更():
+                    '仓库变了就重画。行已经不在页面上就退订'
+                    if 自身.绘制中:
+                        自身.待重画=True
+                        return
+                    if 自身.根 is None or 自身.根.parentNode is None:
+                        自身.拆除()
+                        return
+                    自身.渲染()
+                退=属性['useStore']._subscribe(变更)
+                if callable(退):
+                    自身.退订.append(退)
+        finally:
+            自身.绘制中=False
+        if 自身.待重画:
+            自身.待重画=False
+            return 自身.渲染()
+        return 自身.根

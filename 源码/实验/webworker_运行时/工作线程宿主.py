@@ -27,7 +27,7 @@ def 要求全局端口(通道):
         发送(消息,转移)
     return {'postMessage':包装发送}
 
-def 读镜像(镜像):
+def 读取镜像(镜像):
     '读取镜像字节：内存则解压，URL 则拉取后流式解压'
     if not isinstance(镜像,str):
         return 解压镜像(镜像,'the image bytes given to createWorkerHost')
@@ -96,7 +96,7 @@ def 启动补丁(加载器,文件系统,配置路径,根):
         补丁列表.append({'id':'session-persistence-jsonl','config':{**取配置(jsonl),'compression':'none'}})
     return {'patches':补丁列表,'presetOverlay':预设覆盖}
 
-def 读boot载荷(上下文):
+def 读取boot载荷(上下文):
     '组装页面 Cordis 前引导所需的载荷'
     web服务器=上下文['get']('webServer')
     if web服务器 is None:
@@ -136,10 +136,10 @@ def 创建工作线程宿主(选项):
     def 启动():
         '挂载镜像并启动树'
         try:
-            字节=读镜像(选项['image'])
+            字节=读取镜像(选项['image'])
             if 'overlays' not in 选项: 覆盖源=[]#??空列表，空 overlays 合法
             else: 覆盖源=选项['overlays']
-            覆盖层列表=[读镜像(层) for 层 in 覆盖源]
+            覆盖层列表=[读取镜像(层) for 层 in 覆盖源]
             已挂=加载vfs镜像(字节,根)
             for 覆盖 in 覆盖层列表:
                 加载vfs覆盖层(覆盖,根,已挂)
@@ -179,7 +179,7 @@ def 创建工作线程宿主(选项):
                 '读 boot 载荷；无上下文则空依赖表'
                 if 状态['context'] is None:
                     return {'injections':[]}
-                return 读boot载荷(状态['context'])
+                return 读取boot载荷(状态['context'])
             def 开流(端点,载荷,信号):
                 '树未接线时空迭代'
                 return iter(())

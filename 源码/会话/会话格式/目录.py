@@ -69,7 +69,7 @@ class 已编译会话格式目录:#已编译目录
             raise 会话格式错误(f'Session format codec v{无效} is newer than current v{自身.当前版本}')#错误
         自身.编解码器表=编解码器映射#记下映射
 
-    def 读头(自身,头值):#读头
+    def 读取头(自身,头值):#读取头
         '不读事件行地分类并翻译一头'
         已存版本=None#已存版本
         try:#尝试检查版本
@@ -166,9 +166,9 @@ class 已编译会话格式目录:#已编译目录
     def currentVersion(自身):#当代版本
         '当代版本'
         return 自身.当前版本#返回
-    def readHeader(自身,头值):#读头
+    def readHeader(自身,头值):#读取头
         '不读事件行地分类并翻译一头'
-        return 自身.读头(头值)#委托
+        return 自身.读取头(头值)#委托
     def createRestore(自身,头值,恢复选项):#创建恢复
         '创建一次单遍物理行恢复为当代逻辑事件'
         return 自身.创建恢复(头值,恢复选项)#委托

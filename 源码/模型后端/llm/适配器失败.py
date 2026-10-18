@@ -1,6 +1,6 @@
 '最终 LLM 适配器边界所抛值的归一化'
 import math#有限数判定
-from .异常 import 装备错误#导入装备错误基类
+from .异常 import harness错误#导入harness错误基类
 from .调用配置 import 深冻结#导入深冻结
 
 __all__=('归一化语言模型失败',)#仅中文公开名
@@ -10,11 +10,11 @@ def 归一化语言模型失败(值):#从适配器抛出拆下失败事实
     if isinstance(值,Exception):#已是异常
         错误=值#原样使用
     else:#非 Error
-        错误=装备错误(抛出消息(值),'UNKNOWN',{'cause':值})#非 Error 则包一层
+        错误=harness错误(抛出消息(值),'UNKNOWN',{'cause':值})#非 Error 则包一层
     携带=自有失败快照(错误)#尝试取出自有 failure 快照
     if 携带 is not None and 携带['code']==自有错误码(错误):#code 一致
         return 携带#code 一致才采用
-    事实={'message':错误消息(错误),'code':装备错误码(错误)}#从 Error 自身拼一份
+    事实={'message':错误消息(错误),'code':harness错误码(错误)}#从 Error 自身拼一份
     return 深冻结(事实)#冻结事实
 
 def 抛出消息(值):#渲染非 Error 抛出
@@ -95,8 +95,8 @@ def 错误消息(错误):#读取 SDK 错误消息
         pass#吞掉 SDK message getter
     return 'LLM adapter failed'#读不到则用默认文案
 
-def 装备错误码(错误):#只信任装备自有 code
-    '只信任装备自有 code；第三方 SDK 的 code 不是我们的分类'
-    if isinstance(错误,装备错误):#装备错误
+def harness错误码(错误):#只信任harness自有 code
+    '只信任harness自有 code；第三方 SDK 的 code 不是我们的分类'
+    if isinstance(错误,harness错误):#harness错误
         return 错误.code#装备分类码
     return 'UNKNOWN'#非装备则 UNKNOWN

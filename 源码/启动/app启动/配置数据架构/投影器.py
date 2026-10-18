@@ -157,7 +157,7 @@ def 校验易变放置(节点,路径,阻塞=False,已见=None):
         for 下标,子 in enumerate(列表):
             校验易变放置(子,路径+'/'+str(下标),True,已见)
 
-def 取(节点,名,缺省=None):
+def 取值(节点,名,缺省=None):
     '对象或 dict 取值'
     if isinstance(节点,dict):
         return 节点.get(名,缺省)
@@ -281,26 +281,26 @@ def 创建配置投影器():
                 if 名 is None:
                     名=前缀+'Recursive'+str(len(递归名))
                     递归名[键]=名
-                元=取(节点,'meta') or {}
-                类型=取(节点,'type')
+                元=取值(节点,'meta') or {}
+                类型=取值(节点,'type')
                 return {
                     'schema':{'$ref':'#/$defs/'+名},
                     'acceptsMissing':False if 类型!='lazy' and 元.get('required') else 'unknown',
                     'exact':True,'recursive':True,'effectful':True,'mutating':True,
                 }
             活动.add(键)
-            类型=取(节点,'type')
-            元=dict(取(节点,'meta') or {})
+            类型=取值(节点,'type')
+            元=dict(取值(节点,'meta') or {})
             if 类型=='lazy':
                 内部=节点
-                元值=dict(取(节点,'meta') or {})
+                元值=dict(取值(节点,'meta') or {})
                 if 元值.get('volatile'):
                     元值=dict(元值)
                     元值['volatile']=False
                 链=set()
                 松投影=None
-                while 取(内部,'type')=='lazy':
-                    缓存内部=是否原生配置数据架构(取(内部,'inner'))
+                while 取值(内部,'type')=='lazy':
+                    缓存内部=是否原生配置数据架构(取值(内部,'inner'))
                     if 元值.get('loose'):
                         消息=记限制(路径,'lazy loose fallback can accept inputs rejected by its inner schema')
                         if not 缓存内部:
@@ -314,14 +314,14 @@ def 创建配置投影器():
                     if 身份 in 链:
                         raise 启动错误(路径+': lazy cycle has no concrete schema')
                     链.add(身份)
-                    下一=取(内部,'inner') if 缓存内部 else 构建结果.get(id(内部))
-                    构建器=取(内部,'builder')
+                    下一=取值(内部,'inner') if 缓存内部 else 构建结果.get(id(内部))
+                    构建器=取值(内部,'builder')
                     if 下一 is None and callable(构建器):
                         下一=构建器()
                         构建结果[id(内部)]=下一
                     if not 是否原生配置数据架构(下一):
                         raise 启动错误(路径+': lazy schema has no native builder result or resolved inner schema')
-                    下一元=取(下一,'meta') or {}
+                    下一元=取值(下一,'meta') or {}
                     if not 缓存内部:
                         for 字段 in ('required','default','min','max','step','pattern','loose','volatile'):
                             if 字段 in 元值 and 字段 not in 下一元:
@@ -334,8 +334,8 @@ def 创建配置投影器():
                     合并['meta']=元值
                     校验易变放置(合并,路径+'/lazy',True)
                     内部=下一
-                投影结果=松投影 if 松投影 is not None else 访问(内部 if 取(内部,'meta')==元值 else _带元(内部,元值),路径+'/lazy',严格)
-                if (取(节点,'meta') or {}).get('volatile'):
+                投影结果=松投影 if 松投影 is not None else 访问(内部 if 取值(内部,'meta')==元值 else _带元(内部,元值),路径+'/lazy',严格)
+                if (取值(节点,'meta') or {}).get('volatile'):
                     模式=dict(投影结果['schema'])
                     扩展=dict(模式.get('x-cordis') or {})
                     扩展['volatile']=True
@@ -382,7 +382,7 @@ def 创建配置投影器():
                         def 对象比较():
                             '对象常量比较限制'
                             输入限制消息('object constant inherited-member comparison requires native validation')
-                        核心=False if 取(节点,'value') is None else 常量(json值(取(节点,'value'),True),对象比较)
+                        核心=False if 取值(节点,'value') is None else 常量(json值(取值(节点,'value'),True),对象比较)
                     except Exception as 错误:
                         核心=True
                         输入限制消息('constant constraint requires native validation: '+str(错误))
@@ -427,7 +427,7 @@ def 创建配置投影器():
                         else:
                             核心['multipleOf']=步
                 elif 类型=='object':
-                    字典=取(节点,'dict') or {}
+                    字典=取值(节点,'dict') or {}
                     必需=[]
                     属性={}
                     for 键,字段值 in 字典.items():
@@ -439,10 +439,10 @@ def 创建配置投影器():
                     if len(必需)>0:
                         核心['required']=必需
                 elif 类型=='array':
-                    项=子(取(节点,'inner'),'items')
+                    项=子(取值(节点,'inner'),'items')
                     核心={'type':'array','items':项['schema']}
-                    内部=取(节点,'inner')
-                    内部元=取(内部,'meta') or {} if 内部 is not None else {}
+                    内部=取值(节点,'inner')
+                    内部元=取值(内部,'meta') or {} if 内部 is not None else {}
                     if 元.get('min') is not None and 内部元.get('default') is None:
                         核心['minItems']=max(0,int(math.ceil(元['min'])))
                     if 元.get('max') is not None:
@@ -451,13 +451,13 @@ def 创建配置投影器():
                         else:
                             核心['maxItems']=int(math.floor(元['max']))
                 elif 类型=='dict':
-                    值模式=子(取(节点,'inner'),'values')['schema']
+                    值模式=子(取值(节点,'inner'),'values')['schema']
                     核心={'type':'object','additionalProperties':值模式}
-                    键节点=取(节点,'sKey')
+                    键节点=取值(节点,'sKey')
                     if 键节点 is not None:
                         键=子(键节点,'keys')
-                        键元=取(键节点,'meta') or {}
-                        全串=取(键节点,'type')=='string' and 键元.get('min') is None and 键元.get('max') is None and 键元.get('pattern') is None
+                        键元=取值(键节点,'meta') or {}
+                        全串=取值(键节点,'type')=='string' and 键元.get('min') is None and 键元.get('max') is None and 键元.get('pattern') is None
                         if not 全串 and (严格 or 键['effectful']):
                             字典校验={'keySchema':键['schema'],'valueSchema':值模式}
                             核心={'type':'object'}
@@ -465,7 +465,7 @@ def 创建配置投影器():
                         else:
                             核心['propertyNames']=键['schema']
                 elif 类型=='tuple':
-                    列表=取(节点,'list')
+                    列表=取值(节点,'list')
                     if 列表 is None:
                         raise 启动错误(路径+': tuple schema is missing its list')
                     值表=[子(项,str(下标)) for 下标,项 in enumerate(列表)]
@@ -479,7 +479,7 @@ def 创建配置投影器():
                     if 最小:
                         核心['minItems']=最小
                 elif 类型=='union':
-                    列表=取(节点,'list')
+                    列表=取值(节点,'list')
                     if 列表 is None:
                         raise 启动错误(路径+': union schema is missing its list')
                     变体=[子(项,str(下标),严格) for 下标,项 in enumerate(列表)]
@@ -489,7 +489,7 @@ def 创建配置投影器():
                     else:
                         核心={'anyOf':[项['schema'] for 项 in 变体]} if len(变体)>0 else False
                 elif 类型=='transform':
-                    核心=子(取(节点,'inner'),'input',True)['schema']
+                    核心=子(取值(节点,'inner'),'input',True)['schema']
                     输入限制消息('transform callback validation and normalization are not executed or projected')
                 else:
                     核心=True

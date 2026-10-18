@@ -1,21 +1,18 @@
-import base64
-from nicegui import ui as 界面
-from .....基础设施.通用工具 import 路径转正斜杠
-from ..加载指示器 import 加载状态
-from ..缩放.控件 import 缩放控件
-from ..缩放.类型 import 适应宽度
-from ..远程过程调用 import 宿主文件#宿主文件
+from ....模块.客户端.通告 import 取握手窗口
+import os
+from .....工具.工作区路径 import 路径展示拆分
+from ....ui_对话.异常 import 注入模块样式文件,模块节点
+from ..文案 import 套入
+from ..加载指示器 import 加载指示器
+from ..远程过程调用 import 宿主文件
+from ..缩放.视口 import 缩放视口,缩放表面类名
+from ..缩放.存储 import 默认缩放
+from .文案 import 中文
 
-__all__=['图像媒体类型','图像体','图像面板','图像扩展名','样式表']
-样式表='''
-.frame{display:flex;box-sizing:border-box;width:100%;min-width:100%;height:max-content;min-height:100%;padding:12px;white-space:normal}
-.surface{display:block;flex:none;margin:auto}
-.image{display:block;width:100%;height:auto;border-radius:var(--dsw-radius-md);user-select:none}
-.status{display:flex;align-items:center;justify-content:center;width:100%;min-height:100%;padding:10px;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.5}
-'''
-界面.add_css(样式表,shared=True)
+__all__=['图像体','已载图片','图像媒体类型']
 
-_图像媒体类型={#后缀 → MIME
+样式模块='image-body'
+图像媒体={
     'png':'image/png',
     'jpg':'image/jpeg',
     'jpeg':'image/jpeg',
@@ -24,100 +21,196 @@ _图像媒体类型={#后缀 → MIME
     'bmp':'image/bmp',
     'ico':'image/x-icon',
     'svg':'image/svg+xml',
-}#媒体类型结束
-
-图像扩展名=tuple(_图像媒体类型.keys())#后缀
-
+}
 
 def 图像媒体类型(路径):
-    '把受支持文件名解析为媒体类型；未登记后缀为 None'
-    归一=路径转正斜杠(路径)#归一
-    名=归一[归一.rfind('/')+1:].lower()#文件名
-    点=名.rfind('.')#末点
-    if 点<0:#无扩展
-        return None#无
-    扩展=名[点+1:]#后缀
-    return _图像媒体类型[扩展] if 扩展 in _图像媒体类型 else None#类型
+    '按文件名后缀取 Blob 媒体类型。没登记的后缀没有'
+    规范=路径.replace('\\','/')
+    名=规范[规范.rfind('/')+1:].lower()
+    扩展=名[名.rfind('.')+1:]
+    return 图像媒体[扩展] if 扩展 in 图像媒体 else None
 
-
-def 图像体(内容,资源地址,翻译):
-    '产出固有尺寸图片结构'
-    路径=宿主文件(资源地址)['path']#路径
-    媒体=图像媒体类型(路径)#媒体类型
-    数据=内容['data'] if 内容.get('kind')=='bytes' else None#字节
-    if 数据 is None or 媒体 is None:#不支持
-        return {'kind':'image-status','status':'unsupported','message':翻译('unsupported')}#状态
-    名=路径转正斜杠(路径)#归一
-    名=名[名.rfind('/')+1:]#文件名
-    return {#结构
-        'kind':'image-body',
-        'mediaType':媒体,
-        'data':数据,
-        'alt':翻译('preview',{'name':名}),
-        'loading':翻译('loading'),
-        'failed':翻译('failed'),
-    }#结束
-
-
-def _键齐(属性):
-    '内容、地址和文案都在才画'
-    return isinstance(属性,dict) and 'content' in 属性 and 'resourceAddress' in 属性 and 't' in 属性
-
-class 图像面板:
-    '完整图片与缩放工具'
-
-    def __init__(自身,属性):
-        '记下文档席 props。槽位只调用构造，键齐了才画'
+class 已载图片:
+    '图加载完才量固有宽度。SVG 只进 img 的 Blob 地址'
+    def __init__(自身,属性=None):
+        '记下地址和缩放'
         自身.属性=属性 if isinstance(属性,dict) else {}
-        if _键齐(自身.属性):
+        自身.根=None
+        自身.态='loading'
+        自身.宽=None
+        if 'window' in 自身.属性:
             自身.渲染()
 
+    def 更新(自身,属性):
+        '换成新的 props'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
     def 渲染(自身):
-        '不支持、失败或图片本身'
+        '缩放视口里放图片。失败或加载中换说明'
+        if 自身.根 is not None:
+            自身.根.remove()
         属性=自身.属性
-        if not _键齐(属性):
-            return
-        内容=属性['content']
-        地址=属性['resourceAddress']
-        翻译=属性['t']
-        模型=图像体(内容,地址,翻译)
-        if 模型['kind']=='image-status':
-            界面.label(模型['message']).classes('status').props('role=alert')
-            return
-        数据=模型['data']
-        if isinstance(数据,bytearray):
-            数据=bytes(数据)
-        if not isinstance(数据,bytes):
-            加载状态(模型['loading']).渲染()
-            return
-        源='data:'+模型['mediaType']+';base64,'+base64.b64encode(数据).decode('ascii')
-        取标签=属性['useTabInfo'] if 'useTabInfo' in 属性 else None
-        取存储=属性['useStore'] if 'useStore' in 属性 else None
-        动作=属性['actions'] if 'actions' in 属性 else None
-        偏好=适应宽度
-        标签标识=None
-        if 取标签 is not None:
-            信息=取标签()
-            签=信息['tab'] if isinstance(信息,dict) else 信息.tab
-            标签标识=签['id'] if isinstance(签,dict) else 签.id
-        if 取存储 is not None and 标签标识 is not None:
-            def 选(状态):
-                '本标签的缩放偏好'
-                表=状态['byTab'] if isinstance(状态,dict) and 'byTab' in 状态 else {}
-                return 表[标签标识] if 标签标识 in 表 else 适应宽度
-            取到=取存储(选)
-            if 取到 is not None:
-                偏好=取到
-        def 改偏好(下一):
-            '写入缩放偏好'
-            if 动作 is not None and 'zoom' in 动作 and 标签标识 is not None:
-                动作['zoom'](标签标识,下一)
-        with 界面.column().classes('frame'):
-            缩放控件({'preference':偏好,'t':翻译,'onPreference':改偏好}).渲染()
-            界面.image(源).classes('image').props('alt="'+模型['alt']+'"')
+        窗口=属性['window']
+        文档=窗口.document
+        注入模块样式文件(
+            文档,
+            '图像体样式',
+            os.path.join(os.path.dirname(__file__),'图像体.module.css'),
+            样式模块,
+        )
+        框=模块节点(文档,'div',样式模块,'frame')
+        框.setAttribute('data-image-preview','')
+        if 自身.态=='loading':
+            框.appendChild(加载指示器({'window':窗口,'label':中文['loading']}).渲染())
+        if 自身.态=='failed':
+            失败=模块节点(文档,'p',样式模块,'status')
+            失败.setAttribute('role','alert')
+            失败.textContent=中文['failed']
+            框.appendChild(失败)
+        面=模块节点(文档,'div',样式模块,'surface '+缩放表面类名)
+        面.setAttribute('data-document-zoom-surface','')
+        面.style.setProperty('--document-zoom-width',str(自身.宽 or 0)+'px')
+        if 自身.态!='ready':
+            面.hidden=True
+        图=模块节点(文档,'img',样式模块,'image')
+        图.src=属性['url']
+        图.alt=套入(中文['preview'],{'name':属性['name']})
+        图.setAttribute('decoding','async')
+        图.draggable=False
+        图.setAttribute('referrerpolicy','no-referrer')
+        def 载好(事件):
+            '记下固有宽度'
+            自身.宽=事件.currentTarget.naturalWidth
+            自身.态='ready'
+            自身.渲染()
+        def 出错(事件):
+            '图片解码失败'
+            自身.态='failed'
+            自身.渲染()
+        图.addEventListener('load',载好)
+        图.addEventListener('error',出错)
+        面.appendChild(图)
+        框.appendChild(面)
+        视口=缩放视口({
+            'window':窗口,
+            'preference':属性['preference'],
+            'intrinsicWidth':自身.宽,
+            'horizontalInset':24,
+            'labels':属性['labels'],
+            'signal':属性['signal'],
+            'scrollportRef':属性['scrollportRef'],
+            'onPreference':属性['onPreference'],
+            'children':框,
+        })
+        自身.根=视口.渲染()
+        if 'parent' in 属性 and 属性['parent'] is not None:
+            属性['parent'].appendChild(自身.根)
+        return 自身.根
 
     def __call__(自身,属性=None):
-        '对齐组件调用'
+        '再次调用时先换 props 再画'
         if 属性 is not None:
-            自身.属性=属性 if isinstance(属性,dict) else {}
+            自身.更新(属性)
         return 自身.渲染()
+
+class 图像体:
+    '完整图片字节。适应宽度或固定比例'
+    def __init__(自身,属性=None):
+        '记下文档 props'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        自身.地址=None
+        自身.源=None
+        if 'window' in 自身.属性 and 'content' in 自身.属性:
+            自身.渲染()
+
+    def 更新(自身,属性):
+        '换成新的 props'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '字节变成 Blob 地址后再画。类型不对就说明无法预览'
+        if 自身.根 is not None:
+            自身.根.remove()
+            自身.根=None
+        属性=自身.属性
+        窗口=属性['window'] if 'window' in 属性 else 取握手窗口()
+        文档=窗口.document
+        注入模块样式文件(
+            文档,
+            '图像体样式',
+            os.path.join(os.path.dirname(__file__),'图像体.module.css'),
+            样式模块,
+        )
+        内容=属性['content']
+        信息=属性['useTabInfo']()
+        签=信息['tab']
+        if 'retainTab' in 属性:
+            属性['retainTab'](签['id'],签['signal'])
+        def 取偏好(快照):
+            '这一标签的缩放。没有则适应宽度'
+            按=快照['byTab'] if isinstance(快照,dict) else {}
+            return 按[签['id']] if 签['id'] in 按 else 默认缩放
+        偏好=属性['useStore'](取偏好) if 'useStore' in 属性 else 默认缩放
+        路径=宿主文件(属性['resourceAddress'])['path']
+        媒体=图像媒体类型(路径)
+        数据=内容['data'] if 内容['kind']=='bytes' else None
+        if 数据 is None or 媒体 is None:
+            行=模块节点(文档,'p',样式模块,'status')
+            行.setAttribute('role','alert')
+            行.textContent=中文['unsupported']
+            自身.根=行
+        else:
+            if 自身.源 is None or 自身.源.get('data') is not 数据 or 自身.源.get('mediaType')!=媒体:
+                if 自身.地址 is not None and hasattr(窗口,'URL'):
+                    窗口.URL.revokeObjectURL(自身.地址)
+                    自身.地址=None
+                try:
+                    块=窗口.Blob([数据],{'type':媒体})
+                    自身.地址=窗口.URL.createObjectURL(块)
+                    自身.源={'kind':'ready','data':数据,'mediaType':媒体,'url':自身.地址}
+                except Exception:
+                    自身.源={'kind':'failed','data':数据,'mediaType':媒体}
+            if 自身.源.get('kind')=='failed':
+                行=模块节点(文档,'p',样式模块,'status')
+                行.setAttribute('role','alert')
+                行.textContent=中文['failed']
+                自身.根=行
+            elif 自身.源.get('data') is not 数据:
+                自身.根=加载指示器({'window':窗口,'label':中文['loading']}).渲染()
+            else:
+                名=路径展示拆分(路径)['name']
+                def 改偏好(值):
+                    '写下缩放偏好'
+                    属性['actions']['zoom'](签['id'],值)
+                标签={
+                    'controls':中文['zoomControls'],
+                    'menu':中文['zoomMenu'],
+                    'out':中文['zoomOut'],
+                    'into':中文['zoomIn'],
+                    'fitWidth':中文['zoomFitWidth'],
+                    'value':值文,
+                }
+                自身.根=已载图片({
+                    'window':窗口,
+                    'url':自身.源['url'],
+                    'name':名,
+                    'preference':偏好,
+                    'onPreference':改偏好,
+                    'labels':标签,
+                    'signal':签['signal'],
+                    'scrollportRef':属性.get('scrollportRef'),
+                }).渲染()
+        if 'parent' in 属性 and 属性['parent'] is not None and 自身.根 is not None:
+            属性['parent'].appendChild(自身.根)
+        return 自身.根
+
+    def __call__(自身,属性=None):
+        '再次调用时先换 props 再画'
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()
+
+def 值文(百分比):
+    '缩放百分比文案'
+    return 套入(中文['zoomValue'],{'percent':百分比})

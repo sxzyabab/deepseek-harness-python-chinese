@@ -1,9 +1,12 @@
 {
-    "PluginManagerPage":"插件装载页",
-    "PluginsPanelIcon":"插件面板图标",
-    "config-ledger":"配置账本",
-    "locales":"文案",
-    "manager-store":"装载存储",
-    "presentation":"呈现",
-    "slot-contract":"槽位约定"
+    "PluginManagerPage": "插件装载页",
+    "PluginRefreshToast": "插件刷新浮动提示",
+    "PluginsPanelIcon": "插件面板图标",
+    "assets": "静态资产",
+    "config-ledger": "配置账本",
+    "locales": "文案",
+    "manager-store": "装载存储",
+    "presentation": "呈现",
+    "sanitize-install-input": "净化安装输入",
+    "slot-contract": "槽位约定"
 }

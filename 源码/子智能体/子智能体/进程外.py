@@ -10,7 +10,7 @@ from .异常 import 子智能体错误#缝内失败
     'persona':False,#不支持人设
 }#NO_START_CAPABILITIES结束
 
-class 跑结果结算(TypedDict):#settleRunResult 的输入
+class 运行结果结算(TypedDict):#settleRunResult 的输入
     attempt:object#回合尝试；返回终态结果
     collectOutput:object#取消或失败赢得结算时提供方暴露的快照
     cancelled:object#本地取消是否在观察到尝试结局之前已结算

@@ -161,7 +161,7 @@ def 创建Linux启动文件(请求):#创建 Linux 启动文件
         清理Linux启动文件(文件)#清理
         raise#重抛
 
-def 读Linux启动错误(路径):#读启动错误
+def 读取Linux启动错误(路径):#读启动错误
     '若引导发布了预 exec 错误则读取'
     if not os.path.exists(路径):#不存在
         return None#未发布
@@ -306,7 +306,7 @@ class Linux范围启动:#scope 启动结算
 
     def 结算结局(自身,结局):#结算结局
         '读启动错误；请求未消费且非已请求终止则抛'
-        启动=读Linux启动错误(自身.文件['startupErrorPath'])#启动错误
+        启动=读取Linux启动错误(自身.文件['startupErrorPath'])#启动错误
         if 启动 is not None:#引导失败
             raise 反序列化Runner错误(启动['error'])#引导失败
         信号=结局['signal'] if 'signal' in 结局 else None#信号
@@ -332,13 +332,13 @@ class 直接范围:#直接范围
 
 class Systemd范围所有者:#systemd scope 所有者
     '终止与整范围结算使用的平台所有者'
-    def __init__(自身,单元,启动,直接,systemctl路径,同步跑回调,查询,睡眠):#构造
+    def __init__(自身,单元,启动,直接,systemctl路径,同步运行回调,查询,睡眠):#构造
         '记下单元、启动结算、直接范围与 systemd 缝'
         自身.单元=单元#单元名
         自身.启动=启动#启动结算
         自身.直接=直接#直接范围
         自身.systemctl=systemctl路径#systemctl
-        自身.同步跑=同步跑回调#同步跑
+        自身.同步运行=同步运行回调#同步跑
         自身.查询=查询#查询
         自身.睡眠=睡眠#睡眠
         自身.建立='pending'#建立状态
@@ -354,7 +354,7 @@ class Systemd范围所有者:#systemd scope 所有者
 
     def 检查任务数(自身):#TasksCurrent
         '统计原生范围内的任务数；不可观察则为 None'
-        完成=自身.同步跑([自身.systemctl,'--user','show','--property=LoadState','--property=ActiveState','--property=TasksCurrent',自身.单元],capture_output=True,text=True,encoding='utf-8',env=管理器环境(),timeout=systemctl超时毫秒/1000)#show
+        完成=自身.同步运行([自身.systemctl,'--user','show','--property=LoadState','--property=ActiveState','--property=TasksCurrent',自身.单元],capture_output=True,text=True,encoding='utf-8',env=管理器环境(),timeout=systemctl超时毫秒/1000)#show
         if 完成.returncode!=0 or not isinstance(完成.stdout,str):#不可观察
             return None#无
         状态=自身.解析单元状态(完成.stdout)#解析
@@ -375,7 +375,7 @@ class Systemd范围所有者:#systemd scope 所有者
         if 需直接回退 and 自身.直接.是否在运行():#直接发
             直接已投递=自身.直接.发信号(信号)#直接发
         try:#systemctl kill
-            完成=自身.同步跑([自身.systemctl,'--user','kill','--kill-whom=all',f'--signal={信号}',自身.单元],capture_output=True,text=True,encoding='utf-8',env=管理器环境(),timeout=systemctl超时毫秒/1000)#选项
+            完成=自身.同步运行([自身.systemctl,'--user','kill','--kill-whom=all',f'--signal={信号}',自身.单元],capture_output=True,text=True,encoding='utf-8',env=管理器环境(),timeout=systemctl超时毫秒/1000)#选项
             码=完成.returncode#状态
             错误=None#派生未失败
             出=完成.stdout#stdout
@@ -409,7 +409,7 @@ class Systemd范围所有者:#systemd scope 所有者
         except (本地子进程错误,OSError):#吞
             pass#继续原生所有者
         try:#systemctl 杀
-            自身.同步跑([自身.systemctl,'--user','kill','--kill-whom=all','--signal=SIGKILL',自身.单元],env=管理器环境(),stdout=DEVNULL,stderr=DEVNULL,timeout=systemctl超时毫秒/1000)#kill
+            自身.同步运行([自身.systemctl,'--user','kill','--kill-whom=all','--signal=SIGKILL',自身.单元],env=管理器环境(),stdout=DEVNULL,stderr=DEVNULL,timeout=systemctl超时毫秒/1000)#kill
         except OSError:#失败
             pass#宿主退出不能报告单个范围
 
@@ -436,7 +436,7 @@ class Systemd范围所有者:#systemd scope 所有者
     def 释放空范围(自身):#释放空范围
         '释放残留空 scope'
         try:#停单元
-            自身.同步跑([自身.systemctl,'--user','stop',自身.单元],env=管理器环境(),stdout=DEVNULL,stderr=DEVNULL,timeout=systemctl超时毫秒/1000)#stop
+            自身.同步运行([自身.systemctl,'--user','stop',自身.单元],env=管理器环境(),stdout=DEVNULL,stderr=DEVNULL,timeout=systemctl超时毫秒/1000)#stop
         except OSError:#失败
             pass#清理失败只留下瞬态单元
 

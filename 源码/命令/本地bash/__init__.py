@@ -2,7 +2,7 @@
 import os,math#工作目录与有限数
 from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
-from ..命令 import 外壳设置命名空间,外壳执行器#shell 设置命名空间与执行器基类
+from ..命令 import 命令解释器设置命名空间,命令解释器执行器#shell 设置命名空间与执行器基类
 from ...配置.配置 import 安装设置段#设置段安装
 from ...工具.超时 import (
     夹取超时,#夹取超时
@@ -71,7 +71,7 @@ def 取出已收集(句柄):#取出收集模式的两路读取器
         raise 本地bash错误('bash-local: subprocess implementation dropped a requested collect stream')#按约定这两路必须在
     return {'stdout':标准输出,'stderr':标准误}#两路读取器
 
-class 后台进程句柄:#外壳执行器.启动 返回的后台进程
+class 后台进程句柄:#命令解释器执行器.启动 返回的后台进程
     def __init__(自身,运行中,收集,规格,宿主,分类函数):#钉住子进程与收集器
         '记下存活子进程、两路收集器、规格与宿主执行器'
         自身.status='running'#刚拉起，算在跑
@@ -196,7 +196,7 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
             拆除截止()#释放定时器
         自身.运行中.done.然后(已退出,启动拒绝)#等到关闭
 
-class 本地Bash执行器(外壳执行器):#本地 bash 执行器
+class 本地Bash执行器(命令解释器执行器):#本地 bash 执行器
     """架在子进程能力上的本地 bash 执行器。
 
     有界输出、溢出文件和进程组 SIGTERM→SIGKILL 升级是子进程服务的机制；
@@ -219,7 +219,7 @@ class 本地Bash执行器(外壳执行器):#本地 bash 执行器
         def 变更时():#每个字段都在每条命令经 getter 读取
             '文档变化时没有从源派生、需要重建的东西'
             return#空变更钩子
-        安装设置段(上下文,外壳设置命名空间,配置模式,配置,{
+        安装设置段(上下文,命令解释器设置命名空间,配置模式,配置,{
             'validate':断言可用Bash配置,#写入时再断言能跑
             'setSource':设源,#切换权威配置源
             'onChange':变更时,#空变更钩子

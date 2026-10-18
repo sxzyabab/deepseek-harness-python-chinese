@@ -7,5 +7,6 @@
     "workspace-controller":"工作区控制器",
     "workspace-files":"工作区文件",
     "account-controller":"账号控制器",
-    "job-controller":"后台任务控制器"
+    "job-controller":"后台任务控制器",
+    "remote-access":"远程访问"
 }

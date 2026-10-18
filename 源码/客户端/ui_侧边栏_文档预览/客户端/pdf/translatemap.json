@@ -5,6 +5,7 @@
     "locales":"文案",
     "pdf":"pdf体",
     "LazyPdfBody":"懒加载pdf体",
+    "PdfBody.module":"pdf体.module",
     "errors":"错误",
     "assets":"资源",
     "runtime":"运行时"

@@ -2,7 +2,7 @@ from .......基础设施.js特性 import PromiseEX as 期约扩展#后端方法�
 from .....异常 import 检查器错误#包内错误
 from .....共享.校验 import 精确键,可选布尔#校验
 from ...协议 import 响应cdp请求,发送cdp失败#协议
-from .cdp参数 import 解析调用帧求值,取请求脚本id#参数解析
+from .cdp参数 import 解析调用帧求值,获取请求脚本id#参数解析
 from .投影器 import 调试器事件,脚本已解析事件#投影
 from .脚本注册表 import 调试器脚本注册表#脚本注册表
 import re#按行搜索
@@ -51,8 +51,8 @@ class Debugger域会话:#Debugger域会话
             return True#已拥有
         if 方法=='Debugger.getScriptSource':#取源
             def 取源():#取源体
-                '取脚本来源'
-                return 自身._取脚本来源(请求['params'])#取源
+                '获取脚本来源'
+                return 自身._获取脚本来源(请求['params'])#取源
             自身._响应(请求,取源)#响应
             return True#已拥有
         if 方法=='Debugger.searchInContent':#搜索
@@ -137,7 +137,7 @@ class Debugger域会话:#Debugger域会话
         自身.运行时.释放投影组('backtrace')#释回溯
         return 期约扩展.全部([_能力(领域.debugger)['backend'].禁用() for 领域 in 自身.realms.全部() if _能力(领域.debugger)['state']=='supported']).然后(合并结果)#全部禁用后合并
 
-    def _取脚本来源(自身,参数):#取脚本来源
+    def _获取脚本来源(自身,参数):#获取脚本来源
         'Debugger.getScriptSource，返回期约'
         精确键(参数,['scriptId'],'Debugger.getScriptSource 参数')#键
         if not isinstance(参数.get('scriptId'),str):#类型
@@ -147,7 +147,7 @@ class Debugger域会话:#Debugger域会话
             def 包装源(源):#源读完后调用
                 '包装成 CDP 结果'
                 return {'scriptSource':源}#本地
-            return 路由['source'].取脚本来源(路由['script']['scriptKey']).然后(包装源)#读完再包装
+            return 路由['source'].获取脚本来源(路由['script']['scriptKey']).然后(包装源)#读完再包装
         if 自身._脚本.曾不支持(参数['scriptId']) or 参数['scriptId'].startswith('client:'):#Client失效
             raise 检查器错误('Client 脚本已不可用')#抛错
         return 自身._原生.请求('Debugger.getScriptSource',参数)#原生
@@ -169,7 +169,7 @@ class Debugger域会话:#Debugger域会话
         def 搜索源(源):#源读完后调用
             '按行搜索并包装成 CDP 结果'
             return {'result':按行搜索(源,参数['query'],参数.get('caseSensitive') is True,参数.get('isRegex') is True)}#结果
-        return 路由['source'].取脚本来源(路由['script']['scriptKey']).然后(搜索源)#读完再搜索
+        return 路由['source'].获取脚本来源(路由['script']['scriptKey']).然后(搜索源)#读完再搜索
 
     def _帧上求值(自身,参数):#帧上求值
         'Debugger.evaluateOnCallFrame，返回期约'
@@ -218,7 +218,7 @@ class Debugger域会话:#Debugger域会话
 
     def _不支持路由(自身,参数):#不支持路由
         '检查不支持原因'
-        脚本id=取请求脚本id(参数)#脚本id
+        脚本id=获取请求脚本id(参数)#脚本id
         if 脚本id is not None:#有脚本
             路由=自身._脚本.解析(脚本id)#路由
             if 路由 is not None and _能力(路由['realm'].debugger)['state']=='unsupported':#不支持

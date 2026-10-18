@@ -1,34 +1,23 @@
-'任务详情里原会话是否还能打开'
+'原会话能不能打开，以及行上显示的名字'
 
 __all__=['会话链接状态','会话标签']
 
-def 取(对象,键):
-    '字典走键，对象走属性'
-    if isinstance(对象,dict):
-        return 对象[键] if 键 in 对象 else None
-    return getattr(对象,键,None)
-
-def 会话链接状态(标识,会话表,工作区表):
-    '不激活会话，只看列表和归档'
-    if 取(工作区表,'state')=='error':
+def 会话链接状态(标识,会话,工作区):
+    '不激活、不恢复。成员以宿主列表 ids 为准'
+    if 工作区.get('state')=='error':
         return 'unavailable'
-    if 取(会话表,'phase')=='pending' or 取(工作区表,'phase')=='pending':
+    if 会话.get('phase')=='pending' or 工作区.get('phase')=='pending':
         return 'loading'
-    归档=取(工作区表,'archivedSessionIds')
-    if isinstance(归档,(list,tuple)) and 标识 in 归档:
+    if 标识 in 工作区.get('archivedSessionIds',[]):
         return 'archived'
-    标识表=取(会话表,'ids')
-    if not isinstance(标识表,(list,tuple)) or 标识 not in 标识表:
+    if 标识 not in 会话.get('ids',[]):
         return 'unavailable'
     return 'available'
 
-def 会话标签(标识,会话表):
-    '有标题用标题，否则用会话标识'
-    按标识=取(会话表,'byId')
-    行=None
-    if isinstance(按标识,dict) and 标识 in 按标识:
-        行=按标识[标识]
-    标题=取(行,'title')
-    if not isinstance(标题,str) or 标题.strip()=='':
-        return {'text':标识 if isinstance(标识,str) else '','titled':False}
+def 会话标签(标识,会话):
+    '有标题用标题，否则用会话标识，保证不是空串'
+    行=会话.get('byId',{}).get(标识)
+    标题=None if 行 is None else 行.get('title')
+    if 标题 is None or str(标题).strip()=='':
+        return {'text':标识,'titled':False}
     return {'text':标题,'titled':True}

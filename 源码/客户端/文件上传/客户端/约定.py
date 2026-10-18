@@ -1,11 +1,1 @@
-__all__=['文件上传进度字段','文件上传服务协议']#仅中文公开名
-
-文件上传进度字段=('loaded','total')#已消费字节与可选总量
-
-class 文件上传服务协议:#文件上传服务协议锚点
-    '按一个 Session 身份寻址的浏览器上传服务'
-    可用=False#是否可用
-
-    def 上传(自身,会话标识,数据,名=None,信号=None,进度回调=None):#上传并返回结果
-        '为一个 Session 存储一个文件'
-        raise NotImplementedError('FileUploadService.upload')#子类实现
+'浏览器后台文件上传的请求体、进度和服务面。请求体是 Blob 或一次性字节流。进度有 loaded，total 可缺。服务按会话标识上传，Blob 和流走后台载体，精确字节走远程。'

@@ -1,7 +1,7 @@
-from nicegui import ui as 界面
 from .代码文件类型 import 分类代码文件类型,是否代码文件类型#代码分类
 
 __all__=[#仅中文公开名
+    '处理文件类型图标',
     '文件扩展名',
     '分类文件类型',
     '文件类型图标',
@@ -50,11 +50,38 @@ def 分类文件类型(路径,上下文=None):#分类呈现类别
         return _扩展名类型[扩展]#扩展类型
     return 'other'#回落
 
+def 处理文件类型图标(window,属性):
+    '按类别画出文件类型图标。有 parent 就挂上去'
+    文档=window.document
+    尺寸=属性['size'] if 'size' in 属性 and 属性['size'] is not None else 28
+    类名=属性['className'] if 'className' in 属性 else None
+    if 'kind' in 属性 and 属性['kind'] is not None:
+        类型=属性['kind']
+    else:
+        路径=属性['path'] if 'path' in 属性 else ''
+        上下文=属性['context'] if 'context' in 属性 else None
+        类型=分类文件类型(路径,上下文)
+    图={
+        'code':'code','excel':'table_chart','folder':'folder','html':'html',
+        'image':'image','markdown':'notes','pdf':'picture_as_pdf','ppt':'slideshow',
+        'video':'movie','word':'description','other':'draft',
+    }
+    名=图[类型] if 类型 in 图 else 'draft'
+    标=文档.createElement('span')
+    标.className='材料图标' if not (isinstance(类名,str) and 类名!='') else '材料图标 '+类名
+    标.setAttribute('aria-hidden','true')
+    标.style.fontSize=str(尺寸)+'px'
+    标.textContent=名
+    if 'parent' in 属性:
+        属性['parent'].appendChild(标)
+    return 标
+
 class 文件类型图标:#装饰文件类型字形
     '按 path 或 kind 解析类别；宿主按 kind 画 SVG'
     def __init__(自身,属性=None):#构造
-        '记下 props'
+        '记下 props。构造不画'
         自身.属性=属性 if 属性 is not None else {}#合成
+        自身.根=None
 
     def 更新(自身,属性):#刷新
         '记下最新'
@@ -81,17 +108,11 @@ class 文件类型图标:#装饰文件类型字形
         }#视图结束
 
     def 渲染(自身):
-        '按类别画出文件类型图标'
-        视图=自身.视图()#类别与尺寸
-        图={
-            'code':'code','excel':'table_chart','folder':'folder','html':'html',
-            'image':'image','markdown':'notes','pdf':'picture_as_pdf','ppt':'slideshow',
-            'video':'movie','word':'description','other':'draft',
-        }#类别到字形
-        名=图[视图['kind']] if 视图['kind'] in 图 else 'draft'#字形
-        标=界面.icon(名).style('font-size:'+str(视图['size'])+'px')#图标
-        if isinstance(视图['className'],str) and 视图['className']!='':#布局类
-            标.classes(视图['className'])#类
+        '拆掉旧图标，再画一次'
+        if 自身.根 is not None:
+            自身.根.remove()
+        自身.根=处理文件类型图标(自身.属性['window'],自身.属性)
+        return 自身.根
 
     def __call__(自身,属性=None):#组件调用形
         '对齐 React'

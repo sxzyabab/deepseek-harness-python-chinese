@@ -1,118 +1,93 @@
+__all__=['测量样式','统计对话框席']
 
-from nicegui import ui as 界面
-from ..文案 import 中文
+面板边距=12
+面板间隙=8
+测量样式={'visibility':'hidden','left':'0','top':'0'}
 
-__all__=['测量样式','面板边距','面板间隙','统计对话框席','构造统计对话框席']#仅中文公开名
 
-面板边距=12#视口边距（与 Menu 门户边距一致）
-面板间隙=8#触发器顶边与面板底边之间的间距
+def 读矩形(元素):
+    '没有元素时没有矩形'
+    if 元素 is None or not hasattr(元素,'getBoundingClientRect'):
+        return None
+    return 元素.getBoundingClientRect()
 
-# 未放置的门户面板：隐藏但仍参与布局，供钳制测量真实尺寸
-测量样式={'visibility':'hidden','left':0,'top':0}#测量遍样式
 
 class 统计对话框席:
-    '单个统计对话框的打开态、引用与钳制后的放置'
-
-    def __init__(自身,受控=None):
-        '受控为可选 dict，含 open/setOpen；给出时席位读写该态而非自持'
-        自身._自持打开=False#自持打开态
-        自身._受控=受控#外部互斥槽
-        自身.根引用=None#触发根引用
-        自身.面板引用=None#面板引用
-        自身.放置=None#钳制后放置样式；None 时用测量样式
-        自身.对话框=None#NiceGUI 对话框
-
-    def _有效打开(自身):
-        '有效打开态'
-        if 自身._受控 is not None and 'open' in 自身._受控:#受控
-            return bool(自身._受控['open'])#外部
-        return 自身._自持打开#自持
-
-    def _设打开(自身,打开):
-        '设置打开态'
-        if 自身._受控 is not None and 'setOpen' in 自身._受控:#受控
-            自身._受控['setOpen'](bool(打开))#外部
-        else:
-            自身._自持打开=bool(打开)#自持
-        if 自身.对话框 is None:
-            return
-        if bool(打开):
-            自身.对话框.open()
-            return
-        自身.对话框.close()
-
-    @property
-    def 打开(自身):
-        '是否打开'
-        return 自身._有效打开()#有效
-
-    @打开.setter
-    def 打开(自身,值):
-        '设置是否打开'
-        自身._设打开(值)#委托
+    '锚在触发器上方，并夹在视口里。点外面或按 Esc 就关'
+    def __init__(自身):
+        '先关着'
+        自身.打开=False
+        自身.根=None
+        自身.面板=None
+        自身.位置=None
+        自身.已听=False
+        自身.文档=None
+        自身.变化=None
 
     def 设打开(自身,打开):
-        '设置打开（供外点关闭与 Escape）'
-        自身._设打开(打开)#委托
+        '显式开关。外部点击和 Esc 会通知宿主重画'
+        下一=打开 is True
+        if 下一==自身.打开:
+            return
+        自身.打开=下一
+        if callable(自身.变化):
+            自身.变化()
 
-    def 切换(自身):
-        '翻转开合'
-        自身._设打开(not 自身._有效打开())#翻
+    def 放置(自身):
+        '按触发器和面板的真实尺寸夹到视口内'
+        if not 自身.打开 or 自身.根 is None or 自身.面板 is None:
+            自身.位置=None
+            return None
+        锚=读矩形(自身.根)
+        面=读矩形(自身.面板)
+        窗=自身.根.ownerDocument.defaultView if 自身.根.ownerDocument is not None else None
+        if 锚 is None or 面 is None or 窗 is None:
+            自身.位置=None
+            return None
+        宽=getattr(窗,'innerWidth',0) or 0
+        高=getattr(窗,'innerHeight',0) or 0
+        左=锚.left+(锚.width-面.width)/2
+        上=锚.top-面板间隙-面.height
+        if 左<面板边距:
+            左=面板边距
+        if 左+面.width>宽-面板边距:
+            左=max(面板边距,宽-面板边距-面.width)
+        if 上<面板边距:
+            上=面板边距
+        if 上+面.height>高-面板边距:
+            上=max(面板边距,高-面板边距-面.height)
+        自身.位置={'left':str(左)+'px','top':str(上)+'px'}
+        return 自身.位置
 
-    def 外点关闭(自身):
-        '外点 pointerdown 关闭（门户面板算内部；由宿主在指针事件上调用）'
-        if 自身._有效打开():#打开中
-            自身._设打开(False)#关
+    def 监听(自身,文档):
+        '打开期间听 Esc 和捕获阶段的外部点击'
+        if 自身.已听 and 自身.文档 is 文档:
+            return
+        自身.文档=文档
+        自身.已听=True
 
-    def Escape关闭(自身):
-        'Escape 关闭；仅打开时由宿主挂键监听后调用'
-        if 自身._有效打开():#打开中
-            自身._设打开(False)#关
+        def 按键(事件):
+            'Esc 关闭'
+            if getattr(事件,'key',None)=='Escape':
+                自身.设打开(False)
 
-    def 面板样式(自身):
-        '门户面板样式：已放置用放置，否则测量样式'
-        return 自身.放置 if 自身.放置 is not None else 测量样式#铺样式
+        def 点击(事件):
+            '触发器和面板以外的点击关闭'
+            目标=getattr(事件,'target',None)
+            if 目标 is None:
+                return
+            在根=自身.根 is not None and 自身.根.contains(目标)
+            在面=自身.面板 is not None and 自身.面板.contains(目标)
+            if not 在根 and not 在面:
+                自身.设打开(False)
 
-    def 渲染(自身):
-        '画出统计对话框，并按打开态显隐。'
-        if 自身.对话框 is None:
-            with 界面.dialog() as 对话框:
-                with 界面.card().classes('统计对话框').style(f'margin:{面板边距}px'):
-                    界面.label(中文['stats.dialog.title']).classes('标题')
-                    界面.label(中文['stats.dialog.usageTitle'])
-                    界面.label(中文['stats.dialog.llmTime'])
-                    界面.label(中文['stats.dialog.toolTime'])
-                    界面.label(中文['stats.dialog.ttft'])
-                    界面.label(中文['stats.dialog.speed'])
-                    def 关闭():
-                        '关掉统计对话框。'
-                        自身.设打开(False)
-                    界面.button(中文['details.close'],on_click=关闭)
-            def 被隐藏():
-                '外点或 Escape 后只改打开态，避免再关一次。'
-                if 自身._有效打开() is not True:
-                    return
-                if 自身._受控 is not None and 'setOpen' in 自身._受控:
-                    自身._受控['setOpen'](False)
-                    return
-                自身._自持打开=False
-            对话框.on('hide',被隐藏)
-            自身.对话框=对话框
-            自身.根引用=对话框
-            自身.面板引用=对话框
-        if 自身._有效打开():
-            自身.对话框.open()
+        文档.addEventListener('keydown',按键)
+        文档.addEventListener('click',点击,True)
 
-    def __call__(自身,受控=None):
-        '可调用席位：可选刷新受控槽后回渲染'
-        if 受控 is not None:
-            自身._受控=受控#刷
-        自身.渲染()#画
-
-def 构造统计对话框席(受控=None):
-    """一个锚定触发器的对话框席位：打开态、视口钳制放置、外点关闭。
-
-    受控为可选 dict（open/setOpen），便于兄弟对话框共享互斥槽。
-    返回席位；将 pos ?? 测量样式 铺到门户面板上
-    """
-    return 统计对话框席(受控)#席位
+    def 套样式(自身,面板):
+        '还没量到位置时先藏起来量尺寸'
+        样式=自身.位置 if 自身.位置 is not None else 测量样式
+        面板.style.visibility=样式.get('visibility','')
+        面板.style.left=样式.get('left','0')
+        面板.style.top=样式.get('top','0')
+        面板.style.position='fixed'

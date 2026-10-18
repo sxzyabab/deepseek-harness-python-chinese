@@ -1,39 +1,42 @@
-import threading,time
+'两条观察生成器共用的唤醒旗，以及把一阵提交收成一帧的睡眠'
+import threading,time#唤醒事件与窗口计时
+from ..网关.流协议 import 已中止#中止信号的读法
 
 __all__=['输出等待者','休眠']
 
 class 输出等待者:
-    '唤醒旗：等待之间到达的唤醒不会丢失'
+    '等待之间到达的唤醒不会丢掉'
     def __init__(自身):
         '空旗'
-        自身._脏=False
-        自身._事件=threading.Event()
+        自身._脏=False#还没有未消化的唤醒
+        自身._事件=threading.Event()#等待方堵在这里
 
     def 唤醒(自身):
-        '记下一次唤醒'
-        自身._脏=True
-        自身._事件.set()
+        '记下一次唤醒；有人正在等就放开'
+        自身._脏=True#先立旗，避免放开后丢掉
+        自身._事件.set()#放开等待
 
     def 等待(自身,信号):
-        '下一唤醒、已有唤醒或中止时返回'
-        if 自身._脏 or 已中止(信号):
-            自身._脏=False
-            自身._事件.clear()
-            return
-        while True:
-            if 已中止(信号) or 自身._脏:
-                自身._脏=False
-                自身._事件.clear()
-                return
-            自身._事件.wait(0.05)
+        '下一唤醒、已经到达的唤醒或中止时返回'
+        if 自身._脏 or 已中止(信号):#已有唤醒或已经中止
+            自身._脏=False#这次消化掉
+            自身._事件.clear()#清掉这次的放开
+            return#返回
+        while not 自身._脏 and not 已中止(信号):#等到唤醒或中止
+            自身._事件.wait(0.05)#短等，中止由外层信号置位
+        自身._脏=False#消化
+        自身._事件.clear()#清掉
 
 def 休眠(毫秒,信号):
-    '合并窗口睡眠；中止则立刻返回'
-    if 已中止(信号):
-        return
-    截止点=time.time()+毫秒/1000.0
-    while not 已中止(信号):
-        剩余=截止点-time.time()
-        if 剩余<=0:
-            return
-        time.sleep(min(剩余,0.05))
+    '睡过合并窗口；中止则立刻返回'
+    if 已中止(信号):#已经中止
+        return#不睡
+    if 信号 is None:#没有信号就睡满窗口
+        time.sleep(毫秒/1000.0)#窗口
+        return#返回
+    截止点=time.monotonic()+毫秒/1000.0#窗口结束
+    while not 已中止(信号):#中止则停
+        剩余=截止点-time.monotonic()#还剩多久
+        if 剩余<=0:#到点
+            return#返回
+        信号._事件.wait(剩余)#中止会提前放开

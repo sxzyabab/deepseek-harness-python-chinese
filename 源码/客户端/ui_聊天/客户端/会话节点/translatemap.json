@@ -18,5 +18,8 @@
     "fallback":"回退",
     "compaction":"压缩",
     "process-groups":"过程组",
-    "process-activity":"过程活动记录"
+    "process-activity":"过程活动记录",
+    "group-tree-segments":"组树段",
+    "turn-max-tokens":"回合最大令牌",
+    "register":"注册"
 }

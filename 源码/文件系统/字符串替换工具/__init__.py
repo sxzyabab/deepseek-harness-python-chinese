@@ -232,7 +232,7 @@ def 查看路径(上下文,路径,视图范围,最大输出字符,执行上下�
         return 列举目录(上下文,目标,最大输出字符,执行上下文)#最多两层列举
     if 信息['type']!='file':#既非目录也非普通文件
         raise 文件系统错误('cannot view "'+目标['displayPath']+'": not a regular file or directory','FS_NOT_REGULAR_FILE')#拒绝特殊文件
-    内容=上下文.fs.读文本(目标,执行上下文['signal'] if 'signal' in 执行上下文 else None)#读出全文
+    内容=上下文.fs.读取文本(目标,执行上下文['signal'] if 'signal' in 执行上下文 else None)#读出全文
     上下文.广播('fs/observed',目标,{'kind':'present','version':信息['version']},执行上下文)#记录存在观察
     return 格式化文件视图(目标['displayPath'],内容,最大输出字符,视图范围)#带行号视图
 
@@ -280,7 +280,7 @@ def 文件内替换(上下文,政策,路径,旧串,新串,执行上下文):#字�
     信息=状态已存在(上下文,目标,'str_replace',执行上下文)#确认存在且非目录
     if 信息['type']!='file':#不是普通文件
         raise 文件系统错误('cannot edit "'+目标['displayPath']+'": not a regular file','FS_NOT_REGULAR_FILE')#拒绝特殊文件
-    之前=上下文.fs.读文本(目标,信号)#读出替换前全文
+    之前=上下文.fs.读取文本(目标,信号)#读出替换前全文
     下标列表=匹配下标(之前,旧值)#找出每一处字面量
     if len(下标列表)==0:#一处都没有
         raise 文件系统错误(#报未找到
@@ -327,7 +327,7 @@ def 文件内插入(上下文,政策,路径,插入行,新串,执行上下文):#�
     信息=状态已存在(上下文,目标,'insert',执行上下文)#确认存在且非目录
     if 信息['type']!='file':#不是普通文件
         raise 文件系统错误('cannot insert into "'+目标['displayPath']+'": not a regular file','FS_NOT_REGULAR_FILE')#拒绝特殊文件
-    之前=上下文.fs.读文本(目标,信号)#读出插入前全文
+    之前=上下文.fs.读取文本(目标,信号)#读出插入前全文
     行列表=之前.split('\n')#按行拆分
     if isinstance(插入行,bool) or not isinstance(插入行,int) or 插入行<0 or 插入行>len(行列表):#行号必须落在[0, 行数]
         raise 错误(#报insert_line越界

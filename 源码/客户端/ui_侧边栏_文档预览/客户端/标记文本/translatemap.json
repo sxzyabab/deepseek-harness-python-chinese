@@ -1,5 +1,9 @@
 {
     "path-images":"路径图片",
     "locales":"文案",
-    "MarkdownBody":"标记文本体"
+    "MarkdownBody":"标记文本体",
+    "frontmatter":"前置元数据",
+    "frontmatter-fields":"前置元数据字段",
+    "MarkdownBody.module":"标记文本体.module",
+    "frontmatter-fields.module":"前置元数据字段.module"
 }

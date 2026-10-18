@@ -25,5 +25,14 @@
     "trajectory-search-index":"搜索索引",
     "trajectory-snapshot-builder":"快照构建",
     "trajectory-tool-definition":"工具定义",
-    "trajectory-virtual-rows":"虚拟行"
+    "trajectory-virtual-rows":"虚拟行",
+    "copy-codes":"复制代码",
+    "views.module":"视图.module",
+    "TrajectoryCell.module":"轨迹格.module",
+    "TrajectoryGroupHeader.module":"轨迹组头.module",
+    "TrajectoryTable.module":"轨迹表.module",
+    "TrajectoryTimeline.module":"轨迹时间线.module",
+    "TrajectoryToolbar.module":"轨迹工具栏.module",
+    "TrajectoryTurn.module":"轨迹轮次.module",
+    "TrajectoryTurnHeader.module":"轨迹轮次头.module"
 }

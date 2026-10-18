@@ -17,6 +17,13 @@
     "settings":"设置",
     "conversation-nodes":"会话节点",
     "stores":"存储",
+    "apply":"应用",
+    "draft":"草稿",
+    "stop-sequence":"停止序列",
+    "stop-shortcut":"停止快捷键",
+    "view-selection":"视图选中项",
+    "context-occupancy":"上下文占用",
+    "user-text":"用户文本",
     "conversation":"会话",
     "submission-policy":"提交策略",
     "conversation":"会话"

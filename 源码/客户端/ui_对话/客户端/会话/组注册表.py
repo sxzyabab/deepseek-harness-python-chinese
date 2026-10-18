@@ -1,42 +1,32 @@
+'已有目标上的分组规则'
 from ...异常 import 对话错误
-from .....基础设施.通用工具 import 紧凑json编码
+from .定义注册表 import 会话定义注册表
 
 __all__=['会话组注册表']
 
-class 会话组注册表:
-    '每个目标一份分组定义；登记不实例化其构建器'
+class 会话组注册表(会话定义注册表):
+    '一个目标一份分组定义。登记时不实例化构建器'
     def __init__(自身,上下文,视图):
-        '视图为已登记目标构建器定义表'
-        自身.上下文=上下文
+        '记下视图注册表，用来确认目标已经存在'
+        super().__init__(上下文)
         自身.视图=视图
-        自身.定义表={}
 
-    def 条目表(自身):
-        '已登记分组定义'
-        return list(自身.定义表.values())
-
-    def 登记(自身,定义):
-        '为已有目标登记分组规则；返回副作用拥有的幂等拆除器。定义为 dict'
-        目标=定义['target']
-        已有目标=False
+    def register(自身,定义):
+        '目标必须已经登记'
+        已有=False
         for 视图 in 自身.视图.entries():
-            if 视图['target']==目标:
-                已有目标=True
+            if 视图['target']==定义['target']:
+                已有=True
                 break
-        if not 已有目标:
-            raise 对话错误('conversation group target "'+目标+'" is not registered')
-        if 目标 in 自身.定义表:
-            raise 对话错误('conversation group target "'+目标+'" is already registered')
-        def 效应():
-            '写入表；拆除时删除'
-            自身.定义表[目标]=定义
-            def 拆除():
-                '幂等摘掉本次登记'
-                if 目标 in 自身.定义表 and 自身.定义表[目标] is 定义:
-                    del 自身.定义表[目标]
-            return 拆除
-        return 自身.上下文.副作用(效应,'uiConversation.groups.register('+紧凑json编码(目标)+')')
+        if not 已有:
+            raise 对话错误('conversation group target "'+定义['target']+'" is not registered')
+        return 自身.登记定义(
+            定义['target'],
+            定义,
+            'conversation group target "'+定义['target']+'" is already registered',
+            'uiConversation.groups.register('+repr(定义['target'])+')',
+        )
 
-    def 按目标(自身,目标):
-        '查找一项目标的分组规则'
-        return 自身.定义表[目标] if 目标 in 自身.定义表 else None
+    def forTarget(自身,目标):
+        '这个目标的分组定义'
+        return 自身.定义表.get(目标)

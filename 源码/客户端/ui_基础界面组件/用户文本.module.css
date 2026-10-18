@@ -1,0 +1,42 @@
+.plainRun {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.refChip {
+  display: inline;
+  max-width: 100%;
+  margin: 0 2px;
+  color: var(--dsw-alias-state-business-primary);
+  font-weight: 500;
+  white-space: inherit;
+  overflow-wrap: anywhere;
+  text-align: inherit;
+}
+
+.slashChip {
+  font-family: var(--dsw-font-markdown-code-font-family);
+}
+
+.refIcon {
+  width: 1em;
+  height: 1em;
+  margin-right: 4px;
+  vertical-align: -0.125em;
+}
+
+button.refChip {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+button.refChip:hover,
+button.refChip:focus {
+  outline: none;
+  text-decoration: underline dotted var(--dsw-alias-link);
+  text-underline-offset: 3px;
+}

@@ -1,179 +1,193 @@
-from .....基础设施.通用工具 import 启动守护线程
-from .内嵌帧实现 import 内嵌帧实现#iframe 实现
-from .导航 import 浏览器导航#导航状态机
-from .地址 import 解析浏览器地址#地址解析
+from ....存储 import 创建快照存储
+from .浏览器持久化 import 当前浏览器目标
+from .地址 import 解析浏览器地址
 
-__all__=['浏览器控制','创建浏览器控制表']
-class 浏览器控制:#每标签控制器
-    '拥有一浏览器标签的 URL 状态、加载寿命与四条导航命令'
+__all__=['浏览器控制器']
+
+
+class 浏览器控制器:
+    '校验地址并持有一页的寿命，不看具体载体'
+
     def __init__(自身,选项):
-        '选项含标签标识、持久化写者、应用源与寿命信号'
-        自身.选项=选项#依赖
-        初始=选项['initial'] if 'initial' in 选项 else None#持久化初态
-        自身.导航=浏览器导航(初始)#导航机
-        def 沙箱变更(_沙箱):
-            '沙箱翻转后重载受控目标'
-            自身.刷新()#刷新
-        自身.帧=内嵌帧实现(沙箱变更,自身._帧已加载)#帧
-        自身.已拆除=False#拆除标志
-        信号=选项['signal']#中止信号 Event
-        if 信号 is not None:#有信号
-            def 监视():#等中止
-                信号.wait()#阻塞
-                自身._拆除()#拆除
-            启动守护线程(监视)#守护
+        '按身份、持久化和页工厂建页，并跟上帧状态'
+        自身.选项=选项
+        自身.动作=选项['actions']
+        自身.检查点=选项.get('initial')
+        自身.已开始=False
+        自身.已拆除=False
+
+        def 持久(状态):
+            '页还在就记下检查点并写入存储'
+            if 自身.已拆除:
+                return
+            自身.检查点=状态
+            自身.动作['replace'](选项['tabId'],状态)
+
+        def 打开请求(值):
+            '来自页面的打开请求先过地址校验'
+            if 自身.已拆除:
+                return
+            结果=解析浏览器地址(值,选项['applicationOrigin'])
+            if not 结果['ok']:
+                自身.地址失败(结果['reason'])
+                return
+            选项['openTab'](结果['target']['url'])
+
+        自身.页=选项['createPage']({
+            'initial':选项.get('initial'),
+            'persist':持久,
+            'openRequested':打开请求,
+        })
+        自身.存储=创建快照存储({
+            'frame':自身.页['frame'].getSnapshot(),
+            'restoreTarget':当前浏览器目标(自身.检查点),
+            'addressFailure':None,
+            'addressRevision':0,
+        })
+
+        def 帧变了():
+            '帧状态变了就改工具栏状态。地址变了就清掉校验失败并抬修订'
+            if 自身.已拆除:
+                return
+            当前=自身.存储.getSnapshot()
+            帧=自身.页['frame'].getSnapshot()
+            旧目标=当前['frame'].get('target')
+            新目标=帧.get('target')
+            旧址=None if 旧目标 is None else 旧目标.get('url')
+            新址=None if 新目标 is None else 新目标.get('url')
+            变了=旧址!=新址
+            if 帧.get('target') is None:
+                恢复=当前浏览器目标(自身.检查点)
+            else:
+                恢复=None
+            自身.存储.set({
+                'frame':帧,
+                'restoreTarget':恢复,
+                'addressFailure':None if 变了 else 当前['addressFailure'],
+                'addressRevision':当前['addressRevision']+(1 if 变了 else 0),
+            })
+
+        自身.退订=自身.页['frame'].subscribe(帧变了)
+
+        def 中止():
+            '标签寿命结束就拆掉这一页'
+            自身.拆除()
+
+        自身.中止=中止
+        选项['signal'].addEventListener('abort',中止,{'once':True})
+
+    def getSnapshot(自身):
+        '工具栏用的当前状态'
+        return 自身.存储.getSnapshot()
+
+    def subscribe(自身,监听):
+        '状态变化时调用，返回退订'
+        return 自身.存储.subscribe(监听)
+
+    def 挂载(自身,视口标识):
+        '把页附到内容容器。返回的函数只结束附着'
+        自身.发布已存()
+        return 自身.页['presentation'].挂载(视口标识)
+
+    def 开始(自身,初始地址):
+        '显式打开地址只消费一次。只有检查点时不自己打开'
+        if 自身.已开始 or 自身.已拆除:
+            return
+        自身.已开始=True
+        if 初始地址 is not None:
+            自身.加载地址(初始地址)
+
+    def 恢复(自身):
+        '只有用户要求恢复时才加载保存的地址'
+        目标=自身.存储.getSnapshot().get('restoreTarget')
+        if 目标 is not None:
+            自身.加载地址(目标['url'])
 
     def 加载地址(自身,值):
-        '校验并加载地址；同址则刷新'
-        if 自身.已拆除:#已死
+        '先校验再导航。无效输入留给界面改正'
+        if 自身.已拆除:
             return
-        解析=解析浏览器地址(值,自身.选项['applicationOrigin'])#解析
-        if not 解析['ok']:#拒绝
-            自身.导航.地址失败(解析['reason'])#失败
-            自身._发布()#发布
+        解析=解析浏览器地址(值,自身.选项['applicationOrigin'])
+        if not 解析['ok']:
+            自身.地址失败(解析['reason'])
             return
-        当前=浏览器导航.当前(自身.导航.快照)#当前
-        if 当前 is not None and 当前['url']==解析['target']['url']:#同址
-            自身.刷新()#刷新
-            return
-        自身._开始(自身.导航.导航(解析['target']))#导航
+
+        def 执行():
+            '把校验过的目标交给页'
+            自身.页['frame'].加载地址(解析['target'])
+
+        自身.执行(执行)
 
     def 后退(自身):
-        '退到前一条应用已知地址'
-        if 自身.已拆除:#已死
-            return
-        请求=自身.导航.后退()#后退
-        if 请求 is not None:#有请求
-            自身._开始(请求)#开始
+        '把后退交给页'
+        def 执行():
+            '后退'
+            自身.页['frame'].后退()
+
+        自身.执行(执行)
 
     def 前进(自身):
-        '进到后一条应用已知地址'
-        if 自身.已拆除:#已死
-            return
-        请求=自身.导航.前进()#前进
-        if 请求 is not None:#有请求
-            自身._开始(请求)#开始
+        '把前进交给页'
+        def 执行():
+            '前进'
+            自身.页['frame'].前进()
+
+        自身.执行(执行)
 
     def 刷新(自身):
-        '重载最后一条应用已知地址，不增历史'
-        if 自身.已拆除:#已死
+        '有待恢复的地址就恢复，否则重载已经请求的页'
+        if 自身.存储.getSnapshot().get('restoreTarget') is not None:
+            自身.恢复()
             return
-        请求=自身.导航.刷新()#刷新
-        if 请求 is not None:#有请求
-            自身._开始(请求)#开始
 
-    def _开始(自身,请求):
-        '发布并装上准备文档'
-        自身._发布()#发布导航
-        自身.帧.清文档()#清旧
-        自身.帧.设文档({#新文档
-            'target':请求['target'],#目标
-            'src':请求['target']['url'],#源
-            'revision':请求['revision'],#修订
-        })#设文档
+        def 执行():
+            '重载'
+            自身.页['frame'].刷新()
 
-    def _帧已加载(自身,修订):
-        '帧加载回调'
-        if 自身.已拆除:#已死
+        自身.执行(执行)
+
+    def 设沙箱(自身,启用):
+        '有嵌入沙箱开关才应用。没有的载体保持原样'
+        沙箱=getattr(自身.页['frame'],'沙箱',None)
+        if 沙箱 is None:
             return
-        先前=自身.导航.快照#先前
-        自身.导航.帧已加载(修订)#推进
-        if 自身.导航.快照 is not 先前:#有变
-            自身._发布()#发布
 
-    def _发布(自身):
-        '把导航快照写入存储'
-        自身.选项['actions']['replace'](自身.选项['tabId'],自身.导航.快照)#替换
+        def 执行():
+            '切换沙箱'
+            沙箱['setEnabled'](启用)
 
-    def _拆除(自身):
-        '拆除并清文档'
-        自身.已拆除=True#死
-        自身.帧.清文档()
+        自身.执行(执行)
 
-def 创建浏览器控制表(动作):
-    '把浏览器控制器绑到一会话及其持久化写者。返回注入面'
-    表={}#标签标识 → {signal, controller}
+    def 重绑(自身,动作):
+        '之后的检查点写到替换后的会话绑定'
+        自身.动作=动作
 
-    def 取控(标签标识):
-        '取存活控制器'
-        项=表[标签标识] if 标签标识 in 表 else None#项
-        return None if 项 is None else 项['controller']#控制器
+    def 拆除(自身):
+        '放开页，并摘掉寿命和状态订阅。再拆一次直接返回'
+        if 自身.已拆除:
+            return
+        自身.已拆除=True
+        自身.选项['signal'].removeEventListener('abort',自身.中止)
+        自身.退订()
+        自身.页['frame'].拆除()
 
-    def 挂载(标签标识,信号,应用源,初始=None):
-        '挂载或复用本 occurrence 的控制器'
-        持有=表[标签标识] if 标签标识 in 表 else None#已有
-        if 持有 is not None and 持有['signal'] is 信号:#同信号
-            return#复用
-        选项={'tabId':标签标识,'signal':信号,'applicationOrigin':应用源,'actions':动作}#选项
-        if 初始 is not None:#有初态
-            选项['initial']=初始#初态
-        创建=浏览器控制(选项)#新建
-        表[标签标识]={'signal':信号,'controller':创建}#登记
-        if 信号 is not None:#有信号
-            def 清理():#中止清理
-                信号.wait()#等
-                现=表[标签标识] if 标签标识 in 表 else None#现
-                if 现 is None or 现['controller'] is not 创建:#已换
-                    return
-                del 表[标签标识]#删
-                动作['forget'](标签标识)#遗忘
-            启动守护线程(清理)#守护
+    def 发布已存(自身):
+        '挂载时把已有检查点写回存储'
+        if 自身.检查点 is not None:
+            自身.动作['replace'](自身.选项['tabId'],自身.检查点)
 
-    def 取帧(键):
-        '带键席位要的帧可观察源'
-        控=取控(键)#控制器
-        return None if 控 is None else 控.帧#帧
+    def 地址失败(自身,原因):
+        '留下这次地址拒绝，不抬修订'
+        自身.存储.set({**自身.存储.getSnapshot(),'addressFailure':原因})
 
-    def 加载地址命令(标签,值):
-        '校验并加载'
-        控=取控(标签)#控制器
-        if 控 is not None:
-            控.加载地址(值)
-
-    def 后退命令(标签):
-        '后退'
-        控=取控(标签)#控制器
-        if 控 is not None:
-            控.后退()
-
-    def 前进命令(标签):
-        '前进'
-        控=取控(标签)#控制器
-        if 控 is not None:
-            控.前进()
-
-    def 刷新命令(标签):
-        '刷新'
-        控=取控(标签)#控制器
-        if 控 is not None:
-            控.刷新()
-
-    def 切换沙箱命令(标签):
-        '切换沙箱'
-        控=取控(标签)#控制器
-        if 控 is not None:
-            控.帧.切换沙箱()
-
-    def 报告已加载命令(标签,修订):
-        '报告已加载'
-        控=取控(标签)#控制器
-        if 控 is not None:
-            控.帧.报告已加载(修订)
-
-    def 报告加载失败命令(标签,修订):
-        '报告加载失败'
-        控=取控(标签)#控制器
-        if 控 is not None:
-            控.帧.报告加载失败(修订)
-
-    return {#注入面
-        'keyedHooks':{'browserFrame':取帧},#带键帧钩
-        'mount':挂载,#挂载
-        'loadUrl':加载地址命令,#加载
-        'goBack':后退命令,#后退
-        'goForward':前进命令,#前进
-        'reload':刷新命令,#刷新
-        'toggleSandbox':切换沙箱命令,#沙箱
-        'reportLoaded':报告已加载命令,#已加载
-        'reportLoadFailed':报告加载失败命令,#失败
-    }#面结束
+    def 执行(自身,运行):
+        '清掉地址错误并抬修订，再跑导航'
+        if 自身.已拆除:
+            return
+        当前=自身.存储.getSnapshot()
+        自身.存储.set({
+            **当前,
+            'addressFailure':None,
+            'addressRevision':当前['addressRevision']+1,
+        })
+        运行()

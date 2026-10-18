@@ -1,31 +1,56 @@
-from nicegui import ui as 界面
-from .轨迹轮次 import 轮次头样式表#加载时已登记样式
+import importlib.resources as 包资源
+import pywebbridge
 
-__all__=['轨迹轮次头','列标签','轮次头样式表']
-
-列标签=('Input','Output','Think','Time')
+样式文本=包资源.files(__package__).joinpath('轨迹轮次头.module.css').read_text(encoding='utf-8')
 
 class 轨迹轮次头:
-    'Turn N 与四列度量标签。父级调用渲染，构造时不画'
-    def __init__(自身,属性=None):
-        '记下 props'
-        自身.属性=属性 if 属性 is not None else {}
-
-    def 更新(自身,属性):
-        '换成新的 props'
-        自身.属性=属性 if 属性 is not None else {}
-
-    def 渲染(自身):
-        '画出粘性轮次栏'
-        属性=自身.属性
-        轮次=属性['turn'] if 'turn' in 属性 else None
-        with 界面.row().classes('trajectory-turn-header'):
-            界面.label('Turn '+str(轮次))
-            for 列 in 列标签:
-                界面.label(列)
+    '粘性轮次条：第 N 轮，以及输入、输出、思考、时间'
+    def __init__(自身,属性):
+        '记下属性并画出轮次头'
+        自身.属性=属性
+        自身.根=None
+        自身.渲染()
 
     def __call__(自身,属性=None):
-        '有新 props 先更新，再画出'
+        '属性变了就重画'
         if 属性 is not None:
-            自身.更新(属性)
+            自身.属性=属性
         return 自身.渲染()
+
+    def 渲染(自身):
+        '画出轮次标题和四列标签'
+        属性=自身.属性
+        文档=属性['window'].document
+        if 文档.getElementById('轨迹轮次头样式') is None:
+            样式=文档.createElement('style')
+            样式.id='轨迹轮次头样式'
+            样式.textContent=样式文本
+            文档.head.appendChild(样式)
+        旧=自身.根
+        父=None if 旧 is None else 旧.parentNode
+        if 旧 is not None:
+            旧.remove()
+        根=文档.createElement('div')
+        根.className='root'
+        内=文档.createElement('div')
+        内.className='inner'
+        标题=文档.createElement('span')
+        标题.className='title'
+        标题.textContent='第 '+str(属性.get('turn') or 1)+' 轮'
+        列=文档.createElement('div')
+        列.className='columns'
+        列.setAttribute('aria-hidden','true')
+        for 文案 in ('输入','输出','思考','时间'):
+            格=文档.createElement('span')
+            格.className='column'
+            格.textContent=文案
+            列.appendChild(格)
+        内.appendChild(标题)
+        内.appendChild(列)
+        根.appendChild(内)
+        自身.根=根
+        if 父 is None and 属性.get('parent') is not None:
+            父=属性['parent']
+        if 父 is not None and 根.parentNode is not 父:
+            父.appendChild(根)
+        return 根

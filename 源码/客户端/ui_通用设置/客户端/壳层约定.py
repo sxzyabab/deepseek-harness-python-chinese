@@ -1,0 +1,1 @@
+'设置壳的份额。分区行是 id、order、label。引导步骤是 id、order。注入面是 openDesktopUpdate、reconnect，以及 hooks 里的 shortcuts、desktopUpdate、connectionState、sections、onboardingSteps。组件还收到侧栏的 wide、子槽 renderSlot、文案座位和壳存储。这些名字没有运行时类。'

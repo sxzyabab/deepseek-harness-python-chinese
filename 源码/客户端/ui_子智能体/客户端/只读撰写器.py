@@ -1,50 +1,67 @@
-from nicegui import ui as 界面
+import os
+import pywebbridge
+from ...ui_对话.异常 import 注入模块样式文件,模块节点
 
-__all__=['只读撰写器','样式表']#仅中文公开名
+__all__=['只读撰写器']
 
-样式表='''#对齐 SubagentReadOnlyComposer.module.css
-.frame{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 24px 20px;min-height:54px;padding:10px 16px;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-tertiary);font-size:13px;line-height:20px}
-.frame strong{color:var(--dsw-alias-label-primary);font-weight:510}
-'''#样式表结束
-界面.add_css(样式表,shared=True)
+样式模块='subagent-readonly-composer'
 
-class 只读撰写器:#只读撰写器替换面
+class 只读撰写器:
     '说明为何普通撰写器不可用'
-
-    def __init__(自身,属性):#记下 props
-        '记下匹配原因与翻译。槽位只调用构造，键齐了就画'
-        自身.属性=属性 if isinstance(属性,dict) else {}#合成 props
-        if 'matched' in 自身.属性 and 't' in 自身.属性:
+    def __init__(自身,属性):
+        '记下认领原因。有 window 就画出只读条'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        if 'window' in 自身.属性:
             自身.渲染()
 
-    def 更新(自身,属性):#刷新 props
-        '刷新合成 props'
-        自身.属性=属性#新 props
+    def 更新(自身,属性):
+        '换上最新 props'
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
-    def 渲染(自身):#产出结构树
-        '与上游 JSX 同构'
-        if 'matched' not in 自身.属性 or 't' not in 自身.属性:#槽位还没齐
-            return#不画
-        匹配=自身.属性['matched']#认领结果
-        翻译=自身.属性['t']#文案
-        原因=匹配['reason'] if isinstance(匹配,dict) and 'reason' in 匹配 else ''#原因
-        一次性=原因=='one-shot'#一次性
-        标题键='readonly.oneShot.title' if 一次性 else 'readonly.title'#标题键
-        if 原因=='unknown':#未知
-            正文键='readonly.unknown.body'#未知正文
-        elif 一次性:#一次性
-            正文键='readonly.oneShot.body'#一次性正文
-        else:#父会话不在线
-            正文键='readonly.body'#续跑正文
-        def 转义(文):
-            '放进 HTML'
-            return str(文).replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
-        with 界面.row().classes('frame'):
-            界面.html('<strong>'+转义(翻译(标题键))+'</strong>',sanitize=False)
-            界面.label(翻译(正文键))
+    def 渲染(自身):
+        '一次性、未知模式、父会话离线各一句中文'
+        if 自身.根 is not None:
+            自身.根.remove()
+            自身.根=None
+        属性=自身.属性
+        if 'window' not in 属性 or 'matched' not in 属性:
+            return None
+        窗口=属性['window']
+        文档=窗口.document
+        注入模块样式文件(
+            文档,
+            '只读撰写器样式',
+            os.path.join(os.path.dirname(__file__),'只读撰写器.module.css'),
+            样式模块,
+        )
+        原因=属性['matched']['reason']
+        一次性=原因=='one-shot'
+        if 一次性:
+            标题='一次性子智能体记录'
+        else:
+            标题='此子智能体暂时只读'
+        if 原因=='unknown':
+            正文='读取子会话后才能确定是否可继续。'
+        elif 一次性:
+            正文='一次性任务不支持后续消息，可在这里查看完整执行记录。'
+        else:
+            正文='父会话当前不在线，重新打开父会话后即可继续发送消息。'
+        根=模块节点(文档,'div',样式模块,'frame')
+        根.setAttribute('role','status')
+        题=文档.createElement('strong')
+        题.textContent=标题
+        文=文档.createElement('span')
+        文.textContent=正文
+        根.appendChild(题)
+        根.appendChild(文)
+        if 'parent' in 属性 and 属性['parent'] is not None:
+            属性['parent'].appendChild(根)
+        自身.根=根
+        return 根
 
-    def __call__(自身,属性=None):#组件调用形
-        '对齐 React 组件调用'
-        if 属性 is not None:#有新 props
-            自身.更新(属性)#刷新
-        return 自身.渲染()#渲染
+    def __call__(自身,属性=None):
+        '槽位再次调用时先换 props 再画'
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()

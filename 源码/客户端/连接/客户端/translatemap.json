@@ -1,5 +1,6 @@
 {
-    "api":"接口",
-    "connection":"连接",
-    "random-uuid":"随机uuid"
+    "api": "接口",
+    "connection": "连接",
+    "random-uuid": "随机uuid",
+    "socket": "套接字"
 }

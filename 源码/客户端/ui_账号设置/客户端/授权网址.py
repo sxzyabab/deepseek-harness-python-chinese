@@ -1,14 +1,15 @@
-from urllib.parse import parse_qsl,urlencode,urlparse,urlunparse
+'把当前应用色板写进平台授权链接'
 
-__all__=['带主题的授权网址']
+__all__=['授权网址带主题']
 
-def 带主题的授权网址(授权网址,配色):
-    '把 Desktop 已解析配色写进授权链接，不丢掉 Host 已放上的参数'
-    解析=urlparse(授权网址)
-    查询=list(parse_qsl(解析.query,keep_blank_values=True))
-    余=[]
+def 授权网址带主题(授权网址,色板):
+    '在宿主已经放上的参数之外，加上 theme=light 或 theme=dark'
+    from urllib.parse import parse_qsl,urlencode,urlsplit,urlunsplit
+    拆开=urlsplit(授权网址)
+    查询=parse_qsl(拆开.query,keep_blank_values=True)
+    留下=[]
     for 键,值 in 查询:
         if 键!='theme':
-            余.append((键,值))
-    余.append(('theme',配色))
-    return urlunparse((解析.scheme,解析.netloc,解析.path,解析.params,urlencode(余),解析.fragment))
+            留下.append((键,值))
+    留下.append(('theme',色板))
+    return urlunsplit((拆开.scheme,拆开.netloc,拆开.path,urlencode(留下),拆开.fragment))

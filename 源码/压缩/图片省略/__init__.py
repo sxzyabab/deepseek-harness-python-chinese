@@ -1,6 +1,6 @@
 '上下文溢出时省略最旧图片，释放请求预算'
 from ...模型后端.llm.异常 import 图片卸载必需码#溢出码
-from ...模型后端.llm.异常 import 装备错误#LLM 错误
+from ...模型后端.llm.异常 import harness错误#LLM 错误
 from .图片省略 import 省略最旧图片#选图
 from .异常 import 图片省略错误#本包异常
 from .投影 import 图片省略投影#投影
@@ -30,7 +30,7 @@ def 应用(上下文):#挂恢复监听
         源序号=载荷['sourceEventSeqs']#选区序号
         错误=载荷['error']#摘要错误
         信号=载荷['signal'] if 'signal' in 载荷 else None#取消
-        if not isinstance(错误,装备错误) or 错误.code!=图片卸载必需码:#非本错误
+        if not isinstance(错误,harness错误) or 错误.code!=图片卸载必需码:#非本错误
             return 下一步()#委托
         失败=错误.failure#失败载荷
         if 'offloadImages' not in 失败:#无数

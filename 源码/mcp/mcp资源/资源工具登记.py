@@ -8,7 +8,7 @@ __all__=['登记资源工具']
     'cursor':{'type':'string','description':'Continuation cursor returned by this server.'},#游标
 }#参数结束
 
-def 输出声明():#规范输出
+def 声明输出():#规范输出
     '声明 json schema 并以归属文本渲染'
     def 渲染(参数,值):#渲染结果
         '把规范结果投成文本块'
@@ -17,7 +17,7 @@ def 输出声明():#规范输出
 
 def 登记资源工具(上下文,请求):#登记三个共享工具
     '在消费方工具作用域登记资源操作'
-    输出=输出声明()#共用输出
+    输出=声明输出()#共用输出
     def 执行体():#生成器副作用
         '登记三个工具'
         def 执行列表(参数,执行):#list_mcp_resources

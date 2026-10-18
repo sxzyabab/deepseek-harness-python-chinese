@@ -1,6 +1,6 @@
 import sys,threading,signal as 信号模块#参数、进程寿命事件与终止信号
 from .异常 import ssh错误#本包异常基类
-from .ssh侧车 import 运行ssh辅助#辅助运行
+from .ssh辅助 import 运行ssh辅助#辅助运行
 from .流安全 import 套接字流#标准流入面
 
 __all__=['主入口']#仅中文公开名

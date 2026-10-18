@@ -1,3 +1,7 @@
 {
-    "locales":"文案"
+    "locales": "文案",
+    "SkillReference": "技能引用",
+    "SkillRow": "技能行",
+    "SkillRow.module": "技能行.module",
+    "user-text-rules": "用户文本规则"
 }

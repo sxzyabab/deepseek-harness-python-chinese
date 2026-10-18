@@ -2,14 +2,14 @@
 import json,threading#编解码与读线程
 from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...基础设施.js特性 import PromiseEX as 期约#期约
-from .输出json import json值字节上限#排队字节预算
+from .输出json import 计量json值字节上限#排队字节预算
 from .异常 import 节点ptc错误#本包异常
 
 __all__=['json通道']#仅中文公开名
 
 解码=json.loads#JSON 解码
 
-def 取收发(流):#按流形态定死收发
+def 定死收发(流):#按流形态定死收发
     '构造时定死收发；套接字走 recv/sendall，文件走 read/write'
     收=流.recv if hasattr(流,'recv') else 流.read#收
     发=流.sendall if hasattr(流,'sendall') else (流.send if hasattr(流,'send') else 流.write)#发
@@ -26,7 +26,7 @@ class json通道:#一路同船进程通道；消费方拥有帧校验与终态
         自身._最大字节=最大字节#帧与排队上限
         自身._接收=接收#帧回调
         自身._失败=失败#失败回调
-        自身._收,自身._发=取收发(流)#定死收发
+        自身._收,自身._发=定死收发(流)#定死收发
         自身._头=bytearray(4)#长度头缓冲
         自身._头字节=0#已收头字节
         自身._载荷=None#载荷缓冲
@@ -35,10 +35,10 @@ class json通道:#一路同船进程通道；消费方拥有帧校验与终态
         自身._已关=False#是否已关
         自身._写入表=set()#未完成写入
         自身._锁=threading.Lock()#状态锁
-        自身.读线程=threading.Thread(target=自身._读循环,daemon=True)#后台读
+        自身.读线程=threading.Thread(target=自身._读取循环,daemon=True)#后台读
         自身.读线程.start()#开始读
 
-    def _读循环(自身):#直到关闭
+    def _读取循环(自身):#直到关闭
         '阻塞读分帧'
         try:#读到关闭
             while not 自身._已关:#未关
@@ -47,13 +47,13 @@ class json通道:#一路同船进程通道；消费方拥有帧校验与终态
                     if not 自身._已关:#尚未关
                         自身._失败(节点ptc错误('control channel ended before the program settled'),'io')#io 失败
                     return
-                自身._喂入(块)#分帧
+                自身._喂入块(块)#分帧
         except (OSError,ValueError) as 错误:#传输失败
             自身._结束写入(节点ptc错误(str(错误)))#拒绝排队
             if not 自身._已关:#尚未关
                 自身._失败(节点ptc错误(str(错误)),'io')#io 失败
 
-    def _喂入(自身,块):#把一块喂进分帧器
+    def _喂入块(自身,块):#把一块喂进分帧器
         '把一块喂进分帧器'
         if 自身._已关:#已关
             return#忽略
@@ -88,7 +88,7 @@ class json通道:#一路同船进程通道；消费方拥有帧校验与终态
             包装=错误 if isinstance(错误,节点ptc错误) else 节点ptc错误(str(错误))#本包错误
             自身._失败(包装,'protocol')#协议失败
 
-    def 发送(自身,消息):#立刻提交一帧，写入回执以期约返回
+    def 发送帧(自身,消息):#立刻提交一帧，写入回执以期约返回
         """立刻提交一帧并返回写入回执期约。
         消息是仅 JSON 的同船协议值。
         本帧写完后期约解决；传输失败则拒绝
@@ -97,7 +97,7 @@ class json通道:#一路同船进程通道；消费方拥有帧校验与终态
             失败=期约()#关闭回执
             失败.拒绝(节点ptc错误('控制通道已关闭'))#拒绝
             return 失败#已关闭
-        大小=json值字节上限(消息,自身._最大字节)#计量
+        大小=计量json值字节上限(消息,自身._最大字节)#计量
         if 大小 is None or 自身._排队字节+大小>自身._最大字节:#超排队
             失败=期约()#超限回执
             失败.拒绝(节点ptc错误('控制输出超过'+str(自身._最大字节)+'字节排队上限'))#拒绝
@@ -148,7 +148,7 @@ class json通道:#一路同船进程通道；消费方拥有帧校验与终态
         except (OSError,ValueError):#已关
             pass#忽略
 
-    def 排空(自身):#等已接受写入结束或失败
+    def 排空写入(自身):#等已接受写入结束或失败
         '等已接受写入结束或失败，返回期约'
         落定=期约()#排空回执
         def 已排空(结算=None):#写出都已结束

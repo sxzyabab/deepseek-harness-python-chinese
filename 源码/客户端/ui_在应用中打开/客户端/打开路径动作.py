@@ -1,125 +1,156 @@
-'文件关联适配：文档头与不可预览空态共用打开控件'
-from .文件应用 import 使用文件应用#联想查询
-from .打开目标按钮 import 打开目标按钮#共享分体按钮
+'文档预览里的文件关联，接到共用打开按钮。'
+from .文件应用 import 接上文件应用
+from .打开目标按钮 import 打开目标按钮
 
-__all__=['文件打开目标','打开路径动作','路径键齐']#仅中文公开名
+__all__=['文件打开目标','打开路径动作']
 
-def 路径键齐(属性):#文件打开能否画
-    '绝对路径、文案、联想和打开都在才画'
-    if not isinstance(属性,dict):#不是映射
-        return False#缺
-    路径=属性.get('absolutePath')#文件
-    if not isinstance(路径,str) or 路径=='':#没有路径
-        return False#缺
-    if not callable(属性.get('t')):#没有文案
-        return False#缺
-    if not callable(属性.get('applications')):#没有联想
-        return False#缺
-    if not callable(属性.get('openPath')):#没有打开
-        return False#缺
-    return True#齐
 
-class 文件打开目标:#文件路径 → 共享打开控件
-    """解析文件关联并适配操作，不把平台行为嵌进控件。
-    无桌面时渲染 None
-    """
-
-    def __init__(自身,属性):
-        '记下 props'
-        自身.属性=属性 if 属性 is not None else {}#props
-        自身._按钮=None#子控件
+class 文件打开目标:
+    '查出文件关联再画共用按钮。没有桌面时不画'
+    def __init__(自身,属性=None):
+        '记下 props。键齐了就画'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.按钮=None
+        自身.根=None
+        自身.已订=False
+        自身.绘制中=False
+        自身.待重画=False
+        自身.联想键=None
+        自身.状态仓=None
+        自身.刷新函数=None
+        自身.退订联想=None
+        if 'window' in 自身.属性 and 'useOpenInAppDesktop' in 自身.属性:
+            自身.渲染()
 
     def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性 if 属性 is not None else {}#最新
-        自身._按钮=None#重建
+        '换上新的 props'
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
-    def _读桌面(自身):
-        '经 useOpenInAppDesktop'
-        用=自身.属性['useOpenInAppDesktop'] if 'useOpenInAppDesktop' in 自身.属性 else None#钩子
-        if 用 is not None:#有
-            return 用(lambda 值:值)#原样
-        return None#缺席
+    def 重画(自身):
+        '桌面或文件关联变了'
+        if 自身.绘制中:
+            自身.待重画=True
+            return
+        自身.渲染()
 
-    def _确保桌面(自身):
-        '桌面未知时触发加载'
-        if 自身._读桌面() is None:#未知
-            加载=自身.属性['loadDesktop'] if 'loadDesktop' in 自身.属性 else None#加载
-            if 加载 is not None:#有
-                加载()#拉桌面
+    def 确保订阅(自身):
+        '桌面可用性变了就重画'
+        if 自身.已订:
+            return
+        自身.已订=True
+        钩=自身.属性.get('useOpenInAppDesktop')
+        订=getattr(钩,'_subscribe',None)
+        if callable(订):
+            订(自身.重画)
+
+    def 卸根(自身):
+        '没有桌面时拆掉旧按钮'
+        if 自身.根 is not None:
+            自身.根.remove()
+        自身.根=None
+        自身.按钮=None
 
     def 渲染(自身):
-        '共享打开控件，或无桌面时 None。键未齐不画替代控件。'
-        if not 路径键齐(自身.属性):#键未齐
-            return None#空槽留给主人
-        自身._确保桌面()#拉
-        if 自身._读桌面() is not True:#非桌面
-            return None#不渲染
-        属性=自身.属性#props
-        路径=属性['absolutePath']#绝对路径
-        查询=属性['applications']#联想查询
-        联想=使用文件应用(路径,查询,True)#联想
-        默认标识=None#默认应用
-        for 应用 in 联想['apps']:#找 Host 默认
-            if 应用.get('default') is True:#默认
-                默认标识=应用['id']#记下
-                break#止
-        空态=属性['empty'] is True if 'empty' in 属性 else False#不可预览大钮
-        def 执行(操作):
-            '转 openPath 契约'
-            动作='reveal' if 操作['kind']=='reveal' else 'open'#动作
-            应用=操作['id'] if 操作['kind']=='application' else None#应用 id
-            return 属性['openPath'](路径,动作,应用)#跑
-        面={#按钮 props
-            'kind':'file',#文件
-            'applications':[{'id':应用['id'],'name':应用['name'] if 'name' in 应用 else 应用['id'],'icon':应用['icon'] if 'icon' in 应用 else None} for 应用 in 联想['apps']],#应用
-            'defaultId':默认标识,#默认
-            'loading':联想['loading'],#加载
-            'failed':联想['failed'],#失败
-            'detail':联想['detail'] if 'detail' in 联想 and isinstance(联想['detail'],str) else '',
-            'prominent':空态,#大钮
-            't':属性['t'],#文案
-            'refresh':联想['refresh'],#刷新
-            'execute':执行,#执行
-        }#面结束
-        if 自身._按钮 is None:#初建
-            自身._按钮=打开目标按钮(面)#建
-        else:#刷新
-            自身._按钮.更新(面)#更
-        return 自身._按钮.渲染()#渲染
+        '桌面可用才画文件按钮'
+        if 自身.绘制中:
+            自身.待重画=True
+            return 自身.根
+        自身.绘制中=True
+        try:
+            自身.确保订阅()
+            属性=自身.属性
+
+            def 原样(值):
+                '整份桌面可用性'
+                return 值
+
+            桌面=属性['useOpenInAppDesktop'](原样)
+            if 桌面 is None:
+                属性['loadDesktop']()
+                桌面=属性['useOpenInAppDesktop'](原样)
+            路径=属性['absolutePath']
+            查询=属性['applications']
+            if 桌面 is not True:
+                接上文件应用(自身,路径,查询,False,自身.重画)
+                自身.卸根()
+            else:
+                联想=接上文件应用(自身,路径,查询,True,自身.重画)
+                应用=联想['apps']
+                默认=None
+                for 项 in 应用:
+                    if 项.get('default') is True:
+                        默认=项['id']
+                        break
+
+                def 执行(操作,属性=属性,路径=路径):
+                    '揭示，或用点名的应用打开'
+                    if 操作['kind']=='reveal':
+                        动作='reveal'
+                    else:
+                        动作='open'
+                    应用标识=操作['id'] if 操作['kind']=='application' else None
+                    return 属性['openPath'](路径,动作,应用标识)
+
+                面={
+                    'window':属性['window'],
+                    'kind':'file',
+                    'applications':应用,
+                    'defaultId':默认,
+                    'loading':联想['loading'],
+                    'failed':联想['failed'],
+                    'prominent':属性.get('empty') is True,
+                    'refresh':联想['refresh'],
+                    'execute':执行,
+                    'absolutePath':路径,
+                }
+                if 'parent' in 属性:
+                    面['parent']=属性['parent']
+                if 自身.按钮 is None:
+                    自身.按钮=打开目标按钮(面)
+                else:
+                    自身.按钮.更新(面)
+                    自身.按钮.渲染()
+                自身.根=自身.按钮.根
+        finally:
+            自身.绘制中=False
+        if 自身.待重画:
+            自身.待重画=False
+            return 自身.渲染()
+        return 自身.根
 
     def __call__(自身,属性=None):
-        '刷新后渲染'
-        if 属性 is not None:#有新
-            自身.更新(属性)#刷新
-        return 自身.渲染()#渲染
+        '再次交给槽位时刷新'
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()
 
-class 打开路径动作:#文档头贡献
-    '在文档头渲染文件适配器。不拥有文件树。'
 
-    def __init__(自身,属性):
-        '记下 props。槽位只调用构造，键齐才画。文件目标构造时不画。'
-        自身.属性=属性 if isinstance(属性,dict) else {}#props
-        自身.目标=None#文件适配
-        if 路径键齐(自身.属性):#键齐
-            自身.渲染()#末尾画一次
+class 打开路径动作:
+    '文档头上的文件打开按钮'
+    def __init__(自身,属性=None):
+        '交给文件打开目标'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.目标=None
+        自身.根=None
+        if 'window' in 自身.属性:
+            自身.渲染()
 
     def 更新(自身,属性):
-        '刷新。不在这里再画。'
-        自身.属性=属性 if isinstance(属性,dict) else {}#最新
-        if 自身.目标 is not None:#已有
-            自身.目标.更新(自身.属性)#透传
+        '换上新的 props'
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
     def 渲染(自身):
-        '共享分体按钮。子组件构造时不画，这里画一次。'
-        if not 路径键齐(自身.属性):#键未齐
-            return None#空
-        if 自身.目标 is None:#初建
-            自身.目标=文件打开目标(自身.属性)#构造不画
-        return 自身.目标.渲染()#画一次
+        '画出文件按钮'
+        if 自身.目标 is None:
+            自身.目标=文件打开目标(自身.属性)
+        else:
+            自身.目标.更新(自身.属性)
+            自身.目标.渲染()
+        自身.根=自身.目标.根
+        return 自身.根
 
     def __call__(自身,属性=None):
-        '刷新后渲染'
-        if 属性 is not None:#有新
-            自身.更新(属性)#刷新
-        return 自身.渲染()#渲染
+        '再次交给槽位时刷新'
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()

@@ -113,5 +113,8 @@
     "2026-09-14-generated-cli-help-reference":"2026-09-14-生成cli帮助参考",
     "2026-10-05-pr-artifact-typechecks":"2026-10-05-pr产物类型检查",
     "2026-10-05-product-package-classification":"2026-10-05-产品包分类",
-    "2026-10-08-session-reader-compatibility-review":"2026-10-08-会话读取器兼容审阅"
+    "2026-10-08-session-reader-compatibility-review":"2026-10-08-会话读取器兼容审阅",
+    "2026-10-11-build-artifacts-check-split":"2026-10-11-构建产物与检查拆分",
+    "2026-10-11-lossless-build-speedups":"2026-10-11-无损构建提速",
+    "2026-10-12-local-gate-speedups":"2026-10-12-本地门禁提速"
 }

@@ -1,0 +1,11 @@
+{
+    "evaluator":"求值器",
+    "guard":"门面规则",
+    "inspect-registry":"巡检注册表",
+    "orchestrator":"编排器",
+    "runtime":"运行时",
+    "timer":"定时器",
+    "providers":"提供方",
+    "api-catalog":"api名录",
+    "slot-catalog":"槽名录"
+}

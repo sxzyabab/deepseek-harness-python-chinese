@@ -1,12 +1,12 @@
 import sys,threading#生产 stdio、退出与异步退出拍
 from ...依赖.schemastery import 布尔字段
 from ..协议 import 换行JSONRPC传输#换行 JSON-RPC 传输
-from .服务端 import 装备SDKJSONRPC服务端#SDK 运行时服务器
+from .服务端 import HarnessSdkJsonRpc服务端#SDK 运行时服务器
 from . import (
     异常,
 )
 
-__all__=['包名','名称','依赖','应用','默认','配置','装备SDKJSONRPC服务端']
+__all__=['包名','名称','依赖','应用','默认','配置','HarnessSdkJsonRpc服务端']
 
 包名='@deepseek-ai/dsh-sdk-jsonrpc-server'
 名称='sdk-jsonrpc-server'
@@ -33,7 +33,7 @@ def 应用(上下文,配置值):
         退出函数=生产退出#生产退出
     传输=换行JSONRPC传输(输入,输出)#在选定流上建传输
     成功映射=配置值['maxTokensAsSuccess'] if 'maxTokensAsSuccess' in 配置值 else False#部署级状态映射
-    服务端=装备SDKJSONRPC服务端(上下文,传输,{#建 SDK 服务器
+    服务端=HarnessSdkJsonRpc服务端(上下文,传输,{#建 SDK 服务器
         'maxTokensAsSuccess':成功映射,#部署级状态映射
     })#服务器选项结束
     退出任务=None#进行中的退出任务，避免重入
@@ -44,7 +44,7 @@ def 应用(上下文,配置值):
             return#复用
         退出任务=True#占位标记已启动
         try:
-            传输.刷出()#先刷出 shutdown 响应
+            传输.刷出帧()#先刷出 shutdown 响应
         except OSError:
             pass#刷失败不阻断
         try:
@@ -62,7 +62,7 @@ def 应用(上下文,配置值):
             threading.Thread(target=拆除并退出,daemon=True).start()#异步退出以免卡住响应写出
             return 结果#返回给传输写成响应
         return 结果期约.然后(安排退出)#shutdown 兑现后才退出
-    传输.当请求(请求处理)#挂上请求处理
+    传输.安装请求处理函数(请求处理)#挂上请求处理
     def 服务生命周期():
         '开始读帧；拆除时关服务端与传输'
         传输.启动()#开始读帧

@@ -1,8 +1,8 @@
-'思考翻译及其偏好的文案'
+'思考翻译和偏好的文案。页面显示用中文表，英文表只随词典登记'
 
-__all__=['命名空间','中文','英文','表单标签']
+__all__=['命名空间','英文','中文']
 
-命名空间='cotTranslation'
+命名空间='cotTranslation'#词典命名空间
 
 英文={
     'provider':'Translation service',
@@ -73,13 +73,3 @@ __all__=['命名空间','中文','英文','表单标签']
     'unwrap':'不换行',
     'footnotes':'脚注',
 }
-
-def 表单标签(翻译):
-    '从插件词典读共享表单铬'
-    return {
-        'unavailable':翻译('unavailable'),
-        'readOnly':翻译('readOnly'),
-        'saveFailed':翻译('saveFailed'),
-        'save':翻译('save'),
-        'saving':翻译('saving'),
-    }

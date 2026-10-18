@@ -1,303 +1,381 @@
-from nicegui import ui as 界面
-from .原图灯箱 import 原图灯箱
-from .异常 import 叠页面失败,页面失败文案
+'历史图片和提交回声的预览。单图按长边适配，多图用方砖'
+from ..模块.客户端.通告 import 取握手窗口
+import os
+from ..ui_对话.异常 import 注入模块样式文件,标样式模块
+from ..ui_基础界面组件.icons import 描边图标,图标加载描边常规
+from ..ui_基础界面组件.图像灯箱 import 图像灯箱
 
-__all__=['消息图','图库','单图适配']#仅中文公开名
+__all__=['消息图','图库']
 
-def 单图适配(附件):#单图显示盒
-    '长边 240px，宽高比夹在 [0.25,4]，不放大超过自然尺寸'
-    if 附件 is None:#无附件
-        宽=1#缺附件当 1
-        高=1#缺附件当 1
-    else:#有附件 dict
-        宽=附件['width'] if 'width' in 附件 and 附件['width'] is not None else 1#缺键当 1
-        高=附件['height'] if 'height' in 附件 and 附件['height'] is not None else 1#缺键当 1
-    自然=宽/高#自然比
-    比例=min(4,max(0.25,自然))#夹紧比
-    if 比例>=1:#横图
-        盒宽,盒高=240,240/比例#盒
-    else:#竖图
-        盒宽,盒高=240*比例,240#盒
-    缩放=min(1,宽/盒宽,高/盒高)#不放大
-    物位='center top' if 自然<0.25 else ('left center' if 自然>4 else 'center')#锚点
-    return {#适配
-        'width':max(1,round(盒宽*缩放)),#宽
-        'height':max(1,round(盒高*缩放)),#高
-        'objectPosition':物位,#物位
-    }#适配结束
+样式模块='attachment-message-image'
 
-class 消息图:#历史缩略图
-    '可重试加载与单击原图预览'
-    def __init__(自身,属性):#构造
-        '记下 props 并首载'
-        自身.属性=属性#合成 props
-        自身.源=None#已解析 URL
-        自身.错误=False#失败
-        自身.打开中=False#灯箱
-        自身.尝试=0#重试计数
-        自身.存活=True#存活
-        自身.灯箱=None#内嵌灯箱
-        自身.画面失败=None
-        自身.加载失败文=None
-        自身.加载()#首载
+def 读字段(对象,键):
+    '字典用键，浏览器对象用属性。缺了就是 None'
+    if isinstance(对象,dict):
+        if 键 in 对象:
+            return 对象[键]
+        return None
+    return getattr(对象,键,None)
 
-    def 更新(自身,属性):#props 变更
-        '附件或加载器变则重载'
-        旧附=自身.属性['attachment'] if 'attachment' in 自身.属性 else None#旧
-        旧载=自身.属性['load'] if 'load' in 自身.属性 else None#旧载
-        自身.属性=属性#最新
-        新附=自身.属性['attachment'] if 'attachment' in 自身.属性 else None#新
-        新载=自身.属性['load'] if 'load' in 自身.属性 else None#新载
-        if 新附 is not 旧附 or 新载 is not 旧载:#引用变
-            自身.加载()#重载
+class 消息图:
+    '可重试的加载，以及单击打开原图。预览臂直接用本地地址'
+    def __init__(自身,属性):
+        '记下图片、加载器和变体，并开始第一次加载'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        自身.已载=None
+        自身.错误=False
+        自身.打开=False
+        自身.尝试=0
+        自身.存活代=0
+        自身.上次附件=None
+        自身.上次加载=None
+        自身.上次尝试=None
+        自身.灯箱=None
+        自身.当前源=None
+        自身.已拆=False
+        自身.绘制中=False
+        自身.待重画=False
+        自身.渲染()
 
-    def 卸载(自身):#卸载
-        '标死'
-        自身.存活=False#死
-        if 自身.灯箱 is not None:#有灯箱
-            自身.灯箱.卸载()#拆
+    def 更新(自身,属性):
+        '换上新的图片或加载器。加载是否重来由渲染比较'
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
-    def 加载(自身):#拉取 URL
-        '同一存活守卫下加载。ImageLoader 已是同步，返回 URL'
-        自身.错误=False#清错
-        自身.源=None#清源
-        自身.加载失败文=None
-        加载器=自身.属性['load'] if 'load' in 自身.属性 else None#加载器
-        附件=自身.属性['attachment'] if 'attachment' in 自身.属性 else None#附件
-        try:#加载
-            地址=加载器(附件) if 加载器 is not None else None#同步 URL
-        except Exception as 错误:#加载器异常契约未定，故不能换成更窄的 except
-            if 自身.存活:#仍活
-                自身.错误=True#失败
-                自身.加载失败文=页面失败文案(错误)
+    def 卸灯箱(自身):
+        '卸掉原图预览的键盘监听，并从 body 拿掉遮罩'
+        灯箱=自身.灯箱
+        自身.灯箱=None
+        if 灯箱 is None:
             return
-        if not 自身.存活:#已死
-            return#丢弃
-        自身.源=地址#记下
+        拆=getattr(灯箱,'拆除',None)
+        if callable(拆):
+            拆()
+        根=getattr(灯箱,'根',None)
+        if 根 is not None and getattr(根,'parentNode',None) is not None:
+            根.remove()
 
-    def 重试(自身):#失败后重试
-        '抬尝试计数并再载'
-        自身.尝试+=1#计数
-        自身.加载()#再载
+    def 拆除(自身):
+        '这一代加载结果作废，原图预览也关掉'
+        自身.已拆=True
+        自身.存活代=自身.存活代+1
+        自身.卸灯箱()
 
-    def 打开(自身):#开灯箱
-        '有源才开'
-        if 自身.源 is None:#无源
+    def 点开(自身,事件=None):
+        '已经有地址才打开原图'
+        if 自身.当前源 is None:
             return
-        自身.打开中=True#打开
-        文案=自身.属性['labels'] if 'labels' in 自身.属性 and 自身.属性['labels'] is not None else {}#文案
-        附件=自身.属性['attachment'] if 'attachment' in 自身.属性 and 自身.属性['attachment'] is not None else {}#附件
-        if 'name' in 附件 and 附件['name'] is not None:#?? 空串保留
-            名=附件['name']#显示名
-        else:#无 name
-            名=文案['image'] if 'image' in 文案 else None#回退文案
-        灯箱文案=文案['lightbox'] if 'lightbox' in 文案 and 文案['lightbox'] is not None else {}#灯箱文案
-        自身.灯箱=原图灯箱({#灯箱 props
-            'src':自身.源,#URL
-            'alt':名,#替代
-            'labels':灯箱文案,#灯箱文案
-            'onClose':自身.关闭灯箱,#关闭
-        })#铸造
+        自身.打开=True
+        自身.渲染()
 
-    def 关闭灯箱(自身):#关灯箱
-        '关掉'
-        自身.打开中=False#关
-        if 自身.灯箱 is not None:#有
-            自身.灯箱.卸载()#拆
-            自身.灯箱=None#清
+    def 重试(自身,事件=None):
+        '再走同一条加载'
+        自身.尝试=自身.尝试+1
+        自身.渲染()
 
-    def 视图(自身):#读视图模型
-        '投影缩略或重试钮'
-        文案=自身.属性['labels'] if 'labels' in 自身.属性 and 自身.属性['labels'] is not None else {}#文案
-        附件=自身.属性['attachment'] if 'attachment' in 自身.属性 and 自身.属性['attachment'] is not None else {}#附件
-        变体=自身.属性['variant'] if 'variant' in 自身.属性 and 自身.属性['variant'] is not None else 'tile'#变体
-        if 'name' in 附件 and 附件['name'] is not None:#?? 空串保留
-            名=附件['name']#显示名
-        else:#无 name
-            名=文案['image'] if 'image' in 文案 else None#回退文案
-        开名=文案['openNamed'] if 'openNamed' in 文案 else None#命名打开
-        if 开名 is not None:#有函数
-            无障碍=开名(名)#调用
-        else:#缺席
-            无障碍=名#退回
-        if 自身.错误:#失败
-            return {'status':'error','variant':变体,'retryLabel':文案['loadFailed'] if 'loadFailed' in 文案 else None}#重试
-        适配=单图适配(附件) if 变体=='single' else None#单图适配
-        结果={#就绪视图
-            'status':'ready',#状态
-            'variant':变体,#变体
-            'src':自身.源,#URL
-            'alt':名,#替代
-            'title':文案['open'] if 'open' in 文案 else None,#提示
-            'aria':无障碍,#无障碍
-            'loading':文案['loading'] if 自身.源 is None and 'loading' in 文案 else None,#加载中
-            'fit':适配,#适配
-            'lightbox':自身.灯箱.视图() if 自身.打开中 and 自身.灯箱 is not None else None,#灯箱
-        }#结果结束
-        return 结果#返回
-
-    def 图样式(自身,视):
-        '单图用适配盒，方砖 64，缩略 48'
-        变体=视['variant'] if 'variant' in 视 else 'tile'#变体
-        if 变体=='thumbnail':#缩略
-            return 'width:48px;height:48px;object-fit:contain'#缩略盒
-        if 变体=='tile':#方砖
-            return 'width:64px;height:64px;object-fit:cover'#方砖盒
-        适配=视['fit'] if 'fit' in 视 else None#单图适配
-        if not isinstance(适配,dict):#无适配
-            return ''#默认
-        宽=适配['width'] if 'width' in 适配 else None#宽
-        高=适配['height'] if 'height' in 适配 else None#高
-        物位=适配['objectPosition'] if 'objectPosition' in 适配 else None#锚点
-        段=[]#样式段
-        if isinstance(宽,(int,float)) and not isinstance(宽,bool) and isinstance(高,(int,float)) and not isinstance(高,bool):#有尺寸
-            段.append('width:'+str(int(宽))+'px')#宽
-            段.append('height:'+str(int(高))+'px')#高
-            段.append('object-fit:cover')#裁切
-        if isinstance(物位,str) and 物位!='':#有锚点
-            段.append('object-position:'+物位)#锚点
-        return ';'.join(段)#拼起来
+    def 关闭(自身,事件=None):
+        '关掉原图预览'
+        自身.打开=False
+        自身.渲染()
 
     def 渲染(自身):
-        '失败给重试；有地址则出图，点击开灯箱'
-        视=自身.视图()
-        旧=getattr(自身,'根',None)
-        if 旧 is not None:
-            try:
-                旧.clear()
-            except Exception as 错误:
-                自身.根=None
-                自身.画面失败=叠页面失败(自身.画面失败,错误)
-        if getattr(自身,'根',None) is None:
-            自身.根=界面.column().classes('message-image')
-        with 自身.根:
-            if isinstance(自身.画面失败,str) and 自身.画面失败!='':
-                界面.label(自身.画面失败)
-            if 视['status']=='error':
-                if isinstance(自身.加载失败文,str) and 自身.加载失败文!='':
-                    界面.label(自身.加载失败文)
-                文=视['retryLabel'] if isinstance(视['retryLabel'],str) else ''
-                def 点重试():
-                    '再载缩略图'
-                    自身.重试()
-                    自身.渲染()
-                if 视['variant']=='thumbnail':
-                    钮=界面.button(on_click=点重试).props('icon=refresh flat round')
-                    if 文!='':
-                        钮.tooltip(文)
+        '按变体画缩略图、加载中或失败重试，打开时把原图挂到 body'
+        if 自身.已拆:
+            return 自身.根
+        if 自身.绘制中:
+            自身.待重画=True
+            return 自身.根
+        自身.绘制中=True
+        画完=False
+        try:
+            属性=自身.属性
+            窗口=属性['window'] if 'window' in 属性 else 取握手窗口()
+            文档=窗口.document
+            注入模块样式文件(
+                文档,
+                'dsh-attachment-message-image',
+                os.path.join(os.path.dirname(__file__),'消息图.module.css'),
+                样式模块,
+            )
+            图=属性.get('image') if isinstance(属性.get('image'),dict) else {}
+            附件=图['attachment'] if 'attachment' in 图 else None
+            预览=图['preview'] if 'preview' in 图 else None
+            加载=属性.get('load')
+            变体=属性.get('variant')
+            文案=属性.get('labels') if isinstance(属性.get('labels'),dict) else {}
+            if 'attachment' in 图:
+                尺寸={'width':读字段(附件,'width'),'height':读字段(附件,'height')}
+            else:
+                宽=读字段(预览,'width')
+                高=读字段(预览,'height')
+                if 宽 is not None and 高 is not None:
+                    尺寸={'width':宽,'height':高}
                 else:
-                    界面.button(文,on_click=点重试).props('flat no-caps')
+                    尺寸=None
+            if 变体!='single':
+                适配=None
+            elif 尺寸 is None:
+                适配={'width':240,'height':240,'objectPosition':'center'}
             else:
-                if 视['variant']=='thumbnail' and 视['src'] is None:
-                    界面.spinner(size='16px')
-                elif isinstance(视['loading'],str) and 视['loading']!='' and 视['src'] is None:
-                    界面.label(视['loading'])
-                if isinstance(视['src'],str) and 视['src']!='':
-                    def 点开():
-                        '打开原图'
-                        自身.打开()
-                        自身.渲染()
-                    图=界面.image(视['src'])
-                    样式=自身.图样式(视)
-                    if 样式!='':
-                        图.style(样式)
-                    if isinstance(视['title'],str) and 视['title']!='':
-                        图.tooltip(视['title'])
-                    图.on('click',lambda _e:点开())
-            if 自身.打开中 is True and 自身.灯箱 is not None:
-                自身.灯箱.渲染()
+                自然=尺寸['width']/尺寸['height']
+                比例=min(4,max(0.25,自然))
+                if 比例>=1:
+                    盒宽=240
+                    盒高=240/比例
+                else:
+                    盒宽=240*比例
+                    盒高=240
+                缩放=min(1,尺寸['width']/盒宽,尺寸['height']/盒高)
+                if 自然<0.25:
+                    位置='center top'
+                elif 自然>4:
+                    位置='left center'
+                else:
+                    位置='center'
+                适配={
+                    'width':max(1,int(盒宽*缩放+0.5)),
+                    'height':max(1,int(盒高*缩放+0.5)),
+                    'objectPosition':位置,
+                }
+            标签=图['label'] if 'attachment' in 图 and 图.get('label') is not None else None
+            if 标签 is None:
+                标签=读字段(预览,'name')
+            if 标签 is None:
+                标签=读字段(附件,'name')
+            if 标签 is None:
+                标签=文案.get('image')
+            要载=附件 is not None and (
+                附件 is not 自身.上次附件 or 加载 is not 自身.上次加载 or 自身.尝试!=自身.上次尝试
+            )
+            if 附件 is None:
+                自身.存活代=自身.存活代+1
+                自身.错误=False
+                自身.上次附件=None
+                自身.上次加载=None
+            elif 要载:
+                自身.存活代=自身.存活代+1
+                代=自身.存活代
+                自身.上次附件=附件
+                自身.上次加载=加载
+                自身.上次尝试=自身.尝试
+                自身.错误=False
+                窥=None
+                窥探=getattr(加载,'peek',None)
+                if callable(窥探):
+                    窥=窥探(附件)
+                自身.已载=窥
 
-    def __call__(自身,属性=None):#组件调用形
-        '对齐 React 组件调用'
-        if 属性 is not None:#有新 props
-            自身.更新(属性)#刷新
-        return 自身.渲染()
+                def 成功(地址,代=代):
+                    '这一代还活着才换上地址'
+                    if 代!=自身.存活代 or 自身.已拆:
+                        return
+                    自身.已载=地址
+                    自身.错误=False
+                    if 自身.绘制中:
+                        return
+                    自身.渲染()
 
-class 图库:#消息图组
-    '单图大显，多图方砖'
-    def __init__(自身,属性):#构造
-        '记下 props'
-        自身.属性=属性#合成 props
-        自身.子图=[]#子消息图
-        自身.画面失败=None
-        自身.重建子图()#首建
+                def 失败(错误=None,代=代):
+                    '这一代还活着才标成失败'
+                    if 代!=自身.存活代 or 自身.已拆:
+                        return
+                    自身.错误=True
+                    if 自身.绘制中:
+                        return
+                    自身.渲染()
 
-    def 重建子图(自身):#按 images 重建
-        '变体随条数变'
-        图列=自身.属性['images'] if 'images' in 自身.属性 and 自身.属性['images'] is not None else []#图列；空列表保留
-        缩略=自身.属性['thumbnail'] is True if 'thumbnail' in 自身.属性 else False#列表缩略
-        紧凑=自身.属性['compact'] is True if 'compact' in 自身.属性 else False#紧凑方砖
-        if 缩略:#缩略图
-            变体='thumbnail'#缩略
-        elif 紧凑 or len(图列)!=1:#多图或要求紧凑
-            变体='tile'#方砖
-        else:#独图
-            变体='single'#大图
-        加载=自身.属性['load'] if 'load' in 自身.属性 else None#加载器
-        文案=自身.属性['labels'] if 'labels' in 自身.属性 else None#文案
-        自身.子图=[消息图({#子图
-            'attachment':图['attachment'] if 'attachment' in 图 else None,#附件
-            'load':加载,#加载
-            'variant':变体,#变体
-            'labels':文案,#文案
-        }) for 图 in 图列]#铸造
+                回=加载(附件)
+                if callable(getattr(回,'then',None)):
+                    后续=回.then(成功)
+                    if callable(getattr(后续,'catch',None)):
+                        后续.catch(失败)
+                    elif callable(getattr(回,'catch',None)):
+                        回.catch(失败)
+                else:
+                    成功(回)
+            源=读字段(预览,'url')
+            if 源 is None:
+                源=自身.已载
+            自身.当前源=源
+            加载缩略=变体=='thumbnail' and 源 is None
+            if 自身.错误:
+                钮=文档.createElement('button')
+                钮.type='button'
+                钮.className='error'
+                标样式模块(钮,样式模块)
+                钮.setAttribute('data-variant','' if 变体 is None else str(变体))
+                if 变体=='thumbnail':
+                    失败文='' if 文案.get('loadFailed') is None else str(文案['loadFailed'])
+                    钮.setAttribute('title',失败文)
+                    钮.setAttribute('aria-label',失败文)
+                    藏=文档.createElement('span')
+                    藏.setAttribute('aria-hidden','true')
+                    刷新图=描边图标({'window':窗口,'size':16},'0 0 16 16',[
+                        'M14.5001 8C14.5 9.28552 14.1188 10.5422 13.4045 11.611C12.6903 12.6799 11.6752 13.5129 10.4875 14.0049C9.29982 14.4968 7.99295 14.6255 6.73212 14.3747C5.4713 14.124 4.31314 13.505 3.4041 12.596C2.49514 11.687 1.87614 10.5288 1.62537 9.26798C1.37459 8.00716 1.50331 6.70028 1.99525 5.51261C2.48719 4.32494 3.32025 3.30981 4.3891 2.59557C5.45795 1.88134 6.71458 1.50008 8.0001 1.5C9.9001 1.5 11.7001 2.3 13.0001 3.6L14.5001 5.1',
+                        'M14.4999 1.5V5.1H10.8999',
+                    ])
+                    if 刷新图 is not None:
+                        藏.appendChild(刷新图)
+                    钮.appendChild(藏)
+                else:
+                    钮.textContent='' if 文案.get('loadFailed') is None else str(文案['loadFailed'])
+                钮.addEventListener('click',自身.重试)
+                自身.卸灯箱()
+                新=钮
+            else:
+                钮=文档.createElement('button')
+                钮.type='button'
+                钮.className='frame'
+                标样式模块(钮,样式模块)
+                钮.setAttribute('data-variant','' if 变体 is None else str(变体))
+                if 适配 is not None:
+                    钮.style.width=str(适配['width'])+'px'
+                    钮.style.height=str(适配['height'])+'px'
+                if 加载缩略:
+                    提示='' if 文案.get('loading') is None else str(文案['loading'])
+                    钮.setAttribute('title',提示)
+                    钮.setAttribute('aria-label',提示)
+                    钮.setAttribute('aria-busy','true')
+                else:
+                    钮.setAttribute('title','' if 文案.get('open') is None else str(文案['open']))
+                    具名=文案.get('openNamed')
+                    if callable(具名):
+                        钮.setAttribute('aria-label',具名('' if 标签 is None else str(标签)))
+                钮.addEventListener('click',自身.点开)
+                if 源 is None:
+                    等待=文档.createElement('span')
+                    等待.className='loading'
+                    标样式模块(等待,样式模块)
+                    if 加载缩略:
+                        等待.setAttribute('aria-hidden','true')
+                        转=图标加载描边常规({'window':窗口,'className':'spinner'})
+                        if 转 is not None:
+                            标样式模块(转,样式模块)
+                            等待.appendChild(转)
+                    else:
+                        等待.textContent='' if 文案.get('loading') is None else str(文案['loading'])
+                    钮.appendChild(等待)
+                else:
+                    图片=文档.createElement('img')
+                    图片.src=str(源)
+                    图片.alt='' if 标签 is None else str(标签)
+                    if 适配 is not None:
+                        图片.style.objectPosition=适配['objectPosition']
+                    钮.appendChild(图片)
+                if 自身.打开 and 源 is not None:
+                    灯属性={
+                        'src':源,
+                        'alt':'' if 标签 is None else str(标签),
+                        'labels':文案.get('lightbox') if isinstance(文案.get('lightbox'),dict) else {},
+                        'onClose':自身.关闭,
+                        'window':窗口,
+                    }
+                    旧灯=自身.灯箱
+                    旧址=None if 旧灯 is None else 旧灯.属性.get('src')
+                    if 旧灯 is None or 旧址!=源:
+                        自身.卸灯箱()
+                        自身.灯箱=图像灯箱(灯属性)
+                        自身.灯箱.渲染()
+                else:
+                    自身.卸灯箱()
+                新=钮
+            旧=自身.根
+            if 旧 is not None and getattr(旧,'parentNode',None) is not None:
+                旧.parentNode.replaceChild(新,旧)
+            自身.根=新
+            画完=True
+        finally:
+            自身.绘制中=False
+        if 画完 and 自身.待重画:
+            自身.待重画=False
+            return 自身.渲染()
+        return 自身.根
 
-    def 更新(自身,属性):#props 变更
-        '刷新并重建'
-        自身.属性=属性#最新
-        for 子 in 自身.子图:#旧子
-            子.卸载()#拆
-        自身.重建子图()#重建
+class 图库:
+    '单图放大，多图或拥有方要求紧凑时用方砖，列表行用缩略图'
+    def __init__(自身,属性):
+        '记下图片列和加载器'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        自身.子={}
+        自身.渲染()
 
-    def 卸载(自身):#卸载
-        '拆子图'
-        for 子 in 自身.子图:#每个
-            子.卸载()#拆
-        自身.子图=[]#清
+    def 更新(自身,属性):
+        '换上新的图片列'
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
-    def 视图(自身):#读视图模型
-        '空图列返回 None'
-        图列=自身.属性['images'] if 'images' in 自身.属性 and 自身.属性['images'] is not None else []#图列；空列表保留
-        if len(图列)==0:#空；判的是 length
-            return None#不渲染
-        return {#视图
-            'align':自身.属性['align'] if 'align' in 自身.属性 else None,#对齐
-            'images':[子.视图() for 子 in 自身.子图],#子视图
-        }#视图结束
+    def 拆子(自身):
+        '拆掉每一张图的加载和灯箱'
+        for 项 in 自身.子.values():
+            项.拆除()
+        自身.子={}
+
+    def 拆除(自身):
+        '卸掉全部子图'
+        自身.拆子()
 
     def 渲染(自身):
-        '先有一行；空图列藏起，有图则逐张交给消息图'
-        视=自身.视图()
-        旧=getattr(自身,'根',None)
-        if 旧 is not None:
-            try:
-                旧.clear()
-            except Exception as 错误:
-                自身.根=None
-                自身.画面失败=叠页面失败(自身.画面失败,错误)
-        if getattr(自身,'根',None) is None:
-            自身.根=界面.row().classes('message-images')
-        失败文=自身.画面失败 if isinstance(自身.画面失败,str) and 自身.画面失败!='' else None
-        if 视 is None and 失败文 is None:
-            自身.根.set_visibility(False)
-            return
-        自身.根.set_visibility(True)
-        if 视 is not None:
-            对齐=视['align'] if 'align' in 视 else None
-            if 对齐=='end':
-                自身.根.style('justify-content:flex-end;flex-wrap:wrap;gap:8px')
+        '空列表不留节点。同一张图沿用原来的加载状态'
+        属性=自身.属性
+        图列=属性.get('images') or []
+        if len(图列)==0:
+            自身.拆子()
+            if 自身.根 is not None and getattr(自身.根,'parentNode',None) is not None:
+                自身.根.remove()
+            自身.根=None
+            return None
+        窗口=属性['window'] if 'window' in 属性 else 取握手窗口()
+        文档=窗口.document
+        注入模块样式文件(
+            文档,
+            'dsh-attachment-message-image',
+            os.path.join(os.path.dirname(__file__),'消息图.module.css'),
+            样式模块,
+        )
+        if 属性.get('thumbnail') is True:
+            变体='thumbnail'
+        elif 属性.get('compact') is True or len(图列)>1:
+            变体='tile'
+        else:
+            变体='single'
+        if 自身.根 is None:
+            根=文档.createElement('div')
+            根.className='gallery'
+            标样式模块(根,样式模块)
+            自身.根=根
+        对齐=属性.get('align')
+        自身.根.setAttribute('data-align','' if 对齐 is None else str(对齐))
+        现存={}
+        下标=0
+        for 图 in 图列:
+            if isinstance(图,dict) and 'attachment' in 图:
+                身份=读字段(图.get('attachment'),'attachmentId')
+            elif isinstance(图,dict):
+                身份=读字段(图.get('preview'),'url')
             else:
-                自身.根.style('justify-content:flex-start;flex-wrap:wrap;gap:8px')
-        with 自身.根:
-            if 失败文 is not None:
-                界面.label(失败文)
-            if 视 is None:
-                return
-            for 子 in 自身.子图:
-                子.渲染()
-
-    def __call__(自身,属性=None):#组件调用形
-        '对齐 React 组件调用'
-        if 属性 is not None:#有新 props
-            自身.更新(属性)#刷新
-        return 自身.渲染()
+                身份=''
+            键=str(身份)+':'+str(下标)
+            下标=下标+1
+            子属性={
+                'image':图,
+                'load':属性.get('load'),
+                'variant':变体,
+                'labels':属性.get('labels'),
+                'window':窗口,
+            }
+            已有=自身.子.get(键)
+            if 已有 is None:
+                已有=消息图(子属性)
+            else:
+                已有.更新(子属性)
+                已有.渲染()
+            现存[键]=已有
+            if 已有.根 is not None:
+                自身.根.appendChild(已有.根)
+        for 键,旧项 in list(自身.子.items()):
+            if 键 not in 现存:
+                if 旧项.根 is not None and getattr(旧项.根,'parentNode',None) is not None:
+                    旧项.根.remove()
+                旧项.拆除()
+        自身.子=现存
+        return 自身.根

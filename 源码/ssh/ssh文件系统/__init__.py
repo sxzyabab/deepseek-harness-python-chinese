@@ -59,7 +59,7 @@ class ssh文件系统(文件系统):#远端文件系统
         if 工作目录 is not None:#有 cwd
             参数['cwd']=工作目录#cwd
         return 自身.调用('fs.lstat',参数,路径信息可空模式,信号)#路径信息
-    def 读文本(自身,目标,信号=None):#整文件文本
+    def 读取文本(自身,目标,信号=None):#整文件文本
         def 字符串(值):#z.string
             '须为字符串'
             if not isinstance(值,str):#非法
@@ -122,7 +122,7 @@ class ssh文件系统(文件系统):#远端文件系统
                 return 关闭结果#期约
             return type('文本流迭代器',(),{'下一个':staticmethod(下一个),'返回':staticmethod(返回)})()#异步迭代器
         return 自身.调用('fs.stream',{'target':目标},文本流标识模式,信号).然后(建迭代器)#流 id
-    def 读字节(自身,目标,信号,最大字节):#原始字节
+    def 读取字节(自身,目标,信号,最大字节):#原始字节
         'base64 解码，返回期约，兑现字节'
         def base64值(值):#z.base64
             '规范 base64'
@@ -130,7 +130,7 @@ class ssh文件系统(文件系统):#远端文件系统
                 raise ssh错误('expected base64')#失败
             return 值#文本
         return 自身.调用('fs.readBytes',{'target':目标,'maxBytes':最大字节},base64值,信号).然后(二进制.从base64)#字节
-    def 读字节范围(自身,目标,范围,信号=None):#窗口
+    def 读取字节范围(自身,目标,范围,信号=None):#窗口
         'offset/length，返回期约，兑现字节'
         def base64值(值):#z.base64
             '规范 base64'

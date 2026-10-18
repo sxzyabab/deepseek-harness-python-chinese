@@ -10,9 +10,9 @@ from ...内核.智能体循环.异常 import 中止错误#默认中止
 from .激活操作 import (
     激活池,子体锁,激活智能体,要求本地激活,观察本地失败,捕获本地结果,弱集合,
 )#激活记录
-from .描述符播种 import 创建智能体消息,附可续跑返回指引,创建结算消息#模型可见消息
+from .描述符播种 import 创建智能体消息,附可续运行返回指引,创建结算消息#模型可见消息
 from .描述符 import 折叠子智能体描述符,快照子智能体描述符#描述符
-from .目录 import 建立目录子体,建立外部目录子体#父目录
+from .名录 import 建立名录子体,建立外部名录子体#父名录
 from .深度 import 断言子智能体最大深度#深度形态
 from .子体 import (
     追加委托策略覆盖,应用子体组合,捕获委托策略覆盖,子会话元数据,
@@ -20,7 +20,7 @@ from .子体 import (
 )#子体
 from .异常 import 子智能体错误#缝内失败
 from .内部 import 是相邻智能体发消息工具#标准 send_message
-from .结构化 import 挂上结构化运行时#结构化输出
+from .结构化 import 附着结构化运行时#结构化输出
 from ...模型后端.llm.消息 import 创建用户消息#宿主来源的用户消息
 
 __all__=['子智能体管理器']#仅中文公开名
@@ -328,7 +328,7 @@ class 子智能体管理器:
         return 结果#期约
 
     def 启动本地(自身,规格):
-        '启动可续跑后台子体，初始收件箱接受时兑现'
+        '启动可续运行后台子体，初始收件箱接受时兑现'
         结果=期约()#激活加消息 id
         释放持有=[lambda: None]#失败路径释放
         try:#同步前置
@@ -382,7 +382,7 @@ class 子智能体管理器:
                     '锁内创建并接受初始提示'
                     return 自身._锁内启动本地(规格,子标识,父,工作目录,种子,智能体选项,描述符,委托策略,持久化)#期约
                 自身._锁.运行(子标识,临界).然后(结果.解决,失败)#消息 id 与回执
-            确保期约(自身._宿主['准备可续跑'](规格['provider'],{
+            确保期约(自身._宿主['准备可续运行'](规格['provider'],{
                 'sessionId':子标识,#预留 id
                 'cwd':工作目录,#目录
                 'parent':父,#父
@@ -420,12 +420,12 @@ class 子智能体管理器:
                 工具表=自身._上下文.获取服务('tools')#工具
                 定义=None if 工具表 is None else 工具表.获取('send_message',孩子)#可见定义
                 if 规格['delivery']!='caller' and 是相邻智能体发消息工具(定义):#标准发消息工具
-                    提示=附可续跑返回指引(父.id,请求['prompt'])#加返回指引
+                    提示=附可续运行返回指引(父.id,请求['prompt'])#加返回指引
                 else:#不加
                     提示=请求['prompt']#原提示
                 def 提交目录():
-                    '父目录记下这个可续跑子'
-                    建立目录子体(父.session,孩子.session.header,描述符)#目录
+                    '父目录记下这个可续运行子'
+                    建立名录子体(父.session,孩子.session.header,描述符)#目录
                 自身._提交已物化(激活,提示,{'source':{'kind':'user'},'signal':规格['signal'],'delivery':'queue'},父,提交目录).然后(
                     lambda 消息标识: 结果.解决({**自身._回执(激活),'childId':子标识,'messageId':消息标识}),
                     结果.拒绝,
@@ -509,7 +509,7 @@ class 子智能体管理器:
                     自身._断言活父(父,激活['childId'])#活父
                     若中止则抛出(规格['signal'])#取消
                     if 规格['delivery']=='parent':#父投递才进目录
-                        建立外部目录子体(父.session,激活['childId'],规格['label'])#外部目录
+                        建立外部名录子体(父.session,激活['childId'],规格['label'])#外部目录
                     自身._宣布(激活)#开始观察
                 except BaseException as 错误:#失败
                     已建立[0]=激活#回滚它
@@ -556,7 +556,7 @@ class 子智能体管理器:
         return 结果#期约
 
     def 发送消息(自身,发送方,目标标识,内容,选项):
-        '把模型撰写的消息投到直接父或直接可续跑子'
+        '把模型撰写的消息投到直接父或直接可续运行子'
         结果=期约()#消息 id
         try:#授权
             if 自身._上下文.agents.获取(发送方.id) is not 发送方:#不是精确活发送方
@@ -567,7 +567,7 @@ class 子智能体管理器:
                 若中止则抛出(选项['signal'])#取消
                 结果.解决(自身._发给父(发送方激活,发送方,内容))#同步投递
                 return 结果#期约
-            if 头取(发送方.session.header,'parentSession')==目标标识:#头说是父但自己不是驻留可续跑子
+            if 头取(发送方.session.header,'parentSession')==目标标识:#头说是父但自己不是驻留可续运行子
                 raise 子智能体错误(
                     'agent "'+str(发送方.id)+'" is not a resident continuable child and cannot send to parent "'+str(目标标识)+'"',
                     'UNAUTHORIZED',
@@ -582,7 +582,7 @@ class 子智能体管理器:
         return 自身._投递到子(父,子标识,内容,{'source':来源,'signal':信号,'delivery':'queue'})#排队
 
     def 转向提示(自身,父,子标识,内容,来源,信号):
-        '把宿主提示转到直接可续跑子的最近一步'
+        '把宿主提示转到直接可续运行子的最近一步'
         return 自身._投递到子(父,子标识,内容,{'source':来源,'signal':信号,'delivery':'steer'})#转向
 
     def _投递(自身,激活,消息,投递):
@@ -606,7 +606,7 @@ class 子智能体管理器:
             raise 子智能体错误('subagent "'+str(子标识)+'" already exists','DUPLICATE_CHILD')#拒绝
 
     def _持有所有权(自身,父,子标识):
-        '在可续跑父的拥有集里预登记，避免父在子还在建立时结算'
+        '在可续运行父的拥有集里预登记，避免父在子还在建立时结算'
         父激活=自身._驻留.get(父.id)#父激活
         if 父激活 is None or 激活智能体(父激活) is not 父:#父不是受管驻留
             return lambda: None#不用持有
@@ -791,7 +791,7 @@ class 子智能体管理器:
         return 谱系#谱系
 
     def _关闭拆除于(自身,智能体):
-        '关闭这条谱系可续跑准入的那次拆除'
+        '关闭这条谱系可续运行准入的那次拆除'
         if 自身._排空中:#管理器
             return 'manager'#管理器
         谱系=自身._活谱系(智能体)#谱系
@@ -865,7 +865,7 @@ class 子智能体管理器:
                     激活=自身._驻留.get(子标识)#自己的激活
                     拥有=0 if 激活 is None else len(激活['ownedChildren'])#子数
                     return 拥有==0 and len(孩子.inbox.下一步队列)==0 and len(孩子.inbox.下一轮队列)==0#可以交
-                结构化盒[0]=挂上结构化运行时(子上下文,输入['outputSchema'],可以完成)#附件
+                结构化盒[0]=附着结构化运行时(子上下文,输入['outputSchema'],可以完成)#附件
         选项={'parentAgent':输入['parent'],'agentOptions':输入['agentOptions'],'signal':输入['signal'],'setup':设置}#共用
         if 创建 is None:#冷恢复
             选项['resumeSessionId']=子标识#要加载的会话
@@ -1202,7 +1202,7 @@ class 子智能体管理器:
             父=自身._上下文.agents.获取(激活['parent'].id)#活父
             if 父 is not 激活['parent']:#不是当时那个父
                 return#不投
-            消息=创建结算消息(激活['childId'],终态,激活智能体(激活) is not None)#可续跑与否
+            消息=创建结算消息(激活['childId'],终态,激活智能体(激活) is not None)#可续运行与否
             if 自身._关闭拆除于(父) is not None:#父树正在排空
                 父.注入(消息)#注入，不唤醒
                 return#结束
@@ -1303,7 +1303,7 @@ class 子智能体管理器:
         return 结果#期约
 
     def _发给父(自身,激活,发送方,内容):
-        '驻留可续跑子把消息发给活着的直接父'
+        '驻留可续运行子把消息发给活着的直接父'
         if 激活['closing'] is not None:#正在拆
             raise 子智能体错误(
                 'subagent "'+str(发送方.id)+'" activation is being disposed; the message was not delivered',
@@ -1458,7 +1458,7 @@ class 子智能体管理器:
         return 结果#期约
 
     def _要求持久化(自身):
-        '可续跑子体必须有持久化'
+        '可续运行子体必须有持久化'
         持久化=自身._上下文.获取服务('sessionPersistence')#持久化
         if 持久化 is None:#没有
             raise 子智能体错误(

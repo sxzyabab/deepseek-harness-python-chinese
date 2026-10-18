@@ -1,567 +1,566 @@
-import math#有限数判定
 import importlib.resources as 包资源
-from datetime import datetime as 日期时间
-from zoneinfo import ZoneInfo as 时区信息
-from nicegui import ui as 界面
-from .时间线 import 派生轨迹时间线,格式化时间线偏移
+import math
+from datetime import datetime
+import pywebbridge
+from ...ui_基础界面组件.提示泡 import 提示泡#悬停说明
+from .时间线 import 派生轨迹时间线,格式化时间线偏移#投影
 
-__all__=[#仅中文公开名
-    '样式表',
-    '样式文件',
-    '轨迹时间线',
-    '最小拖动像素',
-    '最小缩放操作数',
-    '边平移区比例',
-    '边平移步进比例',
-    '最大边平移像素',
-    '时间线提示延迟毫秒',
-]#公开面结束
+样式文本=包资源.files(__package__).joinpath('轨迹时间线.module.css').read_text(encoding='utf-8')
 
-样式文件='轨迹时间线.module.css'#单文件样式
-最小拖动像素=3#拖动阈值
-最小缩放操作数=4#序列模式最小可见操作数
-边平移区比例=0.08#轨道边缘平移带
-边平移步进比例=0.025#边缘平移步进
-最大边平移像素=32#边缘带像素上限
-时间线提示延迟毫秒=500#Tooltip 延迟
+最小拖动像素=3
+最小缩放操作数=4
+边平移区比例=0.08
+边平移步进比例=0.025
+最大边平移像素=32
+时间线提示延迟毫秒=500
+种类名={
+    'system':'系统','user':'用户','context':'上下文','compacted':'已压缩',
+    'message':'助手','tool':'工具','subtool':'子工具',
+}
 
-def _读样式(文件名):
-    '读当前包内样式。失败时异常文案只有样式读不到，不含路径'
-    try:
-        return 包资源.files(__package__).joinpath(文件名).read_text(encoding='utf-8')
-    except Exception:
-        raise OSError('样式读不到') from None
-
-样式表=_读样式(样式文件)#完整时间线样式
-界面.add_css(样式表,shared=True)
-
-def 助手计时明细(指标):#从助手指标拆 TTFT/解码
-    '有完整计时则返回 ttftMs/decodingMs，否则空映射'
-    if 指标 is None:#无指标
-        return {}#无明细
-    起点=指标['stepStartTime'] if 'stepStartTime' in 指标 else None#步进起点
-    首词=指标['firstTokenTime'] if 'firstTokenTime' in 指标 else None#首 token
-    完成=指标['completedTime'] if 'completedTime' in 指标 else None#完成
-    已记=指标['timingRecorded'] if 'timingRecorded' in 指标 else None#是否记录
-    if (已记 is not True#未记录
-            or not isinstance(起点,(int,float)) or not math.isfinite(起点)#起点无效
-            or not isinstance(首词,(int,float)) or not math.isfinite(首词)#首词无效
-            or not isinstance(完成,(int,float)) or not math.isfinite(完成)#完成无效
-            or 首词<起点 or 完成<首词):#时序颠倒
-        return {}#无明细
-    return {'ttftMs':首词-起点,'decodingMs':完成-首词}#TTFT 与解码
-
-def 时间线记录明细(单元格):#格子的时长/起点/助手计时
-    '从格子合成 Tooltip 用明细'
-    秒=单元格['timeSeconds'] if 'timeSeconds' in 单元格 else None#秒时长
-    时长毫秒=None if 秒 is None or not isinstance(秒,(int,float)) or not math.isfinite(秒) else max(0,秒*1000)#毫秒
-    起点=单元格['startedAt'] if 'startedAt' in 单元格 else None#起点
-    起点值=None if 起点 is None or not isinstance(起点,(int,float)) or not math.isfinite(起点) else 起点#有限起点
-    明细={}#累加
-    if 时长毫秒 is not None:#有时长
-        明细['durationMs']=时长毫秒#总时长
-    if 起点值 is not None:#有起点
-        明细['startedAt']=起点值#起点
-    明细.update(助手计时明细(单元格['assistantMetrics'] if 'assistantMetrics' in 单元格 else None))#助手计时
-    return 明细#明细
-
-def 时间线种类标签(种类):#种类 → Tooltip 标题
-    '格子种类的大写展示名'
-    表={#种类标签
-        'system':'SYSTEM','user':'USER','context':'CONTEXT','compacted':'COMPACTED',
-        'message':'ASSISTANT','tool':'TOOL','subtool':'SUBTOOL',
-    }#表结束
-    return 表[种类] if 种类 in 表 else 种类#缺省原样
-
-def 格式化记录时刻(时间戳):#本地时分秒.毫秒
-    '把毫秒时间戳格式成本地时刻串'
-    时刻=日期时间.fromtimestamp(时间戳/1000.0,tz=时区信息('UTC')).astimezone()
-    return 时刻.strftime('%H:%M:%S.')+f'{int(时刻.microsecond/1000):03d}'#含毫秒
-
-def 时间线提示文案(种类,明细=None):#跨度 Tooltip
-    '种类标题 + 起止时刻 + TTFT/解码'
-    标题=时间线种类标签(种类)#标题行
-    if 明细 is None:#无明细
-        return 标题#仅标题
-    时长毫秒=明细['durationMs'] if 'durationMs' in 明细 else None#时长
-    时长=None if 时长毫秒 is None else f"Total {格式化时间线偏移(明细['durationMs'])}"#总时长行
-    起点=明细['startedAt'] if 'startedAt' in 明细 else None#起点
-    if 起点 is None:#无起点
-        区间=None#无区间行
-    elif 时长毫秒 is None:#仅起点
-        区间=f'Started {格式化记录时刻(起点)}'#起点行
-    else:#起止
-        区间=f'{格式化记录时刻(起点)} → {格式化记录时刻(起点+时长毫秒)}'#区间行
-    ttft=明细['ttftMs'] if 'ttftMs' in 明细 else None#TTFT
-    解码=明细['decodingMs'] if 'decodingMs' in 明细 else None#解码
-    分段=None if ttft is None or 解码 is None else f'TTFT {格式化时间线偏移(ttft)} · Decoding {格式化时间线偏移(解码)}'#分段行
-    计时=' · '.join(段 for 段 in (时长,分段) if 段)#计时行
-    return '\n'.join(段 for 段 in (标题,区间,计时) if 段)#多行提示
-
-def 有序区间(左,右):#小数闭区间按序
-    '保证 start<=end'
-    return {'start':左,'end':右} if 左<=右 else {'start':右,'end':左}#有序
-
-def 钳制比例(值):#钳到 [0,1]
+def 钳制比例(值):
     '把比例钳到单位区间'
-    return min(1,max(0,值))#钳制
+    return min(1,max(0,值))
 
-def 居中区间(中心,宽度,最小,最大):#在域内居中一段宽度
-    '以中心铺开宽度，钳在 [最小,最大]'
-    钳宽=min(最大-最小,max(0,宽度))#合法宽度
-    起点=min(max(中心-钳宽/2,最小),最大-钳宽)#起点
-    return {'start':起点,'end':起点+钳宽}#闭区间
+def 有序区间(左,右):
+    '保证 start<=end'
+    if 左<=右:
+        return {'start':左,'end':右}
+    return {'start':右,'end':左}
 
-def 区间比例(区间,起点,时长,最小,最大):#选区 → 轨道比例
+def 居中区间(中心,宽度,最小,最大):
+    '以中心铺开宽度，钳在最小和最大之间'
+    钳宽=min(最大-最小,max(0,宽度))
+    起点=min(max(中心-钳宽/2,最小),最大-钳宽)
+    return {'start':起点,'end':起点+钳宽}
+
+def 区间比例(区间,起点,时长,最小,最大):
     '把投影选区换成相对当前域的比例区间'
-    有界=有序区间(#先钳进域
-        min(最大,max(最小,区间['start'])),#起点
-        min(最大,max(最小,区间['end'])),#终点
-    )#有界结束
-    return {#比例
-        'start':(有界['start']-起点)/时长,#左
-        'end':(有界['end']-起点)/时长,#右
-    }#比例结束
+    界=有序区间(min(最大,max(最小,区间['start'])),min(最大,max(最小,区间['end'])))
+    return {'start':(界['start']-起点)/时长,'end':(界['end']-起点)/时长}
 
-def 车道标签结构():#三车道标签
-    'Input / Model / Tools'
-    return {#标签列
-        'type':'lane-labels','ariaHidden':True,#无障碍隐藏
-        'items':['Input','Model','Tools'],#三道
-    }#结束
+def 格式化记录时刻(时间戳):
+    '把毫秒时间戳格式成本地时刻'
+    时刻=datetime.fromtimestamp(时间戳/1000)
+    return 时刻.strftime('%H:%M:%S')+'.'+str(时刻.microsecond//1000).zfill(3)
 
-def 更早历史边界结构(加载中,可加载):#截断前缀控件
-    '加载更早历史的省略按钮结构'
-    return {#按钮
-        'type':'earlier-history',#类型
-        'loading':加载中,#加载中
-        'disabled':加载中 or not 可加载,#禁用
-        'label':'Loading earlier history…' if 加载中 else 'Click to load earlier history',#提示
-        'aria':'Loading earlier history' if 加载中 else 'Load earlier history',#无障碍
-        'text':'…',#省略号
-        'delayMs':时间线提示延迟毫秒,#提示延迟
-    }#结束
+def 助手计时明细(指标):
+    '有完整计时则返回首 token 和解码毫秒'
+    if not isinstance(指标,dict) or 指标.get('timingRecorded') is not True:
+        return {}
+    开始=指标.get('stepStartTime')
+    首=指标.get('firstTokenTime')
+    完成=指标.get('completedTime')
+    if not all(isinstance(项,(int,float)) and not isinstance(项,bool) and math.isfinite(项) for 项 in (开始,首,完成)):
+        return {}
+    if 首<开始 or 完成<首:
+        return {}
+    return {'ttftMs':首-开始,'decodingMs':完成-首}
 
-class 轨迹时间线:#全域总览时间线
+def 时间线记录明细(格):
+    '从格子合成提示用明细'
+    明细={}
+    if isinstance(格.get('timeSeconds'),(int,float)) and not isinstance(格.get('timeSeconds'),bool) and math.isfinite(格['timeSeconds']):
+        明细['durationMs']=max(0,格['timeSeconds']*1000)
+    if isinstance(格.get('startedAt'),(int,float)) and not isinstance(格.get('startedAt'),bool) and math.isfinite(格['startedAt']):
+        明细['startedAt']=格['startedAt']
+    明细.update(助手计时明细(格.get('assistantMetrics')))
+    return 明细
+
+def 时间线提示文案(种类,明细):
+    '种类标题、起止时刻和首 token、解码'
+    标题=种类名.get(种类,种类)
+    if 明细 is None:
+        return 标题
+    段=[]
+    if 明细.get('durationMs') is not None:
+        段.append('总计 '+格式化时间线偏移(明细['durationMs']))
+    if 明细.get('startedAt') is not None:
+        if 明细.get('durationMs') is None:
+            范围='开始于 '+格式化记录时刻(明细['startedAt'])
+        else:
+            范围=格式化记录时刻(明细['startedAt'])+' → '+格式化记录时刻(明细['startedAt']+明细['durationMs'])
+    else:
+        范围=None
+    if 明细.get('ttftMs') is not None and 明细.get('decodingMs') is not None:
+        计时='首 token '+格式化时间线偏移(明细['ttftMs'])+' · 解码 '+格式化时间线偏移(明细['decodingMs'])
+    else:
+        计时=None
+    时间=' · '.join(项 for 项 in (None if 明细.get('durationMs') is None else '总计 '+格式化时间线偏移(明细['durationMs']),计时) if 项)
+    return '\n'.join(项 for 项 in (标题,范围,时间) if 项 not in (None,''))
+
+class 车道标签:
+    '输入、模型、工具三道的名字'
+    def __init__(自身,属性):
+        '画出三道标签'
+        自身.属性=属性
+        自身.渲染()
+
+    def 渲染(自身):
+        '三道标签不进无障碍树'
+        文档=自身.属性['window'].document
+        根=文档.createElement('div')
+        根.className='labels'
+        根.setAttribute('aria-hidden','true')
+        for 文案 in ('输入','模型','工具'):
+            字=文档.createElement('span')
+            字.textContent=文案
+            根.appendChild(字)
+        if 自身.属性.get('parent') is not None:
+            自身.属性['parent'].appendChild(根)
+        自身.根=根
+        return 根
+
+class 更早历史边界:
+    '加载更早历史的省略按钮'
+    def __init__(自身,属性):
+        '画出省略按钮'
+        自身.属性=属性
+        自身.渲染()
+
+    def 渲染(自身):
+        '加载中和可点的文案不同'
+        属性=自身.属性
+        文档=属性['window'].document
+        加载中=属性.get('loading') is True
+        钮=文档.createElement('button')
+        钮.setAttribute('type','button')
+        钮.className='earlierHistory'
+        钮.setAttribute('data-earlier-history','')
+        if 加载中:
+            钮.setAttribute('data-loading','true')
+        钮.setAttribute('aria-label','正在加载更早的历史…' if 加载中 else '加载更早的历史')
+        if 加载中 or not callable(属性.get('onLoad')):
+            钮.setAttribute('aria-disabled','true')
+        钮.textContent='…'
+        def 进入(事件):
+            '悬停时清掉轨道上的十字线'
+            事件.stopPropagation()
+            if callable(属性.get('onHover')):
+                属性['onHover']()
+        def 挡住(事件):
+            '不把指针交给轨道'
+            事件.stopPropagation()
+        def 点击(_事件):
+            '再加载一页更早历史'
+            if callable(属性.get('onLoad')):
+                属性['onLoad']()
+        钮.addEventListener('pointerenter',进入)
+        钮.addEventListener('pointermove',挡住)
+        钮.addEventListener('pointerdown',挡住)
+        钮.addEventListener('click',点击)
+        提示泡({
+            'window':属性['window'],
+            'label':'正在加载更早的历史…' if 加载中 else '点击加载更早的历史',
+            'side':'right',
+            'delayMs':时间线提示延迟毫秒,
+            'children':钮,
+            'parent':属性.get('parent'),
+        }).渲染()
+        自身.根=钮
+        return 钮
+
+class 轨迹时间线:
     '拖选区间、点击聚焦、滚轮缩放、右键平移、Escape 清空'
-    def __init__(自身,属性=None):
-        '记下 props 与手势/视口状态'
-        自身.属性={} if 属性 is None else 属性#?? {}；缺席才空表，空 dict 保留
-        自身.草稿=None#拖选草稿区间
-        自身.悬停=None#悬停比例点
-        自身.加载更早中=False#更早历史加载中
-        自身.平移中=False#右键平移中
-        自身.视口=None#缩放视口
-        自身.动画视口=False#选中跟随时动画
-        自身._拖动手势=None#左键拖选
-        自身._平移手势=None#右键平移
+    def __init__(自身,属性):
+        '记下属性与手势'
+        自身.属性=属性 or {}
+        自身.草稿=None
+        自身.悬停=None
+        自身.加载更早中=False
+        自身.平移中=False
+        自身.视口=None
+        自身.动画视口=False
+        自身.拖动=None
+        自身.平移=None
+        自身.根=None
+        自身.轨道=None
+        自身.渲染()
 
-    def 更新(自身,属性):#刷新 props
-        '刷新 props，并校正越界选区/视口'
-        自身.属性={} if 属性 is None else 属性#?? {}；缺席才空表，空 dict 保留
-        自身._校正选区()#越界则清空
-        自身._校正视口()#越界则清空视口
-
-    def _轮次(自身):#当前轮次布局
-        '从 props 取未过滤轮次'
-        表=自身.属性['turns'] if 'turns' in 自身.属性 else None#必填数组
-        return [] if 表 is None else 表#?? []；TS 必填，缺席当空表，空表保留
-
-    def _模式(自身):#投影模式
-        'sequence / duration / time / actual'
-        return 自身.属性['mode'] if 'mode' in 自身.属性 else 'sequence'#默认序列
-
-    def _选区(自身):#已提交选区
-        '当前焦点闭区间'
-        return 自身.属性['range'] if 'range' in 自身.属性 else None#可空
-
-    def _模型(自身):#派生全域模型
-        '没有可见记录时为 None'
-        return 派生轨迹时间线(自身._轮次(),自身._模式())#派生
-
-    def _明细表(自身):#下标 → 记录明细
-        '摊平全部格子的 Tooltip 明细'
-        表={}#下标映射
-        for 轮 in 自身._轮次():#逐回合
-            for 组 in (轮['groups'] if 'groups' in 轮 and 轮['groups'] is not None else []):#各组
-                for 单元格 in (组['cells'] if 'cells' in 组 and 组['cells'] is not None else []):#各格
-                    表[单元格['index']]=时间线记录明细(单元格)#记下
-        return 表#明细表
-
-    def _校正选区(自身):#选区越界则清空
-        '模型与选区不相交时回调清空'
-        模型=自身._模型()#模型
-        区间=自身._选区()#选区
-        if 模型 is None or 区间 is None:#无模型或无选区
-            return#无需
-        if 区间['end']<模型['start'] or 区间['start']>模型['end']:#不相交
-            回调=自身.属性['onRangeChange'] if 'onRangeChange' in 自身.属性 else None#清空回调
-            if callable(回调):#有
-                回调(None)#清空
-
-    def _校正视口(自身):#视口越界则清空
-        '模型切换后视口越界则丢弃'
-        模型=自身._模型()#模型
-        if 模型 is None:#无模型
-            return#无需
-        自身.动画视口=False#关掉动画
-        当前=自身.视口#视口
-        if 当前 is not None and (当前['end']<模型['start'] or 当前['start']>模型['end']):#越界
-            自身.视口=None空
-
-    def _跟随选中(自身):#选中跨度滚进视口
-        '选中记录不在当前视口时平移视口'
-        模型=自身._模型()#模型
-        选中下标=自身.属性['selectedIndex'] if 'selectedIndex' in 自身.属性 else None#选中
-        if 模型 is None or 选中下标 is None:#无
-            return#无需
-        选中跨=next((跨 for 跨 in 模型['spans'] if 跨['index']==选中下标),None)#找跨度
-        if 选中跨 is None:#无
-            return#无需
-        当前=自身.视口#视口
-        if 当前 is None:#全域
-            return#不跟
-        if 选中跨['end']>当前['start'] and 选中跨['start']<当前['end']:#已可见
-            return#保持
-        自身.动画视口=True#开动画
-        时长=max(1,当前['end']-当前['start'])#当前视口宽
-        期望起点=选中跨['start'] if 选中跨['end']<=当前['start'] else 选中跨['end']-时长#跟到左或右
-        下一起点=min(max(期望起点,模型['start']),max(模型['start'],模型['end']-时长))#钳域
-        if 下一起点==当前['start']:#未变
-            return#保持
-        自身.视口={'start':下一起点,'end':下一起点+时长}#新视口
-
-    def _域几何(自身,模型):#当前投影域几何
-        '全时长、视口时长、域起点、域时长'
-        全时长=max(1,(模型['end'] if 模型 else 0)-(模型['start'] if 模型 else 0))#全域宽
-        视口=自身.视口#视口
-        视口时长=min(全时长,max(1,(视口['end'] if 视口 else 0)-(视口['start'] if 视口 else 0)))#视口宽
-        if 模型 is None or 视口 is None:#全域
-            视口起点=模型['start'] if 模型 else 0#起点
-        else:#钳视口
-            视口起点=min(max(视口['start'],模型['start']),模型['end']-视口时长)#钳
-        域时长=全时长 if 视口 is None else 视口时长#当前域宽
-        域起点=模型['start'] if 模型 and 视口 is None else (0 if 模型 is None else 视口起点)#当前域起
-        return {#几何包
-            'fullDuration':全时长,#全
-            'viewportDuration':视口时长,#视口
-            'viewportStart':视口起点,#视口起
-            'domainDuration':域时长,#域宽
-            'domainStart':域起点,#域起
-        }#结束
-
-    def _投影域样式(自身,模型,几何):#CSS 变量
-        '把全域相对当前视口写成 CSS 变量'
-        if 模型 is None:#无模型
-            return None#无
-        域起=几何['domainStart']#域起
-        域宽=几何['domainDuration']#域宽
-        全宽=几何['fullDuration']#全宽
-        return {#变量
-            '--trajectory-domain-left':f'{-(域起-模型["start"])/域宽*100}%',#左偏移
-            '--trajectory-domain-width':f'{全宽/域宽*100}%',#宽度比
-        }#结束
-
-    def _改选区(自身,区间):#提交选区
-        '回调宿主写入 range'
-        回调=自身.属性['onRangeChange'] if 'onRangeChange' in 自身.属性 else None#回调
-        if callable(回调):#有
-            回调(区间)#写入
-
-    def _比例于(自身,客户X,轨道左,轨道宽):#客户坐标 → 比例
-        '指针在轨道上的 [0,1] 位置'
-        return 钳制比例((客户X-轨道左)/max(1,轨道宽))#比例
-
-    def 处理动作(自身,动作,载荷=None):#分发手势与键盘
-        'pointer/wheel/key/load-earlier 等动作'
-        载荷={} if 载荷 is None else 载荷#?? {}；缺席才空表，空 dict 保留
-        模型=自身._模型()#模型
-        几何=自身._域几何(模型)#几何
-        域起=几何['domainStart']#域起
-        域宽=几何['domainDuration']#域宽
-        全宽=几何['fullDuration']#全宽
-        if 动作=='sync-selected':#跟选中
-            自身._跟随选中()#跟视口
-            return 自身.渲染()
-        if 动作=='load-earlier':#加载更早
-            加载=自身.属性['onLoadEarlier'] if 'onLoadEarlier' in 自身.属性 else None#注入
-            if 自身.加载更早中 or not callable(加载):#不可
-                return False#失败
-            自身.加载更早中=True#标记
-            try:#执行
-                return 加载()#返回是否变了
-            finally:#收尾
-                自身.加载更早中=False#清除
-        if 动作=='keydown':#键盘
-            if ('key' in 载荷 and 载荷['key']=='Escape') and 自身._选区() is not None:#Escape
-                自身._改选区(None)#清空
-            return 自身.渲染()
-        if 动作=='dblclick':#双击清空
-            自身._改选区(None)#清空
-            return 自身.渲染()
-        if 动作=='pointer-leave':#离开轨道
-            if 自身._拖动手势 is None and 自身._平移手势 is None:#无手势
-                自身.悬停=None悬停
-            return 自身.渲染()
-        if 动作=='pointer-cancel':#取消
-            自身._拖动手势=None拖
-            自身._平移手势=None平移
-            自身.草稿=None草稿
-            自身.悬停=None悬停
-            自身.平移中=False#清标记
-            return 自身.渲染()
-        if 动作=='wheel':#滚轮缩放
-            if 模型 is None:#无模型
-                return 自身.渲染()
-            自身.动画视口=False#关动画
-            锚比例=钳制比例(载荷['fraction'] if 'fraction' in 载荷 else 0.5)#锚点比例
-            增量=载荷['deltaY'] if 'deltaY' in 载荷 else 0#滚轮增量
-            最小宽=min(最小缩放操作数 if 自身._模式()=='sequence' else 20,全宽)#最小可见
-            下一宽=min(全宽,max(最小宽,域宽*math.exp(增量*0.0015)))#指数缩放
-            if 下一宽>=全宽*0.999:#接近全域
-                自身.视口=None#恢复全域
-                return 自身.渲染()
-            锚时刻=域起+锚比例*域宽#锚时刻
-            下一起=min(max(锚时刻-锚比例*下一宽,模型['start']),模型['end']-下一宽)#新起点
-            自身.视口={'start':下一起,'end':下一起+下一宽}#视口
-            return 自身.渲染()
-        if 动作=='pointer-down':#按下
-            按钮=载荷['button'] if 'button' in 载荷 else 0#键
-            客户X=载荷['clientX'] if 'clientX' in 载荷 else 0#X
-            指针标识=载荷['pointerId'] if 'pointerId' in 载荷 else 0#指针
-            记录下标=载荷['recordIndex'] if 'recordIndex' in 载荷 else None#记录
-            比例=自身._比例于(客户X,载荷['trackLeft'] if 'trackLeft' in 载荷 else 0,载荷['trackWidth'] if 'trackWidth' in 载荷 else 1)#比例
-            if 按钮==2:#右键平移
-                自身._平移手势={#记下
-                    'anchorClientX':客户X,#锚 X
-                    'anchorStart':域起,#锚域起
-                    'moved':False,#是否移动
-                    'pannable':自身.视口 is not None,#仅缩放后可平移
-                    'pointerId':指针标识,#指针
-                }#手势
-                if 自身.视口 is not None:#有视口
-                    自身.动画视口=False#关动画
-                自身.平移中=True#标记
-                return 自身.渲染()
-            if 按钮!=0:#非左键
-                return 自身.渲染()#忽略
-            锚时刻=域起+比例*域宽#锚时刻
-            自身.悬停={'fraction':比例,'recordIndex':记录下标}#悬停
-            自身._拖动手势={#拖选
-                'pointerId':指针标识,#指针
-                'anchorTime':锚时刻,#锚时刻
-                'anchorClientX':客户X,#锚 X
-                'recordIndex':记录下标,#记录
-            }#手势
-            自身.草稿={'start':锚时刻,'end':锚时刻}#点选草稿
-            return 自身.渲染()
-        if 动作=='pointer-move':#移动
-            客户X=载荷['clientX'] if 'clientX' in 载荷 else 0#X
-            轨道左=载荷['trackLeft'] if 'trackLeft' in 载荷 else 0#左
-            轨道宽=载荷['trackWidth'] if 'trackWidth' in 载荷 else 1#宽
-            比例=自身._比例于(客户X,轨道左,轨道宽)#比例
-            记录下标=载荷['recordIndex'] if 'recordIndex' in 载荷 else None#记录
-            自身.悬停={'fraction':比例,'recordIndex':记录下标}#悬停
-            平移=自身._平移手势#平移手势
-            指针标识=载荷['pointerId'] if 'pointerId' in 载荷 else 0#指针
-            if 平移 is not None and 平移['pointerId']==指针标识:#右键平移中
-                if abs(客户X-平移['anchorClientX'])>=最小拖动像素:#过阈值
-                    平移['moved']=True#记移动
-                if not 平移['pannable'] or 模型 is None:#不可平移
-                    return 自身.渲染()
-                增量=(客户X-平移['anchorClientX'])/max(1,轨道宽)#比例增量
-                下一起=min(max(平移['anchorStart']-增量*域宽,模型['start']),模型['end']-域宽)#新起点
-                自身.视口={'start':下一起,'end':下一起+域宽}#视口
-                return 自身.渲染()
-            拖动=自身._拖动手势#拖选手势
-            if 拖动 is None or 拖动['pointerId']!=指针标识 or 模型 is None:#无拖选
-                return 自身.渲染()
-            下一域起=域起#默认
-            if 自身.视口 is not None:#缩放态可边缘平移
-                局部X=客户X-轨道左#局部
-                边宽=min(最大边平移像素,max(1,轨道宽*边平移区比例))#边带
-                方向=-1 if 局部X<边宽 else (1 if 局部X>轨道宽-边宽 else 0)#方向
-                if 方向!=0:#在边带
-                    边距=边宽-局部X if 方向<0 else 局部X-(轨道宽-边宽)#距边
-                    强度=钳制比例(边距/边宽)#强度
-                    期望=域起+方向*域宽*边平移步进比例*max(0.2,强度)#期望起点
-                    下一域起=min(max(期望,模型['start']),模型['end']-域宽)#钳
-                    if 下一域起!=域起:#变了
-                        自身.动画视口=False#关动画
-                        自身.视口={'start':下一域起,'end':下一域起+域宽}#视口
-            点时刻=下一域起+比例*域宽#当前时刻
-            自身.草稿=有序区间(拖动['anchorTime'],点时刻)#草稿选区
-            return 自身.渲染()
-        if 动作=='pointer-up':#抬起
-            客户X=载荷['clientX'] if 'clientX' in 载荷 else 0#X
-            轨道左=载荷['trackLeft'] if 'trackLeft' in 载荷 else 0#左
-            轨道宽=载荷['trackWidth'] if 'trackWidth' in 载荷 else 1#宽
-            比例=自身._比例于(客户X,轨道左,轨道宽)#比例
-            记录下标=载荷['recordIndex'] if 'recordIndex' in 载荷 else None#记录
-            指针标识=载荷['pointerId'] if 'pointerId' in 载荷 else 0#指针
-            平移=自身._平移手势#平移
-            if 平移 is not None and 平移['pointerId']==指针标识:#结束平移
-                已移=平移['moved'] or abs(客户X-平移['anchorClientX'])>=最小拖动像素#是否移动
-                自身._平移手势=None
-                自身.平移中=False#清
-                if not 已移:#单击右键清空选区
-                    自身._改选区(None)#清空
-                return 自身.渲染()
-            拖动=自身._拖动手势#拖选
-            if 拖动 is None or 拖动['pointerId']!=指针标识 or 模型 is None:#无拖选
-                return 自身.渲染()
-            点时刻=域起+比例*域宽#抬起时刻
-            选中=有序区间(拖动['anchorTime'],点时刻)#选区
-            自身.悬停={'fraction':比例,'recordIndex':记录下标}#悬停
-            自身._拖动手势=None拖
-            自身.草稿=None草稿
-            点击=abs(客户X-拖动['anchorClientX'])<最小拖动像素#是否点击
-            点中跨=None#点中跨度
-            if 点击 and 拖动['recordIndex'] is not None:#点在跨度上
-                点中跨=next((跨 for 跨 in 模型['spans'] if 跨['index']==拖动['recordIndex']),None)#找
-            if 点中跨 is not None:#点中块
-                自身._改选区(None)#清选区
-                选记录=自身.属性['onRecordSelect'] if 'onRecordSelect' in 自身.属性 else None#选记录
-                if callable(选记录):#有
-                    选记录(点中跨['index'])#选中
-                return 自身.渲染()
-            最小选宽=min(域宽,全宽/max(1,len(模型['spans'])))#最小选区宽
-            if 选中['end']-选中['start']<最小选宽:#过窄则居中扩
-                中心=选中['start'] if 点击 else (选中['start']+选中['end'])/2#中心
-                提交=居中区间(中心,最小选宽,模型['start'],模型['end'])#扩
-            else:#够宽
-                提交=选中#原样
-            自身._改选区(提交)#提交
-            if 点击:#空白点击聚焦最近
-                时间点=选中['start']#点
-                def 距离(跨):#到跨度距离
-                    if 时间点<跨['start']:#左侧
-                        return 跨['start']-时间点#距
-                    if 时间点>跨['end']:#右侧
-                        return 时间点-跨['end']#距
-                    return 0#落在内
-                最近=min(模型['spans'],key=距离)#最近跨度
-                聚焦=自身.属性['onRecordFocus'] if 'onRecordFocus' in 自身.属性 else None#聚焦回调
-                if callable(聚焦):#有
-                    聚焦(最近['index'])#聚焦
-            return 自身.渲染()
+    def __call__(自身,属性=None):
+        '属性变了就重画，手势状态留着'
+        if 属性 is not None:
+            自身.属性=属性
         return 自身.渲染()
 
     def 渲染(自身):
-        '产出时间线总览。父级调用渲染，构造时不画'
-        自身._校正选区()#先校正
-        自身._校正视口()#再校正视口
-        模型=自身._模型()#模型
-        几何=自身._域几何(模型)#几何
-        有更早=bool(自身.属性['hasEarlierRecords'] if 'hasEarlierRecords' in 自身.属性 else False)#截断前缀
-        可加载=callable(自身.属性['onLoadEarlier'] if 'onLoadEarlier' in 自身.属性 else None)#有加载
-        显示更早边界=有更早 and 模型 is not None and 几何['domainStart']==模型['start']#贴左才显示
-        if 模型 is None:#无计时数据
-            with 界面.column().classes('trajectory-timeline'):
-                界面.label('Trajectory timeline')
-                界面.label('No timing data')
-                if 有更早 and 可加载:
-                    界面.button(on_click=自身.属性['onLoadEarlier'])
-            return
-        域起=几何['domainStart']#域起
-        域宽=几何['domainDuration']#域宽
-        全宽=几何['fullDuration']#全宽
-        投影样式=自身._投影域样式(模型,几何)#CSS 变量
-        选区=自身._选区()#已提交
-        已提交比例=None if 选区 is None else 区间比例(选区,域起,域宽,模型['start'],模型['end'])#比例
-        草稿比例=None if 自身.草稿 is None else 区间比例(自身.草稿,域起,域宽,模型['start'],模型['end'])#草稿比例
-        可见比例=草稿比例 if 草稿比例 is not None else 已提交比例#可见选区
-        活动区间=自身.草稿 if 自身.草稿 is not None else 选区#活动区间
-        明细表=自身._明细表()#明细
-        搜索命中=自身.属性['searchMatchIndexes'] if 'searchMatchIndexes' in 自身.属性 else None#搜索
-        选中下标=自身.属性['selectedIndex'] if 'selectedIndex' in 自身.属性 else None#选中
-        模式=自身._模式()#模式
-        跨度列表=[]#可见跨度结构
-        for 跨 in 模型['spans']:#逐跨度
-            if not (跨['index']==选中下标 or (跨['end']>=域起 and 跨['start']<=域起+域宽)):#不可见
-                continue#跳过
-            左=(跨['start']-模型['start'])/全宽#左比例
-            宽=(跨['end']-跨['start'])/全宽#宽比例
-            宽百分=宽*100#宽%
-            明细=明细表[跨['index']] if 跨['index'] in 明细表 else None#明细
-            ttft=明细['ttftMs'] if 明细 is not None and 'ttftMs' in 明细 else None#TTFT
-            解码=明细['decodingMs'] if 明细 is not None and 'decodingMs' in 明细 else None#解码
-            ttft比例=None#助手分段
-            if ttft is not None and 解码 is not None and ttft+解码>0:#可分段
-                ttft比例=ttft/(ttft+解码)#TTFT 占比
-            样式变量={#跨度 CSS 变量
-                '--trajectory-span-left':f'{左*100}%',#左
-                '--trajectory-span-width':f'{宽百分}%',#宽
-                '--trajectory-span-gap':f'min({宽百分*0.08}%, 1px)',#缝
-                '--trajectory-span-lane':跨['lane'],#车道
-            }#变量
-            if ttft比例 is not None:#助手分段
-                样式变量['--trajectory-assistant-ttft']=f'{ttft比例*100}%'#TTFT 宽
-            是否选中=None#选区态
-            if 活动区间 is not None:#有活动选区
-                是否选中=跨['start']<=活动区间['end'] and 跨['end']>=活动区间['start']#相交
-            搜索态=None#搜索态
-            if 搜索命中 is not None:#有查询
-                搜索态='true' if 跨['index'] in 搜索命中 else 'false'#命中
-            跨度列表.append({#跨度节点
-                'type':'timeline-span',#类型
-                'index':跨['index'],#下标
-                'kind':跨['kind'],#种类
-                'lane':跨['lane'],#车道
-                'isError':跨['isError'],#错误
-                'label':时间线提示文案(跨['kind'],明细),#提示
-                'delayMs':时间线提示延迟毫秒,#延迟
-                'assistantTiming':ttft比例 is not None,#助手计时
-                'equalDuration':模式=='time',#等时长点
-                'current':跨['index']==选中下标,#当前选中记录
-                'hovered':自身.悬停 is not None and ('recordIndex' in 自身.悬停) and 自身.悬停['recordIndex']==跨['index'],#悬停
-                'searchMatch':搜索态,#搜索
-                'selected':是否选中,#选区相交
-                'style':样式变量,#变量
-            })#跨度结束
-        边界列表=[]#回合边界
-        for 边界 in 模型['turnBoundaries']:#逐边界
-            时刻=边界['time']#时刻
-            if not (时刻>模型['start'] and 时刻>=域起 and 时刻<=域起+域宽):#不可见
-                continue#跳过
-            边界列表.append({#边界节点
-                'type':'turn-boundary',#类型
-                'turn':边界['turn'],#回合号
-                'style':{'--trajectory-turn-left':f'{(时刻-模型["start"])/全宽*100}%'},#位置
-            })#边界结束
-        悬停线=None#悬停竖线
-        if 自身.悬停 is not None and (('recordIndex' not in 自身.悬停) or 自身.悬停['recordIndex'] is None) and 自身.草稿 is None:#空白悬停
-            悬停线={#竖线
-                'type':'hover-line',#类型
-                'style':{'--trajectory-hover-left':f'{自身.悬停["fraction"]*100}%'},#位置
-            }#竖线结束
-        选区层=None#选区层
-        if 可见比例 is not None:#有可见选区
-            选区样式={#选区变量
-                '--trajectory-selection-left':f'{可见比例["start"]*100}%',#左
-                '--trajectory-selection-width':f'{(可见比例["end"]-可见比例["start"])*100}%',#宽
-            }#变量
-            选区层={#选区
-                'selection':{'style':选区样式,'dragging':自身.草稿 is not None},#填充
-                'selectionEdges':{'style':选区样式,'dragging':自身.草稿 is not None},#边
-            }#选区结束
-        with 界面.column().classes('trajectory-timeline'):
-            界面.label('Trajectory timeline')
-            if 显示更早边界 and 可加载:
-                界面.button(on_click=自身.属性['onLoadEarlier'])
-            for 边界 in 边界列表:
-                界面.label(str(边界['turn']))
-            for 跨 in 跨度列表:
-                def 点跨(下标=跨['index']):
-                    '聚焦该跨度'
-                    回调=自身.属性['onRecordFocus'] if 'onRecordFocus' in 自身.属性 else None
-                    if callable(回调):
-                        回调(下标)
-                文=跨['label'] if isinstance(跨['label'],str) and 跨['label']!='' else str(跨['kind'])
-                界面.button(文, on_click=点跨)
+        '按当前模型和视口画出总览'
+        属性=自身.属性
+        窗口=属性['window']
+        文档=窗口.document
+        if 文档.getElementById('轨迹时间线样式') is None:
+            样式=文档.createElement('style')
+            样式.id='轨迹时间线样式'
+            样式.textContent=样式文本
+            文档.head.appendChild(样式)
+        轮次=属性.get('turns') or []
+        模式=属性.get('mode') or 'sequence'
+        选区=属性.get('range')
+        模型=派生轨迹时间线(轮次,模式)
+        if 模型 is not None and 选区 is not None and (选区['end']<模型['start'] or 选区['start']>模型['end']):
+            if callable(属性.get('onRangeChange')):
+                属性['onRangeChange'](None)
+            选区=None
+        if 模型 is not None and 自身.视口 is not None and (自身.视口['end']<模型['start'] or 自身.视口['start']>模型['end']):
+            自身.视口=None
+        全长=max(1,(0 if 模型 is None else 模型['end'])-(0 if 模型 is None else 模型['start']))
+        视口长=全长 if 自身.视口 is None else min(全长,max(1,自身.视口['end']-自身.视口['start']))
+        if 模型 is None or 自身.视口 is None:
+            视口起=0 if 模型 is None else 模型['start']
+        else:
+            视口起=min(max(自身.视口['start'],模型['start']),模型['end']-视口长)
+        域长=全长 if 自身.视口 is None else 视口长
+        域起=0 if 模型 is None else (模型['start'] if 自身.视口 is None else 视口起)
+        显示更早=属性.get('hasEarlierRecords') is True and 模型 is not None and 域起==模型['start']
+        旧=自身.根
+        父=None if 旧 is None else 旧.parentNode
+        if 旧 is not None:
+            旧.remove()
+        根=文档.createElement('section')
+        根.className='root'
+        根.setAttribute('aria-label','轨迹时间线')
+        图=文档.createElement('div')
+        图.className='plot'
+        车道标签({'window':窗口,'parent':图})
+        轨=文档.createElement('div')
+        轨.className='track'
+        if 模型 is None:
+            空=文档.createElement('span')
+            空.className='empty'
+            空.textContent='无计时数据'
+            轨.appendChild(空)
+            if 属性.get('hasEarlierRecords') is True:
+                更早历史边界({
+                    'window':窗口,
+                    'parent':轨,
+                    'loading':自身.加载更早中,
+                    'onHover':lambda:自身._清悬停(),
+                    'onLoad':自身._加载更早(),
+                })
+        else:
+            if 自身.平移中:
+                轨.setAttribute('data-panning','true')
+            轨.setAttribute('aria-label','时间线概览；水平拖动可聚焦事件')
+            轨.tabIndex=0
+            最小选区=min(域长,全长/max(1,len(模型['spans'])))
+            域样式={
+                '--trajectory-domain-left':str(-(域起-模型['start'])/域长*100)+'%',
+                '--trajectory-domain-width':str(全长/域长*100)+'%',
+            }
+            if 显示更早:
+                更早历史边界({
+                    'window':窗口,
+                    'parent':轨,
+                    'loading':自身.加载更早中,
+                    'onHover':lambda:自身._清悬停(),
+                    'onLoad':自身._加载更早(),
+                })
+            if 自身.悬停 is not None and 自身.悬停.get('recordIndex') is None and 自身.草稿 is None:
+                线=文档.createElement('div')
+                线.className='hoverLine'
+                线.setAttribute('data-timeline-hover-line','')
+                线.setAttribute('aria-hidden','true')
+                线.style.setProperty('--trajectory-hover-left',str(自身.悬停['fraction']*100)+'%')
+                轨.appendChild(线)
+            可见=None
+            if 自身.草稿 is not None:
+                可见=区间比例(自身.草稿,域起,域长,模型['start'],模型['end'])
+            elif 选区 is not None:
+                可见=区间比例(选区,域起,域长,模型['start'],模型['end'])
+            if 可见 is not None:
+                for 类 in ('selection','selectionEdges'):
+                    盒=文档.createElement('div')
+                    盒.className=类
+                    盒.setAttribute('aria-hidden','true')
+                    if 自身.草稿 is not None:
+                        盒.setAttribute('data-dragging','true')
+                    盒.style.setProperty('--trajectory-selection-left',str(可见['start']*100)+'%')
+                    盒.style.setProperty('--trajectory-selection-width',str((可见['end']-可见['start'])*100)+'%')
+                    轨.appendChild(盒)
+            边界盒=文档.createElement('div')
+            边界盒.className='turnBoundaries'
+            边界盒.setAttribute('aria-hidden','true')
+            if 自身.动画视口:
+                边界盒.setAttribute('data-animate-viewport','true')
+            for 键,值 in 域样式.items():
+                边界盒.style.setProperty(键,值)
+            for 界 in 模型['turnBoundaries']:
+                if 界['time']<=模型['start'] or 界['time']<域起 or 界['time']>域起+域长:
+                    continue
+                标=文档.createElement('span')
+                标.className='turnBoundary'
+                标.setAttribute('data-turn',str(界['turn']))
+                标.style.setProperty('--trajectory-turn-left',str((界['time']-模型['start'])/全长*100)+'%')
+                边界盒.appendChild(标)
+            轨.appendChild(边界盒)
+            道=文档.createElement('div')
+            道.className='lanes'
+            道.setAttribute('data-timeline-domain','')
+            if 自身.动画视口:
+                道.setAttribute('data-animate-viewport','true')
+            for 键,值 in 域样式.items():
+                道.style.setProperty(键,值)
+            明细表={}
+            for 轮 in 轮次:
+                for 组 in 轮.get('groups') or []:
+                    for 格 in 组.get('cells') or []:
+                        明细表[格['index']]=时间线记录明细(格)
+            活动=自身.草稿 if 自身.草稿 is not None else 选区
+            选中=属性.get('selectedIndex')
+            搜索=属性.get('searchMatchIndexes')
+            for 跨度 in 模型['spans']:
+                if 跨度['index']!=选中 and not (跨度['end']>=域起 and 跨度['start']<=域起+域长):
+                    continue
+                左=(跨度['start']-模型['start'])/全长
+                宽=(跨度['end']-跨度['start'])/全长
+                明细=明细表.get(跨度['index']) or {}
+                首比=None
+                if 明细.get('ttftMs') is not None and 明细.get('decodingMs') is not None and 明细['ttftMs']+明细['decodingMs']>0:
+                    首比=明细['ttftMs']/(明细['ttftMs']+明细['decodingMs'])
+                条=文档.createElement('span')
+                条.setAttribute('aria-hidden','true')
+                条.className='span'
+                条.setAttribute('data-timeline-span',跨度['kind'])
+                条.setAttribute('data-timeline-record-index',str(跨度['index']))
+                if 首比 is not None:
+                    条.setAttribute('data-assistant-timing','true')
+                if 跨度.get('isError'):
+                    条.setAttribute('data-error','true')
+                if 模式=='time':
+                    条.setAttribute('data-equal-duration','true')
+                if 跨度['index']==选中:
+                    条.setAttribute('data-current','true')
+                if 自身.悬停 is not None and 自身.悬停.get('recordIndex')==跨度['index']:
+                    条.setAttribute('data-hovered','true')
+                if 搜索 is not None:
+                    条.setAttribute('data-search-match','true' if 跨度['index'] in 搜索 else 'false')
+                if 活动 is not None:
+                    条.setAttribute('data-selected','true' if 跨度['start']<=活动['end'] and 跨度['end']>=活动['start'] else 'false')
+                条.style.setProperty('--trajectory-span-left',str(左*100)+'%')
+                条.style.setProperty('--trajectory-span-width',str(宽*100)+'%')
+                条.style.setProperty('--trajectory-span-gap','min('+str(宽*100*0.08)+'%, 1px)')
+                条.style.setProperty('--trajectory-span-lane',str(跨度['lane']))
+                if 首比 is not None:
+                    条.style.setProperty('--trajectory-assistant-ttft',str(首比*100)+'%')
+                def 文案(种类=跨度['kind'],明细=明细):
+                    '悬停时才拼提示'
+                    return 时间线提示文案(种类,明细)
+                提示泡({
+                    'window':窗口,
+                    'label':文案,
+                    'side':'bottom',
+                    'delayMs':时间线提示延迟毫秒,
+                    'children':条,
+                    'parent':道,
+                }).渲染()
+            轨.appendChild(道)
+            def 比例于(事件):
+                '指针在轨道上的位置'
+                矩形=事件.currentTarget.getBoundingClientRect()
+                宽=矩形.width if 矩形.width else 1
+                return 钳制比例((事件.clientX-矩形.left)/max(1,宽))
+            def 记录于(事件):
+                '点中的记录下标'
+                目标=事件.target
+                最近=目标.closest('[data-timeline-record-index]') if 目标 is not None and hasattr(目标,'closest') else None
+                if 最近 is None:
+                    return None
+                值=最近.dataset.timelineRecordIndex if hasattr(最近,'dataset') else 最近.getAttribute('data-timeline-record-index')
+                try:
+                    数=float(值)
+                except (TypeError,ValueError):
+                    return None
+                if not math.isfinite(数):
+                    return None
+                return 数
+            def 按下(事件):
+                '左键拖选，右键平移'
+                if 事件.button==2:
+                    自身.平移={
+                        'anchorClientX':事件.clientX,
+                        'anchorStart':域起,
+                        'moved':False,
+                        'pannable':自身.视口 is not None,
+                        'pointerId':事件.pointerId,
+                    }
+                    if 自身.视口 is not None:
+                        自身.动画视口=False
+                    自身.平移中=True
+                    if hasattr(事件.currentTarget,'setPointerCapture'):
+                        事件.currentTarget.setPointerCapture(事件.pointerId)
+                    自身.渲染()
+                    return
+                if 事件.button!=0:
+                    return
+                比例=比例于(事件)
+                锚时=域起+比例*域长
+                自身.悬停={'fraction':比例,'recordIndex':记录于(事件)}
+                自身.拖动={
+                    'pointerId':事件.pointerId,
+                    'anchorTime':锚时,
+                    'anchorClientX':事件.clientX,
+                    'recordIndex':自身.悬停['recordIndex'],
+                }
+                if hasattr(事件.currentTarget,'setPointerCapture'):
+                    事件.currentTarget.setPointerCapture(事件.pointerId)
+                自身.草稿={'start':锚时,'end':锚时}
+                自身.渲染()
+            def 移动(事件):
+                '拖选或平移视口'
+                比例=比例于(事件)
+                自身.悬停={'fraction':比例,'recordIndex':记录于(事件)}
+                平移=自身.平移
+                if 平移 is not None and 平移.get('pointerId')==事件.pointerId:
+                    if abs(事件.clientX-平移['anchorClientX'])>=最小拖动像素:
+                        平移['moved']=True
+                    if not 平移['pannable']:
+                        自身.渲染()
+                        return
+                    矩形=事件.currentTarget.getBoundingClientRect()
+                    差=(事件.clientX-平移['anchorClientX'])/max(1,矩形.width or 1)
+                    下一=min(max(平移['anchorStart']-差*域长,模型['start']),模型['end']-域长)
+                    自身.视口={'start':下一,'end':下一+域长}
+                    自身.渲染()
+                    return
+                拖=自身.拖动
+                if 拖 is None or 拖.get('pointerId')!=事件.pointerId:
+                    自身.渲染()
+                    return
+                自身.草稿=有序区间(拖['anchorTime'],域起+比例*域长)
+                自身.渲染()
+            def 抬起(事件):
+                '松手后提交选区、点选记录或聚焦最近记录'
+                平移=自身.平移
+                if 平移 is not None and 平移.get('pointerId')==事件.pointerId:
+                    动过=平移['moved'] or abs(事件.clientX-平移['anchorClientX'])>=最小拖动像素
+                    自身.平移=None
+                    自身.平移中=False
+                    if not 动过 and callable(属性.get('onRangeChange')):
+                        属性['onRangeChange'](None)
+                    自身.渲染()
+                    return
+                拖=自身.拖动
+                if 拖 is None or 拖.get('pointerId')!=事件.pointerId:
+                    return
+                比例=比例于(事件)
+                点时=域起+比例*域长
+                选定=有序区间(拖['anchorTime'],点时)
+                自身.悬停={'fraction':比例,'recordIndex':记录于(事件)}
+                自身.拖动=None
+                自身.草稿=None
+                是点击=abs(事件.clientX-拖['anchorClientX'])<最小拖动像素
+                点中=None
+                if 是点击 and 拖.get('recordIndex') is not None:
+                    for 跨度 in 模型['spans']:
+                        if 跨度['index']==拖['recordIndex']:
+                            点中=跨度
+                            break
+                if 点中 is not None:
+                    if callable(属性.get('onRangeChange')):
+                        属性['onRangeChange'](None)
+                    if callable(属性.get('onRecordSelect')):
+                        属性['onRecordSelect'](点中['index'])
+                    自身.渲染()
+                    return
+                if 选定['end']-选定['start']<最小选区:
+                    中心=选定['start'] if 是点击 else (选定['start']+选定['end'])/2
+                    提交=居中区间(中心,最小选区,模型['start'],模型['end'])
+                else:
+                    提交=选定
+                if callable(属性.get('onRangeChange')):
+                    属性['onRangeChange'](提交)
+                if 是点击 and len(模型['spans'])>0:
+                    最近=模型['spans'][0]
+                    最近距=0 if 最近['start']<=选定['start']<=最近['end'] else min(abs(选定['start']-最近['start']),abs(选定['start']-最近['end']))
+                    for 跨度 in 模型['spans']:
+                        if 跨度['start']<=选定['start']<=跨度['end']:
+                            距=0
+                        elif 选定['start']<跨度['start']:
+                            距=跨度['start']-选定['start']
+                        else:
+                            距=选定['start']-跨度['end']
+                        if 距<最近距:
+                            最近=跨度
+                            最近距=距
+                    if callable(属性.get('onRecordFocus')):
+                        属性['onRecordFocus'](最近['index'])
+                自身.渲染()
+            def 按键(事件):
+                'Escape 清掉选区'
+                if 事件.key!='Escape' or 属性.get('range') is None:
+                    return
+                事件.preventDefault()
+                if callable(属性.get('onRangeChange')):
+                    属性['onRangeChange'](None)
+            def 取消(_事件=None):
+                '指针取消时丢掉草稿'
+                自身.拖动=None
+                自身.平移=None
+                自身.草稿=None
+                自身.悬停=None
+                自身.平移中=False
+                自身.渲染()
+            def 离开(_事件):
+                '没有手势时清掉悬停'
+                if 自身.拖动 is None and 自身.平移 is None:
+                    自身.悬停=None
+                    自身.渲染()
+            def 双击(事件):
+                '双击清掉选区'
+                事件.preventDefault()
+                if callable(属性.get('onRangeChange')):
+                    属性['onRangeChange'](None)
+            def 右键(事件):
+                '右键留给平移，不弹菜单'
+                事件.preventDefault()
+            def 滚轮(事件):
+                '以指针为锚缩放视口'
+                事件.preventDefault()
+                矩形=轨.getBoundingClientRect()
+                比例=钳制比例((事件.clientX-矩形.left)/max(1,矩形.width or 1))
+                自身.动画视口=False
+                下限=min(最小缩放操作数 if 模式=='sequence' else 20,全长)
+                下一长=min(全长,max(下限,域长*math.exp(事件.deltaY*0.0015)))
+                if 下一长>=全长*0.999:
+                    自身.视口=None
+                else:
+                    锚时=域起+比例*域长
+                    下一=min(max(锚时-比例*下一长,模型['start']),模型['end']-下一长)
+                    自身.视口={'start':下一,'end':下一+下一长}
+                自身.渲染()
+            轨.addEventListener('pointerdown',按下)
+            轨.addEventListener('pointermove',移动)
+            轨.addEventListener('pointerup',抬起)
+            轨.addEventListener('pointercancel',取消)
+            轨.addEventListener('pointerleave',离开)
+            轨.addEventListener('dblclick',双击)
+            轨.addEventListener('contextmenu',右键)
+            轨.addEventListener('keydown',按键)
+            根.addEventListener('wheel',滚轮)
+        图.appendChild(轨)
+        根.appendChild(图)
+        自身.根=根
+        自身.轨道=轨
+        if 父 is None and 属性.get('parent') is not None:
+            父=属性['parent']
+        if 父 is not None and 根.parentNode is not 父:
+            父.appendChild(根)
+        return 根
 
-    def __call__(自身,属性=None):
-        '有新 props 先更新，再画出'
-        if 属性 is not None:
-            自身.更新(属性)
-        return 自身.渲染()
+    def _清悬停(自身):
+        '边界按钮悬停时不画十字线'
+        自身.悬停=None
+        自身.渲染()
+
+    def _加载更早(自身):
+        '再要一页更早历史。调用是同步的'
+        回调=自身.属性.get('onLoadEarlier')
+        if not callable(回调) or 自身.加载更早中:
+            return None
+        自身.加载更早中=True
+        自身.渲染()
+        try:
+            return 回调()
+        finally:
+            自身.加载更早中=False
+            自身.渲染()

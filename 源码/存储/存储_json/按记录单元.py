@@ -12,7 +12,7 @@ def _断言安全键(单元名,键):#拒绝不安全键
     if 安全键正则.fullmatch(键) is None:#不安全
         raise 存储错误('malformed-medium',"unit '"+单元名+"': per-record key '"+键+"' is not path-safe (must match "+安全键正则.pattern+")")#拒绝
 
-def _读记录(路径,版本):#读一条记录文档
+def _读取记录(路径,版本):#读一条记录文档
     '读一条记录文档；读失败则 None'
     try:#读文件
         with open(路径,'r',encoding='utf-8') as 文件:#打开
@@ -34,7 +34,7 @@ def _加载表记录(记录映射,版本,目录):#加载一张表的记录
         键=名[:-5]#去 .json
         if 安全键正则.fullmatch(键) is None:#键不安全
             continue#跳过
-        值=_读记录(os.path.join(目录,名),版本)#读记录
+        值=_读取记录(os.path.join(目录,名),版本)#读记录
         if 值 is not None:#有效记录
             记录映射[键]=值#记下
     return 有文档#是否见到文档路径
@@ -86,7 +86,7 @@ def _加载按记录状态(描述符,目录):#从目录树重建状态
                 if _加载表记录(状态.tables[名],描述符.version,完整):#加载表
                     有新文档=True#见到文档
             elif 名=='global.json' and 描述符.hasGlobal:#全局文件
-                全局=_读记录(完整,描述符.version)#读全局
+                全局=_读取记录(完整,描述符.version)#读全局
                 if 全局 is not None:#有效
                     状态.全局值=全局#记下
                     有新文档=True#见到文档
@@ -124,7 +124,7 @@ class 按记录Json单元:#per-record 布局；目录即状态
         自身._断言打开()#已关拒绝
         _断言安全键(自身._描述符.name,键)#键安全
         路径=os.path.join(自身._目录,表,键+'.json')#记录路径
-        自身._写文档(路径,值)#耐久写
+        自身._写入文档(路径,值)#耐久写
 
     def deleteRecord(自身,表,键):#删一条记录
         '删一条记录'
@@ -139,7 +139,7 @@ class 按记录Json单元:#per-record 布局；目录即状态
         if not 自身._描述符.hasGlobal:#未声明
             raise 存储错误('malformed-medium',"unit '"+自身._描述符.name+"' does not declare a global slot")#调用方错误
         路径=os.path.join(自身._目录,'global.json')#全局路径
-        自身._写文档(路径,值)#耐久写
+        自身._写入文档(路径,值)#耐久写
 
     def close(自身):#关闭
         '关闭单元；重复关闭为空操作'
@@ -153,7 +153,7 @@ class 按记录Json单元:#per-record 布局；目录即状态
         if 自身._已关:#已关
             raise 存储错误('closed',"unit '"+自身._描述符.name+"' is closed")#拒绝
 
-    def _写文档(自身,路径,值):#写一条文档
+    def _写入文档(自身,路径,值):#写一条文档
         '写一条文档'
         os.makedirs(os.path.dirname(路径),mode=0o700,exist_ok=True)#建父目录
         原子写(路径,序列化记录(自身._描述符.version,值))#原子写

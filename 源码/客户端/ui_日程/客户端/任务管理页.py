@@ -1,164 +1,296 @@
-'跨会话的任务列表和详情'
-from nicegui import ui as 界面
-from ....基础设施.通用工具 import 当前毫秒
-from ..异常 import 页面失败文案
-from .日历图标 import 日历图标
+'跨会话的自动化任务页。这里不建任务，新建会去开一条会话'
+from ...模块.客户端.通告 import 取握手窗口
+import os
+from ...ui_对话.异常 import 注入模块样式文件,标样式模块
+from ...ui_基础界面组件.按钮 import 处理按钮
+from ...ui_基础界面组件.输入 import 处理输入
+from .管理文案 import 管理中文
 from .目录反馈 import 目录反馈
-from .任务详情 import 任务详情
-from .日程格式 import 格式化日程频率,下次运行片段,任务名
+from .任务详情 import 任务详情,任务详情控制器
+from .相对时钟 import 现在毫秒,安装相对时钟
+from .日程格式 import 任务名,格式化日程频率,下次运行两段,时区标签
+from .任务管理图标 import 画时钟
 
 __all__=['任务管理页']
 
-过滤项=('all','active','inactive')
+样式模块='task-manager-page'
+
+def 确保样式(文档):
+    '任务页样式只插一次'
+    注入模块样式文件(文档,'日程任务管理页样式',os.path.join(os.path.dirname(__file__),'任务管理页.module.css'),样式模块)
+
+def 标(节点):
+    '挂上样式模块'
+    if 节点 is not None:
+        标样式模块(节点,样式模块)
+    return 节点
 
 class 任务管理页:
-    '槽位只调用构造。搜索、状态过滤、行和详情'
-    def __init__(自身,属性=None):
-        '记下搜索和选中。槽位只调用构造，键齐了就画。'
-        自身.属性=属性 if isinstance(属性,dict) else {}
-        自身.搜索=''
-        自身.过滤='all'
-        自身.选中=None
-        自身.现在=当前毫秒()
-        if 'useCatalog' in 自身.属性:
-            自身.渲染()
-
-    def 更新(自身,属性):
-        '刷新'
-        自身.属性=属性 if isinstance(属性,dict) else {}
-
-    def 确保订阅(自身):
-        '目录变化时重画'
-        if getattr(自身,'_已订',False):
-            return
-        用=自身.属性['useCatalog'] if 'useCatalog' in 自身.属性 else None
-        订=getattr(用,'_subscribe',None)
-        if not callable(订):
-            return
-        自身._已订=True
-        def 变(*_参数):
-            '重画列表'
-            if getattr(自身,'_壳',None) is not None:
-                自身.重画()
-        订(变)
+    '搜索、状态筛选，旁边是选中任务的详情'
+    def __new__(类,属性=None):
+        '整页只有一份'
+        if not hasattr(类,'实例') or 类.实例 is None:
+            自身=object.__new__(类)
+            自身.属性=属性
+            自身.根=None
+            自身.搜索=''
+            自身.筛选='all'
+            自身.选中=None
+            自身.控制=任务详情控制器()
+            自身.详情=None
+            自身.现在=现在毫秒()
+            自身.停时钟=None
+            自身.已订=False
+            类.实例=自身
+        else:
+            自身=类.实例
+            自身.属性=属性
+        return 自身.渲染()
 
     def 渲染(自身):
-        '列表壳和每秒相对时间'
-        自身.确保订阅()
-        if getattr(自身,'_壳',None) is None:
-            自身._壳=界面.row().classes('schedule-manager').style('width:100%;align-items:flex-start;gap:16px')
-            def 滴答():
-                '刷新下次运行的距离'
-                自身.现在=当前毫秒()
-                if getattr(自身,'_壳',None) is not None:
-                    自身.重画()
-            界面.timer(30.0,滴答)
-        自身.重画()
-
-    def _目录(自身):
-        '读目录快照'
-        用=自身.属性['useCatalog'] if 'useCatalog' in 自身.属性 else None
-        if not callable(用):
-            return {'records':[],'status':'loading','deleting':[]}
-        try:
-            值=用(lambda 当前:当前)
-        except Exception:
-            return {'records':[],'status':'error','deleting':[]}
-        return 值 if isinstance(值,dict) else {'records':[],'status':'error','deleting':[]}
-
-    def 重画(自身):
-        '过滤后的行，选中时在旁边放详情'
-        壳=自身._壳
-        壳.clear()
+        '按目录、搜索和筛选重画列表'
         属性=自身.属性
-        翻译=属性['t'] if 't' in 属性 and callable(属性['t']) else (lambda 键,_参数=None:键)
-        目录=自身._目录()
-        记录=目录['records'] if 'records' in 目录 and isinstance(目录['records'],list) else []
-        状态=目录['status'] if 'status' in 目录 else 'loading'
+        窗口=属性.get('window') or 取握手窗口()
+        属性['window']=窗口
+        文档=窗口.document
+        确保样式(文档)
+        if 自身.停时钟 is None:
+            def 重画():
+                '列表上的距离跟着走'
+                自身.现在=现在毫秒()
+                自身.渲染()
+            自身.停时钟=安装相对时钟(重画)
+        if not 自身.已订 and callable(属性.get('useCatalog')) and hasattr(属性['useCatalog'],'_subscribe'):
+            def 变更():
+                '目录变了就重画'
+                自身.渲染()
+            属性['useCatalog']._subscribe(变更)
+            自身.已订=True
+        def 取(快照):
+            '整份目录'
+            return 快照
+        目录=属性['useCatalog'](取)
+        记录=目录.get('records') or []
         查询=自身.搜索.strip().lower()
         行=[]
         for 项 in 记录:
-            if not isinstance(项,dict):
+            if 自身.筛选!='all' and 项.get('status')!=自身.筛选:
                 continue
-            if 自身.过滤!='all' and 项.get('status')!=自身.过滤:
+            名=任务名(项).lower()
+            指令=(项.get('prompt') or '').lower()
+            会话=str(项.get('sessionId') or '').lower()
+            if 查询 and 查询 not in 名 and 查询 not in 指令 and 查询 not in 会话:
                 continue
-            if 查询!='':
-                名=任务名(项).lower()
-                提示=项['prompt'].lower() if isinstance(项.get('prompt'),str) else ''
-                会话=str(项['sessionId']).lower() if 'sessionId' in 项 else ''
-                if 查询 not in 名 and 查询 not in 提示 and 查询 not in 会话:
-                    continue
             行.append(项)
-        行.sort(key=lambda 项:项['scheduledAt'] if 'scheduledAt' in 项 and isinstance(项['scheduledAt'],str) else '')
-        if 自身.选中 is not None and not any(项.get('id')==自身.选中 for 项 in 记录):
+        def 时间键(项):
+            '按计划时间排序'
+            return 取握手窗口().Date.parse(项.get('scheduledAt') or '')
+        行.sort(key=时间键)
+        if 自身.根 is None:
+            自身.根=文档.createElement('section')
+            自身.根.className='page'
+            标(自身.根)
+            自身.根.setAttribute('aria-label',管理中文['title'])
+            自身.根.setAttribute('data-testid','task-manager-page')
+        根=自身.根
+        while 根.firstChild is not None:
+            根.removeChild(根.firstChild)
+        快照=自身.控制.快照(属性,目录,自身.选中)
+        选中任务=快照['task']
+        if 选中任务 is not None:
+            根.className='page hasDetails'
+        else:
+            根.className='page'
+        标(根)
+        列=文档.createElement('div')
+        列.className='listPane'
+        标(列)
+        滚=文档.createElement('div')
+        滚.className='pageScroll'
+        标(滚)
+        内容=文档.createElement('div')
+        内容.className='pageContent'
+        标(内容)
+        头=文档.createElement('div')
+        头.className='pageHeading'
+        标(头)
+        题=文档.createElement('h1')
+        题.tabIndex=-1
+        题.textContent=管理中文['title']
+        头.appendChild(题)
+        新建=处理按钮(窗口,{
+            'variant':'primary','size':'sm','className':'newButton',
+            'children':管理中文['new.action'],'onClick':属性.get('onNewTask'),'window':窗口,
+        })
+        标(新建)
+        头.appendChild(新建)
+        内容.appendChild(头)
+        筛=文档.createElement('div')
+        筛.className='filterTabs'
+        标(筛)
+        筛.setAttribute('role','group')
+        筛.setAttribute('aria-label',管理中文['statusFilter.label'])
+        for 值,文 in (('all','statusFilter.all'),('active','status.active'),('inactive','status.inactive')):
+            钮=文档.createElement('button')
+            钮.type='button'
+            钮.className='filterTab filterTabActive' if 自身.筛选==值 else 'filterTab'
+            标(钮)
+            钮.setAttribute('aria-pressed','true' if 自身.筛选==值 else 'false')
+            钮.textContent=管理中文[文]
+            def 点筛(事件,值=值):
+                '换状态筛选'
+                自身.筛选=值
+                自身.渲染()
+            钮.addEventListener('click',点筛)
+            筛.appendChild(钮)
+        内容.appendChild(筛)
+        搜盒=文档.createElement('div')
+        搜盒.className='searchField'
+        标(搜盒)
+        输入=处理输入(窗口,{
+            'type':'search','window':窗口,
+            'aria-label':管理中文['search.label'],
+            'placeholder':管理中文['search.placeholder'],
+            'value':自身.搜索,
+        })
+        def 改搜(事件):
+            '按名字、指令或会话过滤'
+            自身.搜索=事件.target.value
+            自身.渲染()
+        if 输入 is not None:
+            框=输入.querySelector('input')
+            if 框 is not None:
+                框.setAttribute('aria-label',管理中文['search.label'])
+                框.addEventListener('input',改搜)
+            搜盒.appendChild(输入)
+        if 自身.搜索!='':
+            def 清空():
+                '清掉搜索'
+                自身.搜索=''
+                自身.渲染()
+            清=处理按钮(窗口,{'size':'sm','className':'searchClear','children':管理中文['search.clear'],'onClick':清空,'window':窗口})
+            标(清)
+            清.setAttribute('aria-label',管理中文['search.clear'])
+            搜盒.appendChild(清)
+        内容.appendChild(搜盒)
+        表=文档.createElement('div')
+        表.className='list'
+        标(表)
+        if 选中任务 is None:
+            反馈=目录反馈({'window':窗口,'status':目录.get('status'),'populated':len(行)>0,'onRetry':属性.get('onRetry')})
+            if 反馈 is not None:
+                表.appendChild(反馈)
+        if 目录.get('status')=='ready' and len(行)==0:
+            空=文档.createElement('div')
+            空.className='empty'
+            标(空)
+            空.setAttribute('role','status')
+            空.appendChild(画时钟(文档,24))
+            空题=文档.createElement('h2')
+            if 自身.筛选=='inactive' and 自身.搜索.strip()=='':
+                空题.textContent=管理中文['list.emptyInactive']
+            elif len(记录)==0:
+                空题.textContent=管理中文['list.empty']
+            else:
+                空题.textContent=管理中文['list.noMatches']
+            空.appendChild(空题)
+            空钮=处理按钮(窗口,{'variant':'outline','className':'emptyAction','children':管理中文['empty.action'],'onClick':属性.get('onNewTask'),'window':窗口})
+            标(空钮)
+            空.appendChild(空钮)
+            表.appendChild(空)
+        列表=文档.createElement('ul')
+        列表.className='listRows'
+        标(列表)
+        列表.setAttribute('aria-label',管理中文['list.label'])
+        系统=窗口.Intl.DateTimeFormat().resolvedOptions().timeZone
+        def 标时区(区,系统=系统):
+            '列表频率里的时区'
+            return 时区标签(区,管理中文)
+        时区={'system':系统,'label':标时区}
+        for 项 in 行:
+            条=文档.createElement('li')
+            钮=文档.createElement('button')
+            钮.type='button'
+            类名='row'
+            if 自身.选中==项.get('id'):
+                类名=类名+' selectedRow'
+            if 项.get('status')=='inactive':
+                类名=类名+' endedRow'
+            钮.className=类名
+            标(钮)
+            钮.setAttribute('aria-label',任务名(项))
+            钮.appendChild(画时钟(文档,16))
+            体=文档.createElement('span')
+            体.className='rowContent'
+            标(体)
+            名=文档.createElement('span')
+            名.className='rowTitle'
+            标(名)
+            名.textContent=任务名(项)
+            体.appendChild(名)
+            摘=文档.createElement('span')
+            摘.className='rowSummary'
+            标(摘)
+            if 项.get('status')=='inactive':
+                态=文档.createElement('span')
+                态.className='metadata'
+                标(态)
+                态.textContent=管理中文['status.inactive']
+                摘.appendChild(态)
+            频=文档.createElement('span')
+            频.className='metadata'
+            标(频)
+            频.textContent=格式化日程频率(项,管理中文,时区)
+            摘.appendChild(频)
+            if 项.get('status')=='active':
+                两段=下次运行两段(项.get('scheduledAt') or '',管理中文['time.locale'],自身.现在,管理中文)
+                下=文档.createElement('span')
+                下.className='metadata'
+                标(下)
+                下.appendChild(文档.createTextNode(管理中文['list.nextPrefix']))
+                时=文档.createElement('time')
+                时.setAttribute('dateTime',项.get('scheduledAt') or '')
+                时.textContent=两段['absolute']
+                下.appendChild(时)
+                下.appendChild(文档.createTextNode(' '))
+                相对=文档.createElement('span')
+                相对.className='nextRunRelative'
+                标(相对)
+                相对.textContent=两段['relative']
+                下.appendChild(相对)
+                摘.appendChild(下)
+            体.appendChild(摘)
+            钮.appendChild(体)
+            def 点行(事件,标识=项.get('id')):
+                '打开这一条的详情'
+                自身.选中=标识
+                自身.控制.设页('rule')
+                自身.渲染()
+            钮.addEventListener('click',点行)
+            条.appendChild(钮)
+            列表.appendChild(条)
+        表.appendChild(列表)
+        内容.appendChild(表)
+        滚.appendChild(内容)
+        列.appendChild(滚)
+        根.appendChild(列)
+        if 选中任务 is not None:
+            详情属性=dict(快照['props'])
+            详情属性['window']=窗口
+            详情属性['task']=选中任务
+            详情属性['authoritative']=快照['record'] is not None
+            详情属性['onDeleted']=自身.关掉
+            详情属性['onClose']=自身.关掉
+            if 自身.详情 is None:
+                自身.详情=任务详情(详情属性)
+            节点=自身.详情(详情属性)
+            if 节点 is not None:
+                根.appendChild(节点)
+        elif 目录.get('status')=='ready' and 自身.选中 is not None and 选中任务 is None:
             自身.选中=None
-        选中=next((项 for 项 in 记录 if 项.get('id')==自身.选中),None)
-        def 改搜索(事件):
-            '过滤标题、指令和会话'
-            自身.搜索=事件.value if hasattr(事件,'value') and isinstance(事件.value,str) else ''
-            自身.重画()
-        def 新建():
-            '到会话里创建，本页没有创建表单'
-            回调=属性['onNewTask'] if 'onNewTask' in 属性 else None
-            if callable(回调):
-                回调()
-        with 壳:
-            with 界面.column().style('flex:1;min-width:280px'):
-                with 界面.row().style('align-items:center;justify-content:space-between;width:100%'):
-                    界面.label(翻译('title'))
-                    界面.button(翻译('new.action'), on_click=新建).props('icon=add')
-                with 界面.row():
-                    for 项 in 过滤项:
-                        文=翻译('statusFilter.all' if 项=='all' else 'status.'+项)
-                        def 选过滤(当前=项):
-                            '切换状态过滤'
-                            自身.过滤=当前
-                            自身.重画()
-                        界面.button(文, on_click=选过滤).props('flat'+(' color=primary' if 自身.过滤==项 else ''))
-                界面.input(翻译('search.label'), value=自身.搜索, placeholder=翻译('search.placeholder'), on_change=改搜索).props('icon=search')
-                if 自身.搜索!='':
-                    def 清空():
-                        '清搜索'
-                        自身.搜索=''
-                        自身.重画()
-                    界面.button(翻译('search.clear'), on_click=清空).props('flat')
-                if 选中 is None:
-                    目录反馈({'status':状态,'populated':len(行)>0,'onRetry':属性['onRetry'] if 'onRetry' in 属性 else (lambda *_参数:None),'t':翻译}).渲染()
-                if 状态=='ready' and len(行)==0:
-                    日历图标({'size':24}).渲染()
-                    空键='list.emptyInactive' if 自身.过滤=='inactive' and 自身.搜索.strip()=='' else ('list.empty' if len(记录)==0 else 'list.noMatches')
-                    界面.label(翻译(空键))
-                    界面.button(翻译('empty.action'), on_click=新建).props('outline')
-                for 项 in 行:
-                    片段=下次运行片段(项['scheduledAt'] if 'scheduledAt' in 项 else '',翻译('time.locale'),自身.现在,翻译)
-                    def 打开(当前=项['id'] if 'id' in 项 else None):
-                        '选中这一条'
-                        自身.选中=当前
-                        自身.重画()
-                    with 界面.column().style('width:100%'):
-                        界面.button(任务名(项), on_click=打开).props('flat no-caps align=left')
-                        界面.label(格式化日程频率(项,翻译))
-                        if 项.get('status')=='active':
-                            界面.label(翻译('list.nextPrefix')+片段['absolute']+' '+片段['relative'])
-                        elif 项.get('status')=='inactive':
-                            界面.label(翻译('status.inactive'))
-            if 选中 is not None:
-                任务详情({
-                    **属性,
-                    'task':选中,
-                    'status':状态,
-                    'deleting':目录['deleting'] if 'deleting' in 目录 and isinstance(目录['deleting'],list) else [],
-                    'onDeleted':lambda:自身._关掉(),
-                    'onClose':lambda:自身._关掉(),
-                }).渲染()
+        return 根
 
-    def _关掉(自身):
-        '收起详情'
+    def 关掉(自身):
+        '回到列表'
         自身.选中=None
-        自身.重画()
-
-    def __call__(自身,属性=None):
-        '更新后渲染'
-        if 属性 is not None:
-            自身.更新(属性)
-        return 自身.渲染()
+        自身.渲染()

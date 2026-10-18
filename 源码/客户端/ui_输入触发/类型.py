@@ -1,86 +1,76 @@
+'触发源面对的类型。运行时只有别名，字段名保持上游原文'
+__all__=[
+    '客户端会话上下文','触发字符','触发位置','选定途径','选定动作','候选图标',
+    '输入触发候选','输入触发屑','页眉请求','提交信封','提交附件',
+    '候选请求','输入触发选定','引用编解码','输入触发源','触发守卫',
+    '词跨度','命令认领','引用插入','提交结果','选定结果',
+    '仲裁键','仲裁结果','开始命令请求','插入引用请求','消费词请求','插入文本请求',
+]
 
-__all__=[#仅中文公开名
-    '客户端会话上下文','触发字符','触发位置','选定途径','输入触发候选','词跨度',
-    '命令认领','引用插入','提交结果','选定结果','候选请求','输入触发选定',
-    '引用编解码','输入触发源','触发守卫','仲裁键','仲裁结果',
-    '开始命令请求','插入引用请求','消费词请求','插入文本请求',
-    '斜杠输入事件名',
-]#公开面结束
-
-#客户端会话上下文：提供方面对的单会话投影，只携带稳定身份
 #字段 sessionId
-客户端会话上下文=dict#单会话投影形
+客户端会话上下文=dict#一场会话的稳定身份
 
-触发字符=('/','@')#来源绑定的触发字符
-触发位置=('leading','inline')#触发词在草稿中的位置
+触发字符=('/','@')#源绑定的触发字符
+触发位置=('leading','inline')#词在草稿里的位置
 选定途径=('menu','space','enter')#三条选定路径
+选定动作=('pick','drill')#落定或就地下钻
+候选图标=('file','folder','session')#行首字形记号
 
-#输入触发候选：纯展示数据——零行为声明
-#字段 name / label? / description? / icon? / hint? / section? / value? / drill?
-输入触发候选=dict#菜单候选形
+#字段 name / label / description / icon / hint / section / value / drill
+输入触发候选=dict#一行候选，只有展示数据
 
-#词跨度：选定瞬间的触发词跨度快照；CAS：过期 draftRev ⇒ 整次动作空操作
+#字段 label / value / current
+输入触发屑=dict#页眉上的一节面包屑
+
+#字段 query / quoted / drilled
+页眉请求=dict#源决定页眉时拿到的查询
+
+#字段 attachments
+提交信封=dict#回车裁决看得见的非文本提交
+
+提交附件=dict#随草稿提交的附件
+
+#字段 query / quoted / position / drilled / signal
+候选请求=dict#向源要候选时的请求
+
+#字段 candidate / session / position / via / action / span
+输入触发选定=dict#一次点选交给源的全部材料
+
+#方法 clipboardText(ref) / serialize(ref, signal)
+引用编解码=dict#引用的剪贴板文本和模型序列化
+
+#字段 trigger / name / order / showGroupTitle / codec
+#方法 candidates / header / onPick / matchSpace / matchEnter / matchClaim / warm / lexicon / subscribeLexicon / openReference
+输入触发源=dict#一个触发源
+
+#字段 tier：plain / claimed / frozen
+触发守卫=dict#这一拍哪些触发字符还活着
+
 #字段 start / end / draftRev
-词跨度=dict#词跨度快照形
+词跨度=dict#触发词在草稿里的跨度
 
-#命令认领：命令模式入场凭证；纯数据 + submit 闭包
-#字段 token / hint? / submit(args,actx)
-命令认领=dict#命令认领形
+#字段 token / hint / submit
+命令认领=dict#命令芯片要恢复的认领
 
-#引用插入：行内引用；草稿每个出现处持有 U+FFFC 占位符
-#字段 source / ref / label / clipboardText
-引用插入=dict#行内引用插入形
+#字段 source / ref / label / appearance / clipboardText
+引用插入=dict#插入草稿的一条引用
 
-#提交结果：命令提交事务的已结算结果
-#字段 kind='success'|'error' / text?
-提交结果=dict#提交结算形
+#字段 kind / text
+提交结果=dict#命令提交的结果
 
-#选定结果：claim / insert / text / 'handled' / None
-选定结果=object#统一选定返回形
+选定结果=object#claim、insert、text、handled 或 None
 
-#候选请求：传给来源的候选请求；查询变更/菜单关闭时 signal 被取代
-#字段 query / position / signal
-候选请求=dict#候选请求形
+仲裁键=('up','down','escape','tabBack','enter','tab')#菜单打开时拦截的键
+仲裁结果=('pass','consumed','pick-highlighted')#键交给浏览器、菜单吃掉，或落定高亮
 
-#输入触发选定：选定时来源收到的全部
-#字段 candidate / session / position / via / span
-输入触发选定=dict#选定载荷形
-
-#引用编解码：产出 insert 结果的来源所拥有
-#方法 clipboardText(ref) / serialize(ref,signal)
-引用编解码=dict#引用编解码器形
-
-#输入触发源：一个触发来源
-#字段 trigger / name / order? / codec?
-#方法 candidates / onPick / matchSpace? / matchEnter? / warm? / lexicon? / subscribeLexicon? / openReference? / header?
-输入触发源=dict#触发来源形
-
-#触发守卫：触发可用性档位
-#字段 tier='plain'|'claimed'|'frozen'
-触发守卫=dict#触发守卫形
-
-仲裁键=('up','down','enter','escape')#菜单打开时拦截的键
-仲裁结果=('consumed','pick-highlighted','pass')#键仲裁结果
-
-#开始命令请求：slash/input-begin-command
 #字段 claim / span
-开始命令请求=dict#开始命令事件请求形
+开始命令请求=dict#slash/input-begin-command
 
-#插入引用请求：slash/input-insert-reference
 #字段 reference / span
-插入引用请求=dict#插入引用事件请求形
+插入引用请求=dict#slash/input-insert-reference
 
-#消费词请求：slash/input-consume-token
-#字段 guard={kind:'span',span}|{kind:'bare-token',token}
-消费词请求=dict#消费词事件请求形
+#字段 guard
+消费词请求=dict#slash/input-consume-token
 
-#插入文本请求：slash/input-insert-text
-#字段 text / span
-插入文本请求=dict#插入文本事件请求形
-
-斜杠输入事件名=(#向 Cordis Events 声明合并的斜杠输入事件
-    'slash/input-begin-command',#把命令认领应用到作用域 Input
-    'slash/input-insert-reference',#把引用插入作用域 Input
-    'slash/input-consume-token',#业务成功后消费命令词
-    'slash/input-insert-text',#用字面文本替换触发词跨度
-)#事件名结束
+#字段 text / span / continue
+插入文本请求=dict#slash/input-insert-text

@@ -331,7 +331,7 @@ def 应用(上下文,配置值=None):#登记全部终端工具与最少用法说
             if isinstance(行数,bool) or not 是否非负安全整数(行数) or 行数<=0:#拒绝非法行数
                 raise 终端工具错误('PTY read count must be a positive safe integer')#拒绝
             请求['count']=int(行数)#收窄为整型
-        return 上下文.terminals.读取(#读回滚
+        return 上下文.terminals.读取回滚(#读回滚
             要求智能体(执行元数据.agent),#所有者
             会话标识(参数),#会话id
             请求,#回滚请求

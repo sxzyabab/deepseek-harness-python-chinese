@@ -1,564 +1,445 @@
-from ..异常 import 停靠错误#本包异常
-from ..约定.类型 import 窗格宿主停靠,窗格宿主浮动,节点种分割#约定
-from .树 import (#树读写
-    断言穷尽,
-    条目对,
-    找父分割,
-    查找标签窗格,
-    首停靠窗格标识,
-    浮动序号,
-    浮动矩形,
+'一次操作得到下一状态和把它撤回去的操作。标识都写在操作里，回放不会再铸造'
+from ..异常 import 停靠错误,要求节点空闲,要求标签空闲,未处理
+from .树 import (
+    盖上,
     取窗格,
     取分割,
     取标签,
-    插入于,
-    键列表,
-    邻标签标识,
-    归一尺寸,
+    找父分割,
+    查找标签窗格,
+    首停靠窗格标识,
+    浮动矩形,
+    浮动序号,
     唯一标签标识,
-    窗格换标签条,
-    移除于,
-    父槽替换,
+    归一份额,
     换节点,
     换标签,
-)#树结束
+    插入于,
+    移除于,
+    邻标签标识,
+    窗格换标签,
+    父中替换,
+    条目表,
+)
 
-__all__=['施加操作','回放']#仅中文公开名
+__all__=['施加操作','回放']
 
-
-def _焦点快照(状态,窗格标识表):
-    '捕获所列窗格活动标签与全局焦点，作为 restoreFocus 操作'
-    窗格活动={}#窗格→活动标签
-    for 标识 in 窗格标识表:#逐个
+def 焦点快照(状态,窗格标识表):
+    '记下这些窗格的活动标签，以及全局焦点和浮动叠放'
+    窗格活动={}
+    for 标识 in 窗格标识表:
         窗格活动[标识]=取窗格(状态,标识)['activeTabId']
-    return {#恢复焦点操作
+    return {
         'type':'restoreFocus',
         'activePaneId':状态['activePaneId'],
-        'floats':list(状态['floats']),
+        'floats':状态['floats'],
         'paneActiveTabs':窗格活动,
-    }#操作结束
+    }
 
+def 抬到顶(浮层,窗格标识):
+    '把这块窗格挪到浮动叠放的最上面'
+    留下=[]
+    for 标识 in 浮层:
+        if 标识!=窗格标识:
+            留下.append(标识)
+    留下.append(窗格标识)
+    return 留下
 
-def _抬升(浮动表,窗格标识):
-    '把窗格标识移到浮动 z 序顶'
-    return [项 for 项 in 浮动表 if 项!=窗格标识]+[窗格标识]#去重后置顶
+def 重坐焦点(状态,去掉的窗格):
+    '焦点所在的窗格没了，就落到第一块停靠窗格'
+    if 状态['activePaneId']!=去掉的窗格:
+        return 状态
+    return 盖上(状态,{'activePaneId':首停靠窗格标识(状态)})
 
-
-def _重安置焦点(状态,已移除窗格标识):
-    '焦点窗格已删时落到首停靠窗格'
-    if 状态['activePaneId']!=已移除窗格标识:#仍活
-        return 状态#不变
-    下一=dict(状态)#浅拷
-    下一['activePaneId']=首停靠窗格标识(状态)#回落
-    return 下一#状态
-
-
-def _空停靠窗格(标识):
-    '新建空停靠窗格节点'
-    return {#空窗格
-        'kind':'pane',
-        'id':标识,
-        'host':窗格宿主停靠,
-        'tabs':[],
-        'activeTabId':None,
-        'rect':None,
-    }#节点结束
-
-
-def _断言节点空闲(状态,标识):
-    '创建类操作要求标识尚未占用'
-    if 标识 in 状态['nodes']:#已有
-        raise 停靠错误('layout: node '+str(标识)+' already exists')#拒绝
-
-
-def _断言标签空闲(状态,标识):
-    '打开类操作要求标签标识尚未占用'
-    if 标识 in 状态['tabs']:#已有
-        raise 停靠错误('layout: tab '+str(标识)+' already exists')#拒绝
-
-
-def _应用分割(状态,操作):
-    '沿轴给窗格一个空兄弟'
-    窗格=取窗格(状态,操作['paneId'])#参考
-    if 窗格['host']!=窗格宿主停靠:#须停靠
-        raise 停靠错误('layout: split requires a docked pane')#拒绝
-    _断言节点空闲(状态,操作['newPaneId'])#新窗格空闲
-    新窗格=_空停靠窗格(操作['newPaneId'])#空
-    父=找父分割(状态,操作['paneId'])#父
-
-    if 父 is not None and 父['axis']==操作['axis']:#同轴并入
-        下标=父['children'].index(操作['paneId'])#参考位
-        处=下标+1 if 操作['direction']=='after' else 下标#插入位
-        子表=插入于(父['children'],处,操作['newPaneId'])#子
-        尺寸=[]#新份额
-        for 甲,份额 in enumerate(父['sizes']):#对半
-            if 甲==下标:#参考份额对半
-                尺寸.extend([份额/2,份额/2])#两半
-            else:#其余
-                尺寸.append(份额)#原样
-        新父=dict(父)#浅拷
-        新父['children']=子表#子
-        新父['sizes']=尺寸#份额
-        return {#结果
-            'state':换节点(状态,{操作['newPaneId']:新窗格,父['id']:新父}),
-            'inverse':[
-                {'type':'merge','paneId':操作['newPaneId']},
-                {'type':'resize','splitId':父['id'],'sizes':list(父['sizes'])},
-            ],
-        }#结果结束
-
-    _断言节点空闲(状态,操作['newSplitId'])#新分割空闲
-    迁根=父槽替换(状态,操作['paneId'],操作['newSplitId'])#先换槽
-    if 操作['direction']=='after':#后
-        子表=[操作['paneId'],操作['newPaneId']]#序
-    else:#前
-        子表=[操作['newPaneId'],操作['paneId']]#序
-    新分割={#分割节点
-        'kind':节点种分割,
-        'id':操作['newSplitId'],
-        'axis':操作['axis'],
-        'children':子表,
-        'sizes':[0.5,0.5],
-    }#节点结束
-    return {#结果
-        'state':换节点(迁根,{操作['newPaneId']:新窗格,操作['newSplitId']:新分割}),
-        'inverse':[{'type':'merge','paneId':操作['newPaneId']}],
-    }#结果结束
-
-
-def _应用合并(状态,操作):
-    '丢掉空窗格；两子分割塌成幸存子'
-    窗格=取窗格(状态,操作['paneId'])#目标
-    if len(窗格['tabs'])>0:#非空
-        raise 停靠错误('layout: merge requires an empty pane')#拒绝
-    焦点=_焦点快照(状态,[])#全局焦点
-
-    if 窗格['host']==窗格宿主浮动:#浮动空窗格
-        序号=浮动序号(状态,操作['paneId'])#z
-        浮动=移除于(状态['floats'],序号)#去
-        中=dict(状态)#浅拷
-        中['floats']=浮动#写
-        丢掉=换节点(中,{操作['paneId']:None})#删节点
-        return {#结果
-            'state':_重安置焦点(丢掉,操作['paneId']),
-            'inverse':[
-                {'type':'insertPane','pane':窗格,'tabs':[],'attach':{'mode':'float','index':序号}},
-                焦点,
-            ],
-        }#结果结束
-
-    父=找父分割(状态,操作['paneId'])#父
-    if 父 is None:#根不可并
-        raise 停靠错误('layout: the docked root pane cannot be merged')#拒绝
-    下标=父['children'].index(操作['paneId'])#位
-
-    if len(父['children'])>2:#多子只摘一
-        子表=移除于(父['children'],下标)#子
-        尺寸=归一尺寸(移除于(父['sizes'],下标))#份额
-        新父=dict(父)#浅拷
-        新父['children']=子表#子
-        新父['sizes']=尺寸#份额
-        丢掉=换节点(状态,{操作['paneId']:None,父['id']:新父})#写
-        return {#结果
-            'state':_重安置焦点(丢掉,操作['paneId']),
-            'inverse':[
-                {
-                    'type':'insertPane',
-                    'pane':窗格,
-                    'tabs':[],
-                    'attach':{
-                        'mode':'child',
-                        'parentId':父['id'],
-                        'index':下标,
-                        'sizes':list(父['sizes']),
-                    },
-                },
-                焦点,
-            ],
-        }#结果结束
-
-    兄标识=父['children'][1-下标]#幸存
-    塌=换节点(父槽替换(状态,父['id'],兄标识),{操作['paneId']:None,父['id']:None})#塌分割
-    return {#结果
-        'state':_重安置焦点(塌,操作['paneId']),
-        'inverse':[
-            {'type':'insertPane','pane':窗格,'tabs':[],'attach':{'mode':'wrap','targetId':兄标识,'split':父}},
-            焦点,
-        ],
-    }#结果结束
-
-
-def _应用打开标签(状态,操作):
-    '向停靠窗格加标签并聚焦'
-    窗格=取窗格(状态,操作['paneId'])#目标
-    if 窗格['host']!=窗格宿主停靠:#须停靠
-        raise 停靠错误('layout: openTab requires a docked pane')#拒绝
-    _断言标签空闲(状态,操作['tab']['id'])#空闲
-    焦点=_焦点快照(状态,[窗格['id']])#快照
-    就座=换节点(
-        换标签(状态,{操作['tab']['id']:操作['tab']}),
-        {窗格['id']:窗格换标签条(窗格,插入于(窗格['tabs'],操作['index'],操作['tab']['id']),操作['tab']['id'])},
-    )#就座
-    下一=dict(就座)#浅拷
-    下一['activePaneId']=窗格['id']#焦点窗格
-    return {'state':下一,'inverse':[{'type':'closeTab','tabId':操作['tab']['id']},焦点]}#结果
-
-
-def _应用插入标签(状态,操作):
-    '把标签记录放回，不抢焦点'
-    窗格=取窗格(状态,操作['paneId'])#目标
-    if 窗格['host']!=窗格宿主停靠:#须停靠
-        raise 停靠错误('layout: insertTab requires a docked pane')#拒绝
-    _断言标签空闲(状态,操作['tab']['id'])#空闲
-    焦点=_焦点快照(状态,[窗格['id']])#快照
-    标签条=插入于(窗格['tabs'],操作['index'],操作['tab']['id'])#条
-    活动=窗格['activeTabId'] if 窗格['activeTabId'] is not None else 操作['tab']['id']#活动
-    return {#结果
-        'state':换节点(
-            换标签(状态,{操作['tab']['id']:操作['tab']}),
-            {窗格['id']:窗格换标签条(窗格,标签条,活动)},
-        ),
-        'inverse':[{'type':'closeTab','tabId':操作['tab']['id']},焦点],
-    }#结果结束
-
-
-def _应用关闭标签(状态,操作):
-    '销毁标签；浮动宿主随唯一标签而去'
-    标签=取标签(状态,操作['tabId'])#记录
-    窗格=查找标签窗格(状态,操作['tabId'])#宿主
-    下标=窗格['tabs'].index(操作['tabId'])#位
-    焦点=_焦点快照(状态,[窗格['id']])#快照
-
-    if 窗格['host']==窗格宿主浮动:#浮动整面板
-        序号=浮动序号(状态,窗格['id'])#z
-        浮动=移除于(状态['floats'],序号)#去
-        中=dict(状态)#浅拷
-        中['floats']=浮动#写
-        丢掉=换标签(换节点(中,{窗格['id']:None}),{操作['tabId']:None})#删
-        return {#结果
-            'state':_重安置焦点(丢掉,窗格['id']),
-            'inverse':[
-                {'type':'insertPane','pane':窗格,'tabs':[标签],'attach':{'mode':'float','index':序号}},
-                焦点,
-            ],
-        }#结果结束
-
-    if 窗格['activeTabId']==操作['tabId']:#关的是活动
-        活动=邻标签标识(窗格['tabs'],下标)#邻
-    else:#否
-        活动=窗格['activeTabId']#保留
-    return {#结果
-        'state':换标签(
-            换节点(状态,{窗格['id']:窗格换标签条(窗格,移除于(窗格['tabs'],下标),活动)}),
-            {操作['tabId']:None},
-        ),
-        'inverse':[{'type':'insertTab','paneId':窗格['id'],'tab':标签,'index':下标},焦点],
-    }#结果结束
-
-
-def _应用插入窗格(状态,操作):
-    '把窗格连同其标签记录放回'
-    _断言节点空闲(状态,操作['pane']['id'])#空闲
-    if len(操作['pane']['tabs'])!=len(操作['tabs']):#不匹配
-        raise 停靠错误('layout: insertPane tab records do not match the pane')#拒绝
-    if 操作['pane']['host']==窗格宿主停靠 and len(操作['tabs'])>0:#停靠须空回
-        raise 停靠错误('layout: insertPane returns a docked pane empty')#拒绝
-    标签更新={}#记录
-    for 标签 in 操作['tabs']:#逐条
-        _断言标签空闲(状态,标签['id'])#空闲
-        标签更新[标签['id']]=标签#记
-    if len(操作['tabs'])==0:#空回
-        逆表=[{'type':'merge','paneId':操作['pane']['id']}]#并回
-    else:#带标签
-        逆表=[
-            {'type':'closeTab','tabId':操作['tabs'][0]['id']},
-            _焦点快照(状态,[]),
-        ]#关回
-
-    附着=操作['attach']#附着
-    模式=附着['mode']#模式
-    if 模式=='child':#子槽
-        父=取分割(状态,附着['parentId'])#父
-        子表=插入于(父['children'],附着['index'],操作['pane']['id'])#子
-        if len(附着['sizes'])!=len(子表):#份额数
-            raise 停靠错误('layout: insertPane sizes do not match the split')#拒绝
-        逆表.append({'type':'resize','splitId':父['id'],'sizes':list(父['sizes'])})#份额逆
-        新父=dict(父)#浅拷
-        新父['children']=子表#子
-        新父['sizes']=list(附着['sizes'])#份额
-        return {#结果
-            'state':换节点(换标签(状态,标签更新),{操作['pane']['id']:操作['pane'],父['id']:新父}),
-            'inverse':逆表,
-        }#结果结束
-    if 模式=='wrap':#再包分割
-        if 操作['pane']['id'] not in 附着['split']['children']:#须列本窗格
-            raise 停靠错误('layout: insertPane wrap split does not list the pane')#拒绝
-        迁根=父槽替换(状态,附着['targetId'],附着['split']['id'])#换槽
-        return {#结果
-            'state':换节点(
-                换标签(迁根,标签更新),
-                {操作['pane']['id']:操作['pane'],附着['split']['id']:附着['split']},
-            ),
-            'inverse':逆表,
-        }#结果结束
-    if 模式=='float':#浮动附着
-        if 操作['pane']['host']!=窗格宿主浮动:#须浮动
-            raise 停靠错误('layout: float attachment requires a floating pane')#拒绝
-        浮动=插入于(状态['floats'],附着['index'],操作['pane']['id'])#z
-        中=dict(状态)#浅拷
-        中['floats']=浮动#写
-        return {#结果
-            'state':换节点(换标签(中,标签更新),{操作['pane']['id']:操作['pane']}),
-            'inverse':逆表,
-        }#结果结束
-    return 断言穷尽(附着,'layout: insertPane attachment')#穷尽
-
-
-def _应用移动标签(状态,操作):
-    '跨停靠窗格移动并聚焦目标'
-    源=查找标签窗格(状态,操作['tabId'])#源
-    if 源['host']!=窗格宿主停靠:#须停靠
-        raise 停靠错误('layout: moveTab source must be docked; use unfloat')#拒绝
-    目标=取窗格(状态,操作['toPaneId'])#目标
-    if 目标['host']!=窗格宿主停靠:#须停靠
-        raise 停靠错误('layout: moveTab target must be docked')#拒绝
-    if 目标['id']==源['id']:#同窗格
-        raise 停靠错误('layout: moveTab across one pane; use reorderTab')#拒绝
-    下标=源['tabs'].index(操作['tabId'])#源位
-    焦点=_焦点快照(状态,[源['id'],目标['id']])#快照
-    if 源['activeTabId']==操作['tabId']:#带走活动
-        源活动=邻标签标识(源['tabs'],下标)#邻
-    else:#否
-        源活动=源['activeTabId']#保留
-    已迁=换节点(状态,{
-        源['id']:窗格换标签条(源,移除于(源['tabs'],下标),源活动),
-        目标['id']:窗格换标签条(目标,插入于(目标['tabs'],操作['index'],操作['tabId']),操作['tabId']),
-    })#迁
-    下一=dict(已迁)#浅拷
-    下一['activePaneId']=目标['id']#焦点
-    return {#结果
-        'state':下一,
-        'inverse':[{'type':'moveTab','tabId':操作['tabId'],'toPaneId':源['id'],'index':下标},焦点],
-    }#结果结束
-
-
-def _应用重排标签(状态,操作):
-    '同窗格内重排'
-    窗格=查找标签窗格(状态,操作['tabId'])#宿主
-    自=窗格['tabs'].index(操作['tabId'])#原位
-    标签条=插入于(移除于(窗格['tabs'],自),操作['index'],操作['tabId'])#新序
-    下一窗格=dict(窗格)#浅拷
-    下一窗格['tabs']=标签条#条
-    return {#结果
-        'state':换节点(状态,{窗格['id']:下一窗格}),
-        'inverse':[{'type':'reorderTab','tabId':操作['tabId'],'index':自}],
-    }#结果结束
-
-
-def _应用聚焦标签(状态,操作):
-    '聚焦标签及其窗格，浮动则抬升'
-    窗格=查找标签窗格(状态,操作['tabId'])#宿主
-    焦点=_焦点快照(状态,[窗格['id']])#快照
-    下一窗格=dict(窗格)#浅拷
-    下一窗格['activeTabId']=操作['tabId']#活动
-    已焦=换节点(状态,{窗格['id']:下一窗格})#写回
-    浮动=_抬升(已焦['floats'],窗格['id']) if 窗格['host']==窗格宿主浮动 else 已焦['floats']#z
-    下一=dict(已焦)#浅拷
-    下一['activePaneId']=窗格['id']#焦点窗格
-    下一['floats']=浮动#z
-    return {'state':下一,'inverse':[焦点]}#结果
-
-
-def _应用聚焦窗格(状态,操作):
-    '聚焦窗格，浮动则抬升'
-    窗格=取窗格(状态,操作['paneId'])#目标
-    焦点=_焦点快照(状态,[])#快照
-    浮动=_抬升(状态['floats'],窗格['id']) if 窗格['host']==窗格宿主浮动 else 状态['floats']#z
-    下一=dict(状态)#浅拷
-    下一['activePaneId']=窗格['id']#焦点
-    下一['floats']=浮动#z
-    return {'state':下一,'inverse':[焦点]}#结果
-
-
-def _应用缩放(状态,操作):
-    '记录分隔条拖动净结果'
-    分割=取分割(状态,操作['splitId'])#目标
-    if len(操作['sizes'])!=len(分割['children']):#份额数
-        raise 停靠错误('layout: resize sizes do not match the split')#拒绝
-    for 份额 in 操作['sizes']:#须正
-        if not (份额>0):#非正
-            raise 停靠错误('layout: resize sizes must all be above zero')#拒绝
-    新分割=dict(分割)#浅拷
-    新分割['sizes']=归一尺寸(操作['sizes'])#归一
-    return {#结果
-        'state':换节点(状态,{分割['id']:新分割}),
-        'inverse':[{'type':'resize','splitId':分割['id'],'sizes':list(分割['sizes'])}],
-    }#结果结束
-
-
-def _应用浮动(状态,操作):
-    '把停靠标签取出为新浮动窗格并置顶'
-    取标签(状态,操作['tabId'])#须在
-    源=查找标签窗格(状态,操作['tabId'])#源
-    if 源['host']!=窗格宿主停靠:#须停靠
-        raise 停靠错误('layout: float requires a docked tab')#拒绝
-    _断言节点空闲(状态,操作['newPaneId'])#新窗格空闲
-    下标=源['tabs'].index(操作['tabId'])#位
-    焦点=_焦点快照(状态,[源['id']])#快照
-    if 源['activeTabId']==操作['tabId']:#带走活动
-        源活动=邻标签标识(源['tabs'],下标)#邻
-    else:#否
-        源活动=源['activeTabId']#保留
-    浮窗={#浮动窗格
-        'kind':'pane',
-        'id':操作['newPaneId'],
-        'host':窗格宿主浮动,
-        'tabs':[操作['tabId']],
-        'activeTabId':操作['tabId'],
-        'rect':操作['rect'],
-    }#节点结束
-    已浮=换节点(状态,{
-        源['id']:窗格换标签条(源,移除于(源['tabs'],下标),源活动),
-        操作['newPaneId']:浮窗,
-    })#写
-    下一=dict(已浮)#浅拷
-    下一['floats']=list(已浮['floats'])+[操作['newPaneId']]#置顶
-    下一['activePaneId']=操作['newPaneId']#焦点
-    return {#结果
-        'state':下一,
-        'inverse':[{'type':'unfloat','paneId':操作['newPaneId'],'toPaneId':源['id'],'index':下标},焦点],
-    }#结果结束
-
-
-def _应用收回(状态,操作):
-    '把浮动窗格唯一标签收回停靠窗格并销毁浮窗'
-    窗格=取窗格(状态,操作['paneId'])#浮窗
-    矩形=浮动矩形(窗格)#旧矩形
-    标签标识=唯一标签标识(窗格)#唯一签
-    目标=取窗格(状态,操作['toPaneId'])#目标
-    if 目标['host']!=窗格宿主停靠:#须停靠
-        raise 停靠错误('layout: unfloat target must be docked')#拒绝
-    焦点=_焦点快照(状态,[目标['id']])#快照
-    中=dict(状态)#浅拷
-    中['floats']=移除于(状态['floats'],浮动序号(状态,操作['paneId']))#去 z
-    已收=换节点(中,{
-        操作['paneId']:None,
-        目标['id']:窗格换标签条(目标,插入于(目标['tabs'],操作['index'],标签标识),标签标识),
-    })#写
-    下一=dict(已收)#浅拷
-    下一['activePaneId']=目标['id']#焦点
-    return {#结果
-        'state':下一,
-        'inverse':[{'type':'float','tabId':标签标识,'newPaneId':操作['paneId'],'rect':矩形},焦点],
-    }#结果结束
-
-
-def _重塑浮动(状态,窗格,矩形):
-    '改浮动矩形并聚焦抬升：拖移与缩放共用'
-    下一窗格=dict(窗格)#浅拷
-    下一窗格['rect']=矩形#矩形
-    已塑=换节点(状态,{窗格['id']:下一窗格})#写
-    下一=dict(已塑)#浅拷
-    下一['activePaneId']=窗格['id']#焦点
-    下一['floats']=_抬升(已塑['floats'],窗格['id'])#抬升
-    return 下一#状态
-
-
-def _应用移浮(状态,操作):
-    '记录浮动拖动净位置，并聚焦抬升'
-    窗格=取窗格(状态,操作['paneId'])#目标
-    矩形=浮动矩形(窗格)#旧
-    新矩=dict(矩形)#浅拷
-    新矩['x']=操作['x']#x
-    新矩['y']=操作['y']#y
-    return {#结果
-        'state':_重塑浮动(状态,窗格,新矩),
-        'inverse':[{'type':'moveFloat','paneId':操作['paneId'],'x':矩形['x'],'y':矩形['y']},_焦点快照(状态,[])],
-    }#结果结束
-
-
-def _应用缩浮(状态,操作):
-    '记录浮动缩放净矩形，并聚焦抬升'
-    窗格=取窗格(状态,操作['paneId'])#目标
-    矩形=浮动矩形(窗格)#旧
-    新矩=操作['rect']#新
-    if not (新矩['width']>0) or not (新矩['height']>0):#须正
-        raise 停靠错误('layout: float size must be above zero')#拒绝
-    return {#结果
-        'state':_重塑浮动(状态,窗格,新矩),
-        'inverse':[{'type':'resizeFloat','paneId':操作['paneId'],'rect':矩形},_焦点快照(状态,[])],
-    }#结果结束
-
-
-def _应用恢复焦点(状态,操作):
-    '恢复先前操作挪动的焦点事实'
-    逆=_焦点快照(状态,键列表(操作['paneActiveTabs']))#当前焦点作逆
-    for 窗格标识 in 操作['floats']:#校验浮列
-        窗格=取窗格(状态,窗格标识)#须在
-        if 窗格['host']!=窗格宿主浮动:#须浮动
-            raise 停靠错误('layout: restoreFocus lists docked pane '+str(窗格标识)+' as floating')#拒绝
-    下一=状态#游标
-    for 窗格标识,活动标签标识 in 条目对(操作['paneActiveTabs']):#写活动
-        窗格=取窗格(下一,窗格标识)#窗格
-        下一窗格=dict(窗格)#浅拷
-        下一窗格['activeTabId']=活动标签标识#活动
-        下一=换节点(下一,{窗格标识:下一窗格})#写
-    取窗格(下一,操作['activePaneId'])#须在
-    结果=dict(下一)#浅拷
-    结果['activePaneId']=操作['activePaneId']#焦点窗格
-    结果['floats']=list(操作['floats'])#z
-    return {'state':结果,'inverse':[逆]}#结果
-
+def 改形浮动(状态,窗格,矩形):
+    '改浮动矩形，同时聚焦并抬到顶'
+    改后=换节点(状态,{窗格['id']:盖上(窗格,{'rect':矩形})})
+    return 盖上(改后,{
+        'activePaneId':窗格['id'],
+        'floats':抬到顶(改后['floats'],窗格['id']),
+    })
 
 def 施加操作(状态,操作):
-    '施加一操作，返回次态与逆操作序列（dict：state/inverse）'
-    种=操作['type']#种类
-    if 种=='split':#分窗
-        return _应用分割(状态,操作)#分
-    if 种=='merge':#合并
-        return _应用合并(状态,操作)#并
-    if 种=='openTab':#开签
-        return _应用打开标签(状态,操作)#开
-    if 种=='insertTab':#插签
-        return _应用插入标签(状态,操作)#插
-    if 种=='closeTab':#关签
-        return _应用关闭标签(状态,操作)#关
-    if 种=='insertPane':#插窗
-        return _应用插入窗格(状态,操作)#插窗
-    if 种=='moveTab':#移签
-        return _应用移动标签(状态,操作)#移
-    if 种=='reorderTab':#重排
-        return _应用重排标签(状态,操作)#排
-    if 种=='focusTab':#焦签
-        return _应用聚焦标签(状态,操作)#焦
-    if 种=='focusPane':#焦窗
-        return _应用聚焦窗格(状态,操作)#焦
-    if 种=='resize':#调分割
-        return _应用缩放(状态,操作)#调
-    if 种=='float':#浮出
-        return _应用浮动(状态,操作)#浮
-    if 种=='unfloat':#收回
-        return _应用收回(状态,操作)#收
-    if 种=='moveFloat':#移浮
-        return _应用移浮(状态,操作)#移
-    if 种=='resizeFloat':#缩浮
-        return _应用缩浮(状态,操作)#缩
-    if 种=='setExpanded':#展开
-        下一=dict(状态)#浅拷
-        下一['expanded']=操作['expanded']#写
-        return {'state':下一,'inverse':[{'type':'setExpanded','expanded':状态['expanded']}]}#结果
-    if 种=='setMode':#模式
-        下一=dict(状态)#浅拷
-        下一['mode']=操作['mode']#写
-        return {'state':下一,'inverse':[{'type':'setMode','mode':状态['mode']}]}#结果
-    if 种=='restoreFocus':#复焦
-        return _应用恢复焦点(状态,操作)#复
-    return 断言穷尽(操作,'layout: operation')#穷尽
-
+    '施加一条操作。状态本身不改。返回下一状态，以及按顺序撤回去的操作'
+    种类=操作['type']
+    if 种类=='split':
+        窗格=取窗格(状态,操作['paneId'])
+        if 窗格['host']!='dock':
+            raise 停靠错误('layout: split requires a docked pane')
+        要求节点空闲(状态,操作['newPaneId'])
+        新窗格={'kind':'pane','id':操作['newPaneId'],'host':'dock','tabs':[],'activeTabId':None,'rect':None}
+        父=找父分割(状态,操作['paneId'])
+        if 父 is not None and 父['axis']==操作['axis']:
+            序号=父['children'].index(操作['paneId'])
+            if 操作['direction']=='after':
+                插入点=序号+1
+            else:
+                插入点=序号
+            子序=插入于(父['children'],插入点,操作['newPaneId'])
+            份额=[]
+            for 序,大小 in enumerate(父['sizes']):
+                if 序==序号:
+                    份额.append(大小/2)
+                    份额.append(大小/2)
+                else:
+                    份额.append(大小)
+            return {
+                'state':换节点(状态,{
+                    操作['newPaneId']:新窗格,
+                    父['id']:盖上(父,{'children':子序,'sizes':份额}),
+                }),
+                'inverse':[
+                    {'type':'merge','paneId':操作['newPaneId']},
+                    {'type':'resize','splitId':父['id'],'sizes':父['sizes']},
+                ],
+            }
+        要求节点空闲(状态,操作['newSplitId'])
+        搬好=父中替换(状态,操作['paneId'],操作['newSplitId'])
+        if 操作['direction']=='after':
+            子序=[操作['paneId'],操作['newPaneId']]
+        else:
+            子序=[操作['newPaneId'],操作['paneId']]
+        return {
+            'state':换节点(搬好,{
+                操作['newPaneId']:新窗格,
+                操作['newSplitId']:{
+                    'kind':'split',
+                    'id':操作['newSplitId'],
+                    'axis':操作['axis'],
+                    'children':子序,
+                    'sizes':[0.5,0.5],
+                },
+            }),
+            'inverse':[{'type':'merge','paneId':操作['newPaneId']}],
+        }
+    if 种类=='merge':
+        窗格=取窗格(状态,操作['paneId'])
+        if len(窗格['tabs'])>0:
+            raise 停靠错误('layout: merge requires an empty pane')
+        焦点=焦点快照(状态,[])
+        if 窗格['host']=='float':
+            浮序=浮动序号(状态,操作['paneId'])
+            去掉=换节点(盖上(状态,{'floats':移除于(状态['floats'],浮序)}),{操作['paneId']:None})
+            return {
+                'state':重坐焦点(去掉,操作['paneId']),
+                'inverse':[
+                    {'type':'insertPane','pane':窗格,'tabs':[],'attach':{'mode':'float','index':浮序}},
+                    焦点,
+                ],
+            }
+        父=找父分割(状态,操作['paneId'])
+        if 父 is None:
+            raise 停靠错误('layout: the docked root pane cannot be merged')
+        序号=父['children'].index(操作['paneId'])
+        if len(父['children'])>2:
+            子序=移除于(父['children'],序号)
+            份额=归一份额(移除于(父['sizes'],序号))
+            去掉=换节点(状态,{
+                操作['paneId']:None,
+                父['id']:盖上(父,{'children':子序,'sizes':份额}),
+            })
+            return {
+                'state':重坐焦点(去掉,操作['paneId']),
+                'inverse':[
+                    {
+                        'type':'insertPane',
+                        'pane':窗格,
+                        'tabs':[],
+                        'attach':{'mode':'child','parentId':父['id'],'index':序号,'sizes':父['sizes']},
+                    },
+                    焦点,
+                ],
+            }
+        兄弟标识=父['children'][1-序号]
+        if 兄弟标识 is None:
+            raise 停靠错误('layout: merge found a split without a sibling')
+        塌掉=换节点(父中替换(状态,父['id'],兄弟标识),{
+            操作['paneId']:None,
+            父['id']:None,
+        })
+        return {
+            'state':重坐焦点(塌掉,操作['paneId']),
+            'inverse':[
+                {'type':'insertPane','pane':窗格,'tabs':[],'attach':{'mode':'wrap','targetId':兄弟标识,'split':父}},
+                焦点,
+            ],
+        }
+    if 种类=='openTab':
+        窗格=取窗格(状态,操作['paneId'])
+        if 窗格['host']!='dock':
+            raise 停靠错误('layout: openTab requires a docked pane')
+        要求标签空闲(状态,操作['tab']['id'])
+        焦点=焦点快照(状态,[窗格['id']])
+        坐下=换节点(换标签(状态,{操作['tab']['id']:操作['tab']}),{
+            窗格['id']:窗格换标签(窗格,插入于(窗格['tabs'],操作['index'],操作['tab']['id']),操作['tab']['id']),
+        })
+        return {
+            'state':盖上(坐下,{'activePaneId':窗格['id']}),
+            'inverse':[{'type':'closeTab','tabId':操作['tab']['id']},焦点],
+        }
+    if 种类=='insertTab':
+        窗格=取窗格(状态,操作['paneId'])
+        if 窗格['host']!='dock':
+            raise 停靠错误('layout: insertTab requires a docked pane')
+        要求标签空闲(状态,操作['tab']['id'])
+        焦点=焦点快照(状态,[窗格['id']])
+        标签序=插入于(窗格['tabs'],操作['index'],操作['tab']['id'])
+        if 窗格['activeTabId'] is None:
+            活动=操作['tab']['id']
+        else:
+            活动=窗格['activeTabId']
+        return {
+            'state':换节点(换标签(状态,{操作['tab']['id']:操作['tab']}),{
+                窗格['id']:窗格换标签(窗格,标签序,活动),
+            }),
+            'inverse':[{'type':'closeTab','tabId':操作['tab']['id']},焦点],
+        }
+    if 种类=='closeTab':
+        标签=取标签(状态,操作['tabId'])
+        窗格=查找标签窗格(状态,操作['tabId'])
+        序号=窗格['tabs'].index(操作['tabId'])
+        焦点=焦点快照(状态,[窗格['id']])
+        if 窗格['host']=='float':
+            浮序=浮动序号(状态,窗格['id'])
+            去掉=换标签(
+                换节点(盖上(状态,{'floats':移除于(状态['floats'],浮序)}),{窗格['id']:None}),
+                {操作['tabId']:None},
+            )
+            return {
+                'state':重坐焦点(去掉,窗格['id']),
+                'inverse':[
+                    {'type':'insertPane','pane':窗格,'tabs':[标签],'attach':{'mode':'float','index':浮序}},
+                    焦点,
+                ],
+            }
+        if 窗格['activeTabId']==操作['tabId']:
+            活动=邻标签标识(窗格['tabs'],序号)
+        else:
+            活动=窗格['activeTabId']
+        return {
+            'state':换标签(
+                换节点(状态,{窗格['id']:窗格换标签(窗格,移除于(窗格['tabs'],序号),活动)}),
+                {操作['tabId']:None},
+            ),
+            'inverse':[{'type':'insertTab','paneId':窗格['id'],'tab':标签,'index':序号},焦点],
+        }
+    if 种类=='insertPane':
+        要求节点空闲(状态,操作['pane']['id'])
+        if len(操作['pane']['tabs'])!=len(操作['tabs']):
+            raise 停靠错误('layout: insertPane tab records do not match the pane')
+        if 操作['pane']['host']=='dock' and len(操作['tabs'])>0:
+            raise 停靠错误('layout: insertPane returns a docked pane empty')
+        标签更新={}
+        for 标签 in 操作['tabs']:
+            要求标签空闲(状态,标签['id'])
+            标签更新[标签['id']]=标签
+        if len(操作['tabs'])==0:
+            逆序=[{'type':'merge','paneId':操作['pane']['id']}]
+        else:
+            逆序=[{'type':'closeTab','tabId':操作['tabs'][0]['id']},焦点快照(状态,[])]
+        附着=操作['attach']
+        if 附着['mode']=='child':
+            父=取分割(状态,附着['parentId'])
+            子序=插入于(父['children'],附着['index'],操作['pane']['id'])
+            if len(附着['sizes'])!=len(子序):
+                raise 停靠错误('layout: insertPane sizes do not match the split')
+            逆序.append({'type':'resize','splitId':父['id'],'sizes':父['sizes']})
+            return {
+                'state':换节点(换标签(状态,标签更新),{
+                    操作['pane']['id']:操作['pane'],
+                    父['id']:盖上(父,{'children':子序,'sizes':附着['sizes']}),
+                }),
+                'inverse':逆序,
+            }
+        if 附着['mode']=='wrap':
+            if 操作['pane']['id'] not in 附着['split']['children']:
+                raise 停靠错误('layout: insertPane wrap split does not list the pane')
+            搬好=父中替换(状态,附着['targetId'],附着['split']['id'])
+            return {
+                'state':换节点(换标签(搬好,标签更新),{
+                    操作['pane']['id']:操作['pane'],
+                    附着['split']['id']:附着['split'],
+                }),
+                'inverse':逆序,
+            }
+        if 附着['mode']=='float':
+            if 操作['pane']['host']!='float':
+                raise 停靠错误('layout: float attachment requires a floating pane')
+            浮层=插入于(状态['floats'],附着['index'],操作['pane']['id'])
+            return {
+                'state':换节点(换标签(盖上(状态,{'floats':浮层}),标签更新),{操作['pane']['id']:操作['pane']}),
+                'inverse':逆序,
+            }
+        未处理(附着,'layout: insertPane attachment')
+    if 种类=='moveTab':
+        来源=查找标签窗格(状态,操作['tabId'])
+        if 来源['host']!='dock':
+            raise 停靠错误('layout: moveTab source must be docked; use unfloat')
+        去处=取窗格(状态,操作['toPaneId'])
+        if 去处['host']!='dock':
+            raise 停靠错误('layout: moveTab target must be docked')
+        if 去处['id']==来源['id']:
+            raise 停靠错误('layout: moveTab across one pane; use reorderTab')
+        序号=来源['tabs'].index(操作['tabId'])
+        焦点=焦点快照(状态,[来源['id'],去处['id']])
+        if 来源['activeTabId']==操作['tabId']:
+            活动=邻标签标识(来源['tabs'],序号)
+        else:
+            活动=来源['activeTabId']
+        搬走=换节点(状态,{
+            来源['id']:窗格换标签(来源,移除于(来源['tabs'],序号),活动),
+            去处['id']:窗格换标签(去处,插入于(去处['tabs'],操作['index'],操作['tabId']),操作['tabId']),
+        })
+        return {
+            'state':盖上(搬走,{'activePaneId':去处['id']}),
+            'inverse':[{'type':'moveTab','tabId':操作['tabId'],'toPaneId':来源['id'],'index':序号},焦点],
+        }
+    if 种类=='reorderTab':
+        窗格=查找标签窗格(状态,操作['tabId'])
+        从哪=窗格['tabs'].index(操作['tabId'])
+        标签序=插入于(移除于(窗格['tabs'],从哪),操作['index'],操作['tabId'])
+        return {
+            'state':换节点(状态,{窗格['id']:盖上(窗格,{'tabs':标签序})}),
+            'inverse':[{'type':'reorderTab','tabId':操作['tabId'],'index':从哪}],
+        }
+    if 种类=='focusTab':
+        窗格=查找标签窗格(状态,操作['tabId'])
+        焦点=焦点快照(状态,[窗格['id']])
+        聚焦=换节点(状态,{窗格['id']:盖上(窗格,{'activeTabId':操作['tabId']})})
+        if 窗格['host']=='float':
+            浮层=抬到顶(聚焦['floats'],窗格['id'])
+        else:
+            浮层=聚焦['floats']
+        return {
+            'state':盖上(聚焦,{'activePaneId':窗格['id'],'floats':浮层}),
+            'inverse':[焦点],
+        }
+    if 种类=='focusPane':
+        窗格=取窗格(状态,操作['paneId'])
+        焦点=焦点快照(状态,[])
+        if 窗格['host']=='float':
+            浮层=抬到顶(状态['floats'],窗格['id'])
+        else:
+            浮层=状态['floats']
+        return {
+            'state':盖上(状态,{'activePaneId':窗格['id'],'floats':浮层}),
+            'inverse':[焦点],
+        }
+    if 种类=='resize':
+        分割=取分割(状态,操作['splitId'])
+        if len(操作['sizes'])!=len(分割['children']):
+            raise 停靠错误('layout: resize sizes do not match the split')
+        for 大小 in 操作['sizes']:
+            if not (大小>0):
+                raise 停靠错误('layout: resize sizes must all be above zero')
+        return {
+            'state':换节点(状态,{分割['id']:盖上(分割,{'sizes':归一份额(操作['sizes'])})}),
+            'inverse':[{'type':'resize','splitId':分割['id'],'sizes':分割['sizes']}],
+        }
+    if 种类=='float':
+        取标签(状态,操作['tabId'])
+        来源=查找标签窗格(状态,操作['tabId'])
+        if 来源['host']!='dock':
+            raise 停靠错误('layout: float requires a docked tab')
+        要求节点空闲(状态,操作['newPaneId'])
+        序号=来源['tabs'].index(操作['tabId'])
+        焦点=焦点快照(状态,[来源['id']])
+        if 来源['activeTabId']==操作['tabId']:
+            活动=邻标签标识(来源['tabs'],序号)
+        else:
+            活动=来源['activeTabId']
+        浮出=换节点(状态,{
+            来源['id']:窗格换标签(来源,移除于(来源['tabs'],序号),活动),
+            操作['newPaneId']:{
+                'kind':'pane',
+                'id':操作['newPaneId'],
+                'host':'float',
+                'tabs':[操作['tabId']],
+                'activeTabId':操作['tabId'],
+                'rect':操作['rect'],
+            },
+        })
+        return {
+            'state':盖上(浮出,{
+                'floats':[*浮出['floats'],操作['newPaneId']],
+                'activePaneId':操作['newPaneId'],
+            }),
+            'inverse':[{'type':'unfloat','paneId':操作['newPaneId'],'toPaneId':来源['id'],'index':序号},焦点],
+        }
+    if 种类=='unfloat':
+        窗格=取窗格(状态,操作['paneId'])
+        矩形=浮动矩形(窗格)
+        标签标识=唯一标签标识(窗格)
+        去处=取窗格(状态,操作['toPaneId'])
+        if 去处['host']!='dock':
+            raise 停靠错误('layout: unfloat target must be docked')
+        焦点=焦点快照(状态,[去处['id']])
+        收回=换节点(盖上(状态,{'floats':移除于(状态['floats'],浮动序号(状态,操作['paneId']))}),{
+            操作['paneId']:None,
+            去处['id']:窗格换标签(去处,插入于(去处['tabs'],操作['index'],标签标识),标签标识),
+        })
+        return {
+            'state':盖上(收回,{'activePaneId':去处['id']}),
+            'inverse':[{'type':'float','tabId':标签标识,'newPaneId':操作['paneId'],'rect':矩形},焦点],
+        }
+    if 种类=='moveFloat':
+        窗格=取窗格(状态,操作['paneId'])
+        矩形=浮动矩形(窗格)
+        下一=dict(矩形)
+        下一['x']=操作['x']
+        下一['y']=操作['y']
+        return {
+            'state':改形浮动(状态,窗格,下一),
+            'inverse':[
+                {'type':'moveFloat','paneId':操作['paneId'],'x':矩形['x'],'y':矩形['y']},
+                焦点快照(状态,[]),
+            ],
+        }
+    if 种类=='resizeFloat':
+        窗格=取窗格(状态,操作['paneId'])
+        矩形=浮动矩形(窗格)
+        if not (操作['rect']['width']>0) or not (操作['rect']['height']>0):
+            raise 停靠错误('layout: float size must be above zero')
+        return {
+            'state':改形浮动(状态,窗格,操作['rect']),
+            'inverse':[
+                {'type':'resizeFloat','paneId':操作['paneId'],'rect':矩形},
+                焦点快照(状态,[]),
+            ],
+        }
+    if 种类=='setExpanded':
+        return {
+            'state':盖上(状态,{'expanded':操作['expanded']}),
+            'inverse':[{'type':'setExpanded','expanded':状态['expanded']}],
+        }
+    if 种类=='setMode':
+        return {
+            'state':盖上(状态,{'mode':操作['mode']}),
+            'inverse':[{'type':'setMode','mode':状态['mode']}],
+        }
+    if 种类=='restoreFocus':
+        逆=焦点快照(状态,[标识 for 标识,活动 in 条目表(操作['paneActiveTabs'])])
+        for 窗格标识 in 操作['floats']:
+            窗格=取窗格(状态,窗格标识)
+            if 窗格['host']!='float':
+                raise 停靠错误(f'layout: restoreFocus lists docked pane {窗格标识} as floating')
+        下一=状态
+        for 窗格标识,活动标签 in 条目表(操作['paneActiveTabs']):
+            窗格=取窗格(下一,窗格标识)
+            下一=换节点(下一,{窗格标识:盖上(窗格,{'activeTabId':活动标签})})
+        取窗格(下一,操作['activePaneId'])
+        return {
+            'state':盖上(下一,{
+                'activePaneId':操作['activePaneId'],
+                'floats':操作['floats'],
+            }),
+            'inverse':[逆],
+        }
+    return 未处理(操作,'layout: operation')
 
 def 回放(状态,操作表):
-    '正向折叠操作，丢弃逆'
-    当前=状态#游标
-    for 操作 in 操作表:#逐项
-        当前=施加操作(当前,操作)['state']#进
-    return 当前#终态
+    '按记录顺序往前叠操作，丢掉逆操作'
+    当前=状态
+    for 操作 in 操作表:
+        当前=施加操作(当前,操作)['state']
+    return 当前

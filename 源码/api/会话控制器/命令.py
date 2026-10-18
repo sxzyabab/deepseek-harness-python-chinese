@@ -6,10 +6,11 @@ from ...模型后端.llm import 创建用户消息,冻结消息,助手流块列�
 from ...附件.附件.异常 import 附件错误#附件失败
 from ...附件.附件.准入 import 准入编码图像批次#图像准入
 from .远程错误与并发 import 远程错误消息#远程错误消息
-from .异常 import 远程错误,会话未找到,子智能体会话所有权,cwd冲突,预设冲突#本包异常
+from .异常 import 远程错误,会话未找到,子智能体会话所有权,当前工作目录冲突,预设冲突#本包异常
 from .智能体 import (#智能体面
     子智能体所有权错误,有子智能体所有者,检视会话,
 )#智能体导入结束
+from ...类型化远程调用.协议 import 主体于#非所有者调用者
 
 __all__=['会话命令控制器']#仅中文公开名
 
@@ -350,6 +351,9 @@ class 会话命令控制器:
         来源={'kind':'user','rpcId':请求['requestId']}#来源
         if 客户端时区 is not None:#带时区
             来源['clientTimeZone']=客户端时区#写入
+        主体=主体于(getattr(自身._上下文,'invocation',None))#所有者与调用外为空
+        if 主体 is not None:#非所有者
+            来源['principal']=主体#记到消息来源
         有图=any(isinstance(块,dict) and 块.get('type')=='image' for 块 in 内容)#是否含图
         def 准入():
             '执行准入'
@@ -398,7 +402,7 @@ class 会话命令控制器:
     def attachment(自身,请求):
         '读取会话日志引用的图像。请求为 dict'
         try:
-            源=自身._读会话状态(请求['sessionId'])#读取
+            源=自身._读取会话状态(请求['sessionId'])#读取
         except 会话未找到 as 错误:
             raise 远程错误('session/not-found',str(错误),{'sessionId':请求['sessionId']})#映射
         except BaseException as 错误:
@@ -508,7 +512,7 @@ class 会话命令控制器:
             raise 结果['error']#抛出
         return 结果['agent']#智能体
 
-    def _读会话状态(自身,会话标识):
+    def _读取会话状态(自身,会话标识):
         '读附着或冷检视状态'
         附着=自身._上下文.sessions.get(会话标识)#附着
         if 附着 is not None:#附着
@@ -545,7 +549,7 @@ class 会话命令控制器:
             if 错误.existingPreset is not None:#已有
                 详情['existingPreset']=错误.existingPreset#已有
             raise 远程错误('agent-preset/conflict',str(错误),详情)#映射
-        if isinstance(错误,cwd冲突):#cwd
+        if isinstance(错误,当前工作目录冲突):#cwd
             详情={'sessionId':错误.sessionId,'requestedCwd':错误.requestedCwd}#详情
             if 错误.existingCwd is not None:#已有
                 详情['existingCwd']=错误.existingCwd#已有

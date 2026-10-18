@@ -24,13 +24,13 @@ def 公开工具名(服务器名,原始名):
     前缀预算=公开名最大长度-哈希长度-1
     return 归一[:前缀预算]+'_'+摘要
 
-def 无缓存列工具(客户端,游标=None):
+def 无缓存列出工具(客户端,游标=None):
     '列出工具且不改动 SDK 每页输出校验器缓存。客户端为世代 dict'
     if 游标 is None:
         return 客户端['request']({'method':'tools/list'})
     return 客户端['request']({'method':'tools/list','params':{'cursor':游标}})
 
-def 无缓存调工具(客户端,原始名,参数,执行,选项):
+def 无缓存调用工具(客户端,原始名,参数,执行,选项):
     '调用工具且不让 SDK 预先校验桥接可能不支持的输出模式'
     return 客户端['request'](
         {'method':'tools/call','params':{'name':原始名,'arguments':参数}},
@@ -61,7 +61,7 @@ def 同步工具(客户端,上下文,选项,上一代):
     已见游标=set()
     游标=None
     while True:
-        响应=无缓存列工具(客户端,游标)
+        响应=无缓存列出工具(客户端,游标)
         工具列表=响应['tools'] if 'tools' in 响应 else []
         for 工具 in 工具列表:
             公开名=公开工具名(选项['serverName'],工具['name'])
@@ -73,7 +73,7 @@ def 同步工具(客户端,上下文,选项,上一代):
             原始名=工具['name']
             def 调(参数,执行上下文,原始=原始名):
                 '用原始名发出 tools/call'
-                return 无缓存调工具(客户端,原始,参数,执行上下文,选项)
+                return 无缓存调用工具(客户端,原始,参数,执行上下文,选项)
             定义表[公开名]=创建mcp工具定义(上下文,{
                 'name':公开名,
                 'rawName':原始名,

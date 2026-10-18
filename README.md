@@ -6,11 +6,15 @@
 
 为了便于研究，该仓库采用全中文设计，**部分内容有删改**，需要原文请至官方仓库寻找
 
-该仓库目前无法直接运行，在之后的版本会修复
+## 安装
 
-## 使用
+从 [Pypi](https://pypi.org/project/pydsh/) 安装:
+(注:**大部分功能目前无法直接运行**)
+```
+pip install pydsh
+```
 
-安装为python库：
+从源码安装:
 ```shell
 git clone https://github.com/sxzyabab/deepseek-harness-python-chinese.git
 cd deepseek-harness-python-chinese
@@ -47,6 +51,7 @@ pip install -e .
 ## 更新日志
 
 进行中:
+* 重大重构：重写网页客户端（使用定制web工具）
 * 常态化：跟进包结构及新代码,清理屎山
 * 初步重构：目前部分完成`packages/`的整理
 * 彻底重构外部依赖(Cordis相关)：将`timer`合并进`cordis`；多个工具文件及`cosmokit`合并为一个工具文件；重写`schemastery`；`vendor/`移至`packages/`
@@ -60,14 +65,13 @@ pip install -e .
 * 为ts包写python更易用的版本
 
 已完成:
+* 重大改动:全面重构网页客户端,使用定制工具`pywebbridge`,无需再运行一个cordis
+    (ps:笑死我了,这傻AI明明知道自己写的是迁移项目,还在尝试曲线请求原来的代码直接执行)
+* 重大改动:schemastery包改为手搓校验包
+* 重大改动:增加`基础设施`分组,仅用于提供可靠组件,不参与插件体系
+* 大改动:将vendor并入packages
+* 大改动:删除 vendor/group
 * 增加`translatemap.json`方便处理文件对应关系
 * 初步重构外部依赖(Cordis相关)
 * 将文档整理：`docs/`->`文档/官方文档/`
 * 将大部分核心源码转为python版：`packages/`->`源码/`
-
-### 较大修改
-
-* 将vendor并入packages
-* 删除 vendor/group
-* schemastery包改为手搓校验包
-* 增加`基础设施`分组,仅用于提供可靠组件,不参与插件体系

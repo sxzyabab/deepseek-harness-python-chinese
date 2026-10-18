@@ -1,205 +1,240 @@
-'归档动作：菜单项、行悬停按钮，及停止在途工作后归档的确认对话框'
+'归档菜单、行尾按钮，以及停止并归档的确认框'
+from ....模块.客户端.通告 import 取握手窗口
+from ....ui_基础界面组件.按钮 import 按钮
+from ....ui_基础界面组件.模态 import 模态
+from ....ui_基础界面组件.提示泡 import 提示泡
+from .派生 import 菜单项按钮,画图标,换上
+from ..文案 import 中文,填入,取消,关闭
 
-from nicegui import ui as 界面
-from ...异常 import 页面失败文案
+__all__=['归档会话菜单项','归档会话行按钮','会话归档确认对话框','归档会话菜单项组件','归档会话行按钮组件','会话归档确认对话框组件']
 
-__all__=['归档会话菜单项','归档会话行按钮','会话归档确认对话框','活动行文案']#仅中文公开名
+_表单={}#按会话记住进行中和错误
 
-class 归档会话菜单项:#菜单 order 400
-    '归档，或恢复已归档行'
+def 活动行(条目):
+    '一行工作：条数和名称。不认识的种类走其它'
+    项目=条目.get('items') or []#项
+    个数=len(项目)#条数
+    名称=中文['archive.confirm.listSeparator'].join([项.get('label') or 项.get('id') or '' for 项 in 项目])#名称
+    数='one' if 个数==1 else 'other'#单复数键，中文两句相同
+    种类=条目.get('kind')#种类
+    if 种类=='turn':#回合
+        return 中文['archive.confirm.turn']#进行中的回合
+    if 种类=='subagent':#子智能体
+        键='archive.confirm.subagents.'+数#键
+        return 填入(中文[键],{'n':个数,'names':名称})#句子
+    if 种类=='job':#后台任务
+        键='archive.confirm.jobs.'+数#键
+        return 填入(中文[键],{'n':个数,'names':名称})#句子
+    if 种类=='schedule':#定时
+        键='archive.confirm.schedules.'+数#键
+        return 填入(中文[键],{'n':个数,'names':名称})#句子
+    键='archive.confirm.other.'+数#其它
+    return 填入(中文[键],{'kind':种类,'n':个数})#句子
 
+class 归档会话菜单项:
+    '归档，或把已归档的行恢复'
     def __init__(自身,属性):
-        '记下 props'
-        自身.属性=属性 if 属性 is not None else {}#props
-        自身.渲染()#槽位只调用构造
-
-    def 更新(自身,属性):
-        '刷新'
-        自身.属性=属性 if 属性 is not None else {}#最新
+        '记下属性'
+        自身.属性=属性#属性
+        自身.根=None#节点
 
     def 渲染(自身):
-        '菜单行'
-        属性=自身.属性#props
-        if 'sessionId' not in 属性 or 'useArchived' not in 属性 or 't' not in 属性 or 'useMenuOpenState' not in 属性:
-            return#缺席位
+        '已归档不带归档快捷键'
+        属性=自身.属性#属性
+        窗口=属性['window'] if 'window' in 属性 else 取握手窗口()#窗口
+        会话号=属性['sessionId']#会话
         def 是否归档(集):
-            '该会话是否已归档'
-            return 属性['sessionId'] in 集
-        已归档=属性['useArchived'](是否归档)#归档态
-        def 取归档快捷(行表):
-            '找出归档快捷键'
-            for 行 in 行表:
-                if 行['id']=='session.archive':
-                    return 行
-            return None
-        if not 已归档:
-            if 'useShortcuts' not in 属性:#无快捷钩
-                return
-            属性['useShortcuts'](取归档快捷)#快捷
-        动作键='unarchiveSession' if 已归档 else 'archiveSession'#归档或恢复
-        if 动作键 not in 属性:#无动作
-            return
-        翻译=属性['t']#文案
-        def 选定():
-            '关菜单后归档/恢复'
-            设开=属性['useMenuOpenState']()[1]#setter
-            设开(False)#关
-            属性[动作键](属性['sessionId'])#动作
-        界面.button(翻译('menu.unarchiveSession' if 已归档 else 'menu.archiveSession'), on_click=选定)
+            '是否已归档'
+            return 会话号 in 集#成员
+        归档=属性['useArchived'](是否归档)#归档
+        打开对=属性['useMenuOpenState']()#菜单
+        def 找归档(行列):
+            '归档命令的快捷键'
+            for 行 in 行列:#目录
+                if 行.get('id')=='session.archive':#归档
+                    return 行#这条
+            return None#没有
+        快捷=None if 归档 else 属性['useShortcuts'](找归档)#未归档才带快捷键
+        def 点下():
+            '关掉菜单再归档或恢复'
+            打开对[1](False)#关掉
+            if 归档:#已归档
+                属性['unarchiveSession'](会话号)#恢复
+            else:#未归档
+                属性['archiveSession'](会话号)#归档
+        名='unarchive-16' if 归档 else 'archive-16'#图标
+        文=中文['menu.unarchiveSession'] if 归档 else 中文['menu.archiveSession']#文案
+        根=菜单项按钮(窗口,文,点下,画图标(窗口,名,14),快捷)#菜单项
+        return 换上(自身,根)#节点
 
-    def __call__(自身,属性=None):
-        '刷新后渲染'
-        if 属性 is not None:
-            自身.更新(属性)#刷新
-        return 自身.渲染()
-
-class 归档会话行按钮:#悬停 order 100
-    '归档，或恢复已归档行'
-
+class 归档会话行按钮:
+    '行尾的归档或恢复按钮'
     def __init__(自身,属性):
-        '记下 props'
-        自身.属性=属性 if 属性 is not None else {}#props
-        自身.渲染()#槽位只调用构造
-
-    def 更新(自身,属性):
-        '刷新'
-        自身.属性=属性 if 属性 is not None else {}#最新
+        '记下属性'
+        自身.属性=属性#属性
+        自身.根=None#节点
 
     def 渲染(自身):
-        '行按钮'
-        属性=自身.属性#props
-        if 'sessionId' not in 属性 or 'useArchived' not in 属性 or 't' not in 属性:
-            return#缺席位
+        '提示泡里放图标按钮'
+        属性=自身.属性#属性
+        窗口=属性['window'] if 'window' in 属性 else 取握手窗口()#窗口
+        文档=窗口.document#文档
+        会话号=属性['sessionId']#会话
         def 是否归档(集):
-            '该会话是否已归档'
-            return 属性['sessionId'] in 集
-        已归档=属性['useArchived'](是否归档)#归档态
-        动作键='unarchiveSession' if 已归档 else 'archiveSession'#归档或恢复
-        if 动作键 not in 属性:#无动作
-            return
-        翻译=属性['t']#文案
-        def 点击():
-            '归档/恢复'
-            属性[动作键](属性['sessionId'])#动作
-        文=翻译('menu.unarchiveSession' if 已归档 else 'menu.archiveSession')
-        界面.button(文, on_click=点击).tooltip(翻译('actions.unarchive' if 已归档 else 'actions.archive'))
+            '是否已归档'
+            return 会话号 in 集#成员
+        归档=属性['useArchived'](是否归档)#归档
+        钮=文档.createElement('button')#按钮
+        钮.type='button'#按钮
+        钮.className='iconButton'#上游类名
+        钮.setAttribute('aria-label',中文['menu.unarchiveSession'] if 归档 else 中文['menu.archiveSession'])#无障碍
+        def 点击(事件):
+            '归档或恢复'
+            if 归档:#已归档
+                属性['unarchiveSession'](会话号)#恢复
+            else:#未归档
+                属性['archiveSession'](会话号)#归档
+        钮.addEventListener('click',点击)#点击
+        图=画图标(窗口,'unarchive-16' if 归档 else 'archive-16',14)#图标
+        if 图 is not None:#有
+            钮.appendChild(图)#放入
+        泡=提示泡({
+            'window':窗口,
+            'label':中文['actions.unarchive'] if 归档 else 中文['actions.archive'],
+            'side':'bottom',
+            'align':'end',
+            'delayMs':500,
+            'portal':True,
+            'children':钮,
+        })#提示
+        return 换上(自身,泡.渲染())#节点
 
-    def __call__(自身,属性=None):
-        '刷新后渲染'
-        if 属性 is not None:
-            自身.更新(属性)#刷新
-        return 自身.渲染()
+class 归档确认表单:
+    '一份确认。进行中和错误跟着这次请求'
+    def __init__(自身,属性):
+        '新请求清掉进行中和错误'
+        自身.属性=属性#属性
+        请求=属性['request']#请求
+        旧=_表单.get(请求['sessionId'])#旧态
+        if 旧 is None or 旧.get('请求') is not 请求:#新的
+            _表单[请求['sessionId']]={'请求':请求,'正在':False,'错误':None}#清空
+        自身.根=None#节点
 
-def 活动行文案(条目,翻译):
-    '一族活动行：数量与条目标签（无标签用 id）；未知族走通用行'
-    项表=条目['items'] if 'items' in 条目 and 条目['items'] is not None else []#项
-    数=len(项表)#数
-    名=翻译('archive.confirm.listSeparator').join([(项['label'] if 'label' in 项 and 项['label'] is not None else 项['id']) for 项 in 项表])#名串
-    复='one' if 数==1 else 'other'#单复
-    种=条目['kind']#族
-    if 种=='turn':#轮次
-        return 翻译('archive.confirm.turn')#轮
-    if 种=='subagent':#子智能体
-        return 翻译(f'archive.confirm.subagents.{复}',{'n':数,'names':名})#行
-    if 种=='job':#任务
-        return 翻译(f'archive.confirm.jobs.{复}',{'n':数,'names':名})#行
-    if 种=='schedule':#日程
-        return 翻译(f'archive.confirm.schedules.{复}',{'n':数,'names':名})#行
-    return 翻译(f'archive.confirm.other.{复}',{'kind':种,'n':数})#通用
+    def 态(自身):
+        '这一份的进行中和错误'
+        return _表单[自身.属性['request']['sessionId']]#态
 
-class 归档确认表单:#单次请求对话框
-    '在飞与错误态随请求消亡'
-
-    def __init__(自身,请求,停止并归档,结算,翻译):
-        '记下请求与回调'
-        自身.请求=请求#请求
-        自身.停止并归档=停止并归档#注入
-        自身.结算=结算#结算
-        自身.翻译=翻译#文案
-        自身.归档中=False#在飞
-        自身.错误=None#错误文
-
-    def 关闭(自身):
-        '归档中不可关'
-        if 自身.归档中:#在飞
-            return#止
-        自身.结算()#结算
-
-    def 确认(自身):
-        '停工作并归档'
-        自身.归档中=True#在飞
-        自身.错误=None
-        应答=自身.停止并归档(自身.请求['sessionId'])#跑
-        if hasattr(应答,'等待'):#异步
-            try:#等
-                应答.等待()#等
-                自身.归档中=False#完
-                自身.结算()#结算
+    def 渲染(自身):
+        '列出将被停止的工作'
+        属性=自身.属性#属性
+        窗口=属性['window'] if 'window' in 属性 else 取握手窗口()#窗口
+        文档=窗口.document#文档
+        请求=属性['request']#请求
+        态=自身.态()#态
+        def 关闭框():
+            '正在停止时不关'
+            if 态['正在']:#进行中
+                return#不关
+            属性['onSettle']()#结束
+        def 确认():
+            '先停再归档'
+            态['正在']=True#进行中
+            态['错误']=None#清错误
+            自身.渲染()#重画
+            try:#停止并归档
+                属性['stopAndArchiveSession'](请求['sessionId'])#执行
+                态['正在']=False#结束
+                属性['onSettle']()#关掉
             except Exception as 原因:#失败
-                自身.归档中=False#完
-                自身.错误=页面失败文案(原因)
-            return#止
-        自身.归档中=False#同步完
-        自身.结算()#结算
+                态['正在']=False#结束
+                态['错误']=原因.args[0] if isinstance(原因,BaseException) and len(原因.args)>0 else str(原因)#说明
+                自身.渲染()#重画
+        清单=文档.createElement('ul')#工作列表
+        清单.className='archiveActivity'#上游类名
+        清单.setAttribute('aria-label',中文['archive.confirm.activity'])#将被停止的工作
+        序号=0#下标
+        for 条目 in 请求.get('activity') or []:#逐项
+            项=文档.createElement('li')#一行
+            项.textContent=活动行(条目)#句子
+            清单.appendChild(项)#放入
+            序号=序号+1#下一条
+        体=文档.createElement('div')#正文
+        体.appendChild(清单)#列表
+        if 态['正在']:#进行中
+            状=文档.createElement('div')#状态
+            状.className='deleteStatus'#上游类名
+            状.setAttribute('role','status')#状态
+            状.textContent=中文['archive.confirm.pending']#正在停止并归档
+            体.appendChild(状)#放入
+        if 态['错误'] is not None:#失败
+            警=文档.createElement('div')#错误
+            警.className='renameError'#上游类名
+            警.setAttribute('role','alert')#提示
+            警.textContent=态['错误']#说明
+            体.appendChild(警)#放入
+        取消钮=按钮({'window':窗口,'variant':'outline','disabled':态['正在'],'onClick':关闭框,'children':取消})#取消
+        确认钮=按钮({
+            'window':窗口,
+            'variant':'outline',
+            'className':'deleteAction',
+            'disabled':态['正在'],
+            'onClick':确认,
+            'children':中文['archive.confirm.action'],
+        })#停止并归档
+        框=模态({
+            'window':窗口,
+            'open':True,
+            'onClose':关闭框,
+            'closeLabel':关闭,
+            'title':中文['archive.confirm.title'],
+            'description':填入(中文['archive.confirm.desc'],{'title':请求.get('displayTitle') or ''}),
+            'footer':[取消钮,确认钮],
+            'children':体,
+        })#对话框
+        return 换上(自身,框.渲染())#节点
 
-    def 渲染(自身):
-        '确认对话框结构'
-        翻译=自身.翻译#文案
-        请求=自身.请求#请求
-        with 界面.dialog() as 对话框:
-            with 界面.card():
-                界面.label(翻译('archive.confirm.title'))
-                界面.label(翻译('archive.confirm.desc',{'title':请求['displayTitle']}))
-                for 条 in 请求['activity']:
-                    界面.label(活动行文案(条,翻译))
-                if 自身.归档中:
-                    界面.label(翻译('archive.confirm.pending'))
-                if isinstance(自身.错误,str) and 自身.错误!='':
-                    界面.label(自身.错误)
-                取消=界面.button(翻译('cancel'), on_click=自身.关闭)
-                确认=界面.button(翻译('archive.confirm.action'), on_click=自身.确认)
-                界面.button(翻译('close'), on_click=自身.关闭)
-                if 自身.归档中:
-                    取消.disable()
-                    确认.disable()
-        对话框.open()
-
-class 会话归档确认对话框:#shell.overlay 席
-    '无待确认时 None；有则按会话键一份对话框'
-
+class 会话归档确认对话框:
+    '没有待确认时不画'
     def __init__(自身,属性):
-        '记下 props'
-        自身.属性=属性 if 属性 is not None else {}#props
-        自身._表单=None#当前表单
-        自身._表单键=None#会话键
-        自身.渲染()#槽位只调用构造
-
-    def 更新(自身,属性):
-        '刷新'
-        自身.属性=属性 if 属性 is not None else {}#最新
+        '记下属性'
+        自身.属性=属性#属性
+        自身.表单=None#表单
+        自身.根=None#节点
 
     def 渲染(自身):
-        '打开的确认对话框'
-        属性=自身.属性#props
-        if 'useArchiveRequest' not in 属性:#缺钩
-            return#空
-        def 原样(待):
-            '原样返回归档请求'
-            return 待
-        请求=属性['useArchiveRequest'](原样)#待确认
-        if 请求 is None:#无
-            自身._表单=None
-            自身._表单键=None
-            return#空
-        键=请求['sessionId']#会话
-        if 自身._表单 is None or 自身._表单键!=键:#新请求
-            自身._表单=归档确认表单(请求,属性['stopAndArchiveSession'],属性['settleSessionArchive'],属性['t'])#建
-            自身._表单键=键
-        with 界面.column().classes('session-archive'):
-            自身._表单.渲染()
+        '按会话号换一份表单'
+        属性=自身.属性#属性
+        def 原样(待定):
+            '请求本身'
+            return 待定#原样
+        请求=属性['useArchiveRequest'](原样)#请求
+        if 请求 is None:#没有
+            自身.表单=None#卸
+            return 换上(自身,None)#不画
+        if 自身.表单 is None or 自身.表单.属性['request'] is not 请求:#新请求
+            自身.表单=归档确认表单({
+                'window':属性.get('window') or 取握手窗口(),
+                'request':请求,
+                'stopAndArchiveSession':属性['stopAndArchiveSession'],
+                'onSettle':属性['settleSessionArchive'],
+            })#表单
+        else:#同一请求
+            自身.表单.属性['stopAndArchiveSession']=属性['stopAndArchiveSession']#更新
+            自身.表单.属性['onSettle']=属性['settleSessionArchive']#更新
+        return 换上(自身,自身.表单.渲染())#节点
 
-    def __call__(自身,属性=None):
-        '刷新后渲染'
-        if 属性 is not None:
-            自身.更新(属性)#刷新
-        return 自身.渲染()
+def 归档会话菜单项组件(属性):
+    '渲染器按函数调用'
+    return 归档会话菜单项(属性).渲染()#节点
+
+def 归档会话行按钮组件(属性):
+    '渲染器按函数调用'
+    return 归档会话行按钮(属性).渲染()#节点
+
+def 会话归档确认对话框组件(属性):
+    '同一登记只留一份确认框'
+    if not hasattr(会话归档确认对话框组件,'实例'):#第一次
+        会话归档确认对话框组件.实例=会话归档确认对话框(属性)#创建
+    else:#再来
+        会话归档确认对话框组件.实例.属性=属性#更新
+    return 会话归档确认对话框组件.实例.渲染()#节点

@@ -8,7 +8,7 @@ from ...依赖.loader.内部 import 模块加载器
 from ...依赖.工具 import 文件url转路径
 from .异常 import 启动错误
 
-__all__=['解析插件资源','读插件元']
+__all__=['解析插件资源','读取插件元']
 
 语言标识=re.compile(r'^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$')
 最大图标字节=256*1024
@@ -31,7 +31,7 @@ def 对象于(值,字段):
         raise 启动错误(字段+' must be an object')
     return 值
 
-def 读对象(文件):
+def 读取对象(文件):
     '读 JSON 对象'
     try:
         文件对象=open(文件,'r',encoding='utf-8')
@@ -47,7 +47,7 @@ def 回退文本(值):
     '非空字符串回退'
     return 值 if isinstance(值,str) and 值.strip()!='' else None
 
-def 读图标文件(目标,标签):
+def 读取图标文件(目标,标签):
     '把本地图标文件收成 data URL'
     媒体=图标媒体类型.get(os.path.splitext(目标)[1].lower())
     if 媒体 is None:
@@ -72,7 +72,7 @@ def 断言包内(文件,包名):
     目录=os.path.dirname(文件)
     while True:
         清单=os.path.join(目录,'package.json')
-        if os.path.exists(清单) and 读对象(清单).get('name')==包名:
+        if os.path.exists(清单) and 读取对象(清单).get('name')==包名:
             return
         上一=os.path.dirname(目录)
         if 上一==目录:
@@ -98,7 +98,7 @@ def 图标属于(说明符,包名,父网址,清单路径,值):
         目标=导出
         标签=导出
         断言包内(真实模块文件(目标),包名)
-    return 读图标文件(目标,标签)
+    return 读取图标文件(目标,标签)
 
 def _父目录(父网址):
     '父网址对应的目录'
@@ -185,7 +185,7 @@ def 词典表(英文路径,说明符,父网址):
         文件=解析插件资源(资源,父网址)
         if os.path.dirname(文件)!=目录:
             raise 启动错误(资源+': '+文件+' must share the English locale directory '+目录)
-        解析=读对象(文件)
+        解析=读取对象(文件)
         元=None if 解析.get('meta') is None else 对象于(解析['meta'],'meta')
         词典[标识]={
             'title':文本于((元 or {}).get('title'),'meta.title'),
@@ -207,7 +207,7 @@ def 本地化文本(字段,词典,回退,最终回退):
         结果[语言]=值
     return 结果
 
-def 读插件元(说明符,父网址):
+def 读取插件元(说明符,父网址):
     '读插件导出清单里的本地化展示文案与图标；子路径不读 package.json'
     包名=裸包名(说明符)
     if 包名 is None:
@@ -216,7 +216,7 @@ def 读插件元(说明符,父网址):
         英文路径=可选资源路径(说明符+'/locale/en.json',父网址)
         词典={} if 英文路径 is None else 词典表(英文路径,说明符,父网址)
         清单路径=可选资源路径(说明符+'/package.json',父网址) if 包名==说明符 else None
-        清单=None if 清单路径 is None else 读对象(清单路径)
+        清单=None if 清单路径 is None else 读取对象(清单路径)
         标题=本地化文本('title',词典,回退文本((清单 or {}).get('name')),说明符)
         描述=本地化文本('description',词典,回退文本((清单 or {}).get('description')),'')
         文本={}

@@ -35,7 +35,7 @@ class Client运行时后端:#Client Runtime后端
             return Client完成(自身._期望(结果,'evaluate'),自身.脚本身份.转Runtime)#转换
         return 自身._请求({'op':'evaluate',**支持}).然后(转换完成)#响应到达后再转换
 
-    def 取属性(自身,请求):#取属性
+    def 获取属性(自身,请求):#获取属性
         '执行 get-properties，返回期约，兑现值是属性集'
         def 转换属性(结果):#Client响应到达后转换
             '校验操作名并转成公共属性集'

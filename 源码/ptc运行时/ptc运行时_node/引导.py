@@ -1,6 +1,6 @@
 '程序求值、输出捕获，以及进程通道上的宿主绑定代理'
-from .输出json import json字符串字节上限,json值字节上限,截断json字符串字节#字节计量
-from .json线 import 快照ptcjson值,编码ptcjson线,解码ptcjson线#线格式
+from .输出json import 计量json字符串字节上限,计量json值字节上限,截断json字符串字节#字节计量
+from .json线 import 快照ptcJson值,编码ptcJson线,解码ptcJson线#线格式
 from .异常 import 节点ptc错误,制作绑定调用错误#本包异常|绑定拒绝类
 from ...基础设施.js特性 import PromiseEX as 期约#期约
 
@@ -29,12 +29,12 @@ class 日志缓冲:#合计外层 JSON 字节预算下的有序文本捕获
             return#丢弃
         分隔=1 if 自身._条数>0 else 0#逗号
         可用=自身._最大字节-自身._字节-分隔#本条预算
-        串字节=json字符串字节上限(文本,可用)#整条？
+        串字节=计量json字符串字节上限(文本,可用)#整条？
         if 串字节 is None:#越界
             自身._已截=True#标记
             前缀=截断json字符串字节(文本,可用)#前缀
             if len(前缀)>0:#有前缀
-                前缀字节=json字符串字节上限(前缀,可用)#前缀字节
+                前缀字节=计量json字符串字节上限(前缀,可用)#前缀字节
                 if 前缀字节 is None:#截断保证可放入
                     raise 捕获错误('program output ledger produced an oversized log prefix')#自相矛盾
                 自身._字节+=前缀字节+分隔#入账
@@ -55,7 +55,7 @@ class 控制台垫片:#五个级别的小控制台
     def __init__(自身,缓冲):#绑到日志缓冲
         '记下缓冲'
         自身._缓冲=缓冲#日志缓冲
-    def _渲染(自身,*参数):#拼一行
+    def _渲染一行(自身,*参数):#拼一行
         '字符串原样，其余 repr，空格拼接'
         段列表=[]#各段
         for 项 in 参数:#逐参
@@ -63,19 +63,19 @@ class 控制台垫片:#五个级别的小控制台
         return ' '.join(段列表)#一行
     def log(自身,*参数):#log
         '写入 log 级'
-        自身._缓冲.压入(自身._渲染(*参数))#压入
+        自身._缓冲.压入(自身._渲染一行(*参数))#压入
     def info(自身,*参数):#info
         '写入 info 级'
-        自身._缓冲.压入(自身._渲染(*参数))#压入
+        自身._缓冲.压入(自身._渲染一行(*参数))#压入
     def warn(自身,*参数):#warn
         '写入 warn 级'
-        自身._缓冲.压入(自身._渲染(*参数))#压入
+        自身._缓冲.压入(自身._渲染一行(*参数))#压入
     def error(自身,*参数):#error
         '写入 error 级'
-        自身._缓冲.压入(自身._渲染(*参数))#压入
+        自身._缓冲.压入(自身._渲染一行(*参数))#压入
     def debug(自身,*参数):#debug
         '写入 debug 级'
-        自身._缓冲.压入(自身._渲染(*参数))#压入
+        自身._缓冲.压入(自身._渲染一行(*参数))#压入
 
 def 制作控制台垫片(缓冲):#五个级别
     '构造只有五个级别方法的控制台垫片'
@@ -104,14 +104,14 @@ def 捕获流写入(缓冲,流):#把 write 改接到缓冲
         流.write=原始#还原
     return 恢复#恢复函数
 
-def 输出上限片段(最大输出字节):#固定溢出片段
+def 构造输出上限片段(最大输出字节):#固定溢出片段
     '构造不携带被拒可变字节的固定溢出片段'
     return {'error':{'kind':'output-limit','message':'outer output exceeded '+str(最大输出字节)+' bytes'}}#固定诊断
 
 def 准备失败(种类,消息,剩余输出字节,最大输出字节):#有界失败或改报溢出
     '接纳一条有界失败消息，放不下则改成固定溢出诊断'
-    if json字符串字节上限(消息,剩余输出字节) is None:#放不下
-        return 输出上限片段(最大输出字节)#溢出
+    if 计量json字符串字节上限(消息,剩余输出字节) is None:#放不下
+        return 构造输出上限片段(最大输出字节)#溢出
     return {'error':{'kind':种类,'message':消息}}#失败片段
 
 def 准备完成(值,剩余输出字节,最大输出字节=None):#完成值进 done
@@ -123,14 +123,14 @@ def 准备完成(值,剩余输出字节,最大输出字节=None):#完成值进 d
     if 值 is None:#Python 无 undefined；None 当缺席完成
         return {}#空片段
     try:#快照
-        快照=快照ptcjson值(值)#分离
+        快照=快照ptcJson值(值)#分离
     except (节点ptc错误,TypeError,ValueError):#快照失败
         快照=None#非法
     if 快照 is None:#有损
         return 准备失败('invalid-output','program completion must be lossless JSON',剩余输出字节,最大输出字节)#有损
-    if json值字节上限(快照,剩余输出字节) is None:#放不下
-        return 输出上限片段(最大输出字节)#溢出
-    return {'value':编码ptcjson线(快照)}#完成值
+    if 计量json值字节上限(快照,剩余输出字节) is None:#放不下
+        return 构造输出上限片段(最大输出字节)#溢出
+    return {'value':编码ptcJson线(快照)}#完成值
 
 def 准备异常(错误,剩余输出字节,最大输出字节=None):#抛出值进 done
     '把程序抛出值收成有界 exception，不传无界栈'
@@ -185,7 +185,7 @@ def 接线回复(端口,未决):#把回复接到未决表
         if 项 is None:#未知或重复
             return#忽略
         if 消息['ok'] is True:#成功
-            值=解码ptcjson线(消息['value'])#重建
+            值=解码ptcJson线(消息['value'])#重建
             if 值 is None:#有损
                 项.拒绝(捕获错误('binding resolution must be lossless JSON'))#拒绝
             else:#无损
@@ -207,7 +207,7 @@ def 制作命名空间(数据,端口,未决,下一标识,错误类表=None):#程
             def 调用(参数,绑定名=名字,所属全局=全局名,所属错误类=错误类):#一次调用
                 '有损参数在发送前拒绝；宿主失败只拒绝本次。返回期约'
                 try:#快照参数
-                    分离=快照ptcjson值(参数)#分离
+                    分离=快照ptcJson值(参数)#分离
                 except (节点ptc错误,TypeError,ValueError):#失败
                     分离=None#非法
                 if 分离 is None:#有损
@@ -219,7 +219,7 @@ def 制作命名空间(数据,端口,未决,下一标识,错误类表=None):#程
                 下一标识['value']=标识+1#推进
                 未决[标识]=完成#登记
                 try:#发调用
-                    端口.发消息({'type':'call','id':标识,'global':所属全局,'name':绑定名,'args':编码ptcjson线(分离)})#调用帧
+                    端口.发消息({'type':'call','id':标识,'global':所属全局,'name':绑定名,'args':编码ptcJson线(分离)})#调用帧
                 except (节点ptc错误,OSError,ValueError,TypeError) as 错误:#发送失败
                     未决.pop(标识,None)#摘掉
                     文案='binding arguments must be structured-cloneable: '+(错误.args[0] if isinstance(错误,捕获错误) and len(错误.args)>0 else str(错误))#文案

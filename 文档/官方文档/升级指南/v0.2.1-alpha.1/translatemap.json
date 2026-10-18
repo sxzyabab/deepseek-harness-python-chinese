@@ -17,5 +17,8 @@
     "terminal-command-labels":"终端命令标签",
     "tool-presentation-mode":"工具呈现方式",
     "web-listener-trust-config":"web监听信任配置",
-    "working-directory":"工作目录"
+    "working-directory":"工作目录",
+    "job-id-identity":"任务id身份",
+    "jsonl-persistence-plugin":"jsonl持久化插件",
+    "subagent-preset-composition":"子智能体预设组装"
 }

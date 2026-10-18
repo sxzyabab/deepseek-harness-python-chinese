@@ -1,4 +1,5 @@
 from ...异常 import 检查器错误,失败说明#包内错误
+from ...共享.cordis.模型 import cordis运行时源标识#投影源标识
 from .协议 import 解析cdp请求,cdp错误#协议
 from .目标 import cdp方法未处理,处理脚手架#脚手架
 from .domains.runtime import Runtime域会话#Runtime
@@ -11,22 +12,24 @@ __all__=['Cdp会话']#仅中文公开名
 
 class Cdp会话:#CDP会话
     '每连接一条的 CDP 分发器'
-    def __init__(自身,传输,目标,源注册表,网络,realm注册表,dom后端,cordis树):#构造
-        '装配各域会话'
+    def __init__(自身,传输,目标,源注册表,网络,realm注册表,dom后端,cordis树,客户端源标识=None):#构造
+        '装配各域会话。指定 Client 时源、树和 DOM 只含 Host 与该源'
         自身.传输=传输#传输
         自身.目标=目标#目标
         自身.源注册表=源注册表#源
         自身.网络=网络#网络
         自身.cordis树=cordis树#Cordis树
+        自身.客户端源标识=客户端源标识#可选 Client 过滤
         自身._诊断启用=False#诊断是否启用
-        自身.realms=检查器realm会话集(realm注册表)#会话集
+        自身.realms=检查器realm会话集(realm注册表,客户端源标识)#会话集
         原生=自身.realms.host()['nativeDomains']#原生能力
         if 原生['state']=='unsupported':#不支持则抛
             raise 检查器错误(原生['reason'])#抛错
         自身.原生域=Host原生域会话(传输,原生['backend'])#原生会话
         自身.运行时=Runtime域会话(传输,自身.realms)#Runtime会话
         自身.调试器=Debugger域会话(传输,自身.realms,自身.运行时)#Debugger会话
-        自身.dom=Cordis_Dom会话(传输,dom后端,自身.运行时)#DOM会话
+        自身.范围dom=None if 客户端源标识 is None else dom后端.为客户端(客户端源标识)#按 Client 投影
+        自身.dom=Cordis_Dom会话(传输,自身.范围dom if 自身.范围dom is not None else dom后端,自身.运行时)#DOM会话
         def 绑定对象(对象id,realm,引用,组):#对象观察者
             '把 Runtime 对象绑到 DOM 节点'
             自身.dom.绑定对象(对象id,realm,引用,组)#绑定
@@ -36,7 +39,7 @@ class Cdp会话:#CDP会话
     def _源状态变更(自身):#源状态
         '诊断启用时推送源列表'
         if 自身._诊断启用:#启用
-            自身.发送事件('DSHInspector.sourcesChanged',{'sources':自身.源注册表.描述()})#推送
+            自身.发送事件('DSHInspector.sourcesChanged',{'sources':自身.可见源()})#推送
 
     def 接收(自身,值):#接收请求
         '解析并分发一条原始 CDP 请求'
@@ -65,15 +68,15 @@ class Cdp会话:#CDP会话
                 结果=自身.网络.处理(方法,请求['params'],自身)#处理
             elif 方法=='DSHInspector.enable':#启用诊断
                 自身._诊断启用=True#置位
-                结果={'sources':自身.源注册表.描述()}#源列表
+                结果={'sources':自身.可见源()}#源列表
             elif 方法=='DSHInspector.disable':#禁用诊断
                 自身._诊断启用=False#清位
                 结果={}#空
             elif 方法=='DSHInspector.getSources':#取源
-                结果={'sources':自身.源注册表.描述()}#源列表
+                结果={'sources':自身.可见源()}#源列表
             elif 方法=='DSHInspector.getCordisTree':#取树
                 try:#成功
-                    树=自身.cordis树()#树
+                    树=自身.可见树(自身.cordis树())#树
                     自身.传输.发送({'id':请求['id'],'result':{'tree':树}})#成功
                 except Exception as 错误:#cordis树收集可能抛检查器错误/属性错误，契约未定所以收不窄
                     自身.传输.发送(cdp错误(请求['id'],-32000,失败说明(错误)))#错误
@@ -87,6 +90,34 @@ class Cdp会话:#CDP会话
         except Exception as 错误:#CDP 方法分发体什么都可能抛，契约未定所以收不窄
             自身.传输.发送(cdp错误(请求['id'],-32000,失败说明(错误)))#错误
 
+    def 可见源(自身):#这次连接看得到的源
+        '未指定 Client 时全要。指定后只要 Host 和该源'
+        全部=自身.源注册表.描述()#全部
+        if 自身.客户端源标识 is None:#不过滤
+            return 全部#全要
+        结果=[]#过滤后
+        for 源 in 全部:#逐个
+            if 源.get('kind')=='host' or 源.get('sourceId')==自身.客户端源标识:#Host 或该 Client
+                结果.append(源)#留下
+        return 结果#结果
+
+    def 可见树(自身,树):#这次连接看得到的 Cordis 树
+        '指定 Client 时只留该源的 client 子树'
+        if 自身.客户端源标识 is None or not isinstance(树,dict):#不过滤
+            return 树#原树
+        源标识=cordis运行时源标识(自身.客户端源标识)#投影身份
+        客户=[]#留下的 client
+        for 项 in 树.get('clients') or []:#逐个
+            源=项.get('source') if isinstance(项,dict) else None#源
+            标识=None#源标识
+            if isinstance(源,dict):#dict 源
+                标识=源.get('sourceId')#标识
+            elif 源 is not None:#对象源
+                标识=getattr(源,'sourceId',None)#标识
+            if 标识==源标识:#同一源
+                客户.append(项)#留下
+        return {**树,'clients':客户}#过滤后
+
     def 发送事件(自身,方法,参数):#发送事件
         '推送一条 CDP 事件'
         自身.传输.发送({'method':方法,'params':参数})#投递
@@ -96,6 +127,8 @@ class Cdp会话:#CDP会话
         自身._取消源订阅()#取消源订阅
         自身.网络.分离(自身)#Network分离
         自身.dom.关闭()#关DOM
+        if 自身.范围dom is not None:#按 Client 的投影
+            自身.范围dom.关闭()#关投影
         自身.运行时.关闭()#关Runtime
         自身.调试器.关闭()#关Debugger
         自身.原生域.关闭()#关原生

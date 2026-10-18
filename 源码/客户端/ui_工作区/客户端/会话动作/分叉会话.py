@@ -1,43 +1,40 @@
-'分叉动作：一条会话菜单项'
+'分叉菜单项。当前会话不允许 session/fork 时不画'
+from ....模块.客户端.通告 import 取握手窗口
+from .派生 import 菜单项按钮,画图标,换上
+from ..文案 import 中文
 
-from nicegui import ui as 界面
+__all__=['分叉会话菜单项','分叉会话菜单项组件']
 
-__all__=['分叉会话菜单项']#仅中文公开名
-
-class 分叉会话菜单项:#菜单 order 300
-    '在会话最后完成轮次分叉；子会话经 Host 列表落在源旁'
-
+class 分叉会话菜单项:
+    '在最后一轮已完成处分叉。子会话由宿主列表送回来'
     def __init__(自身,属性):
-        '记下 props'
-        自身.属性=属性 if 属性 is not None else {}#props
-        自身.渲染()#槽位只调用构造
-
-    def 更新(自身,属性):
-        '刷新'
-        自身.属性=属性 if 属性 is not None else {}#最新
+        '记下属性'
+        自身.属性=属性#宿主属性
+        自身.根=None#节点
 
     def 渲染(自身):
-        '菜单行'
-        属性=自身.属性#props
-        if 'useShortcuts' not in 属性 or 't' not in 属性 or 'useMenuOpenState' not in 属性 or 'forkSession' not in 属性:
-            return#缺席位
-        def 取分叉(行表):
-            '找出分叉快捷键'
-            for 行 in 行表:
-                if 行['id']=='session.fork':
-                    return 行
-            return None
-        属性['useShortcuts'](取分叉)#快捷
-        翻译=属性['t']#文案
-        def 选定():
-            '关菜单后分叉'
-            设开=属性['useMenuOpenState']()[1]#setter
-            设开(False)#关
-            属性['forkSession'](属性['sessionId'])#分叉
-        界面.button(翻译('menu.fork'), on_click=选定)
+        '没有分叉权限就不画'
+        属性=自身.属性#属性
+        窗口=属性['window'] if 'window' in 属性 else 取握手窗口()#窗口
+        会话号=属性['sessionId']#会话
+        允许=属性['useSessionAccess'](会话号,'session/fork')#权限
+        if not 允许:#不允许
+            return 换上(自身,None)#不画
+        def 找分叉(行列):
+            '分叉命令的快捷键'
+            for 行 in 行列:#目录
+                if 行.get('id')=='session.fork':#分叉
+                    return 行#这条
+            return None#没有
+        快捷=属性['useShortcuts'](找分叉)#分叉快捷键
+        打开对=属性['useMenuOpenState']()#菜单
+        def 点下():
+            '关掉菜单再分叉'
+            打开对[1](False)#关掉
+            属性['forkSession'](会话号)#分叉
+        根=菜单项按钮(窗口,中文['menu.fork'],点下,画图标(窗口,'branch-16'),快捷)#菜单项
+        return 换上(自身,根)#节点
 
-    def __call__(自身,属性=None):
-        '刷新后渲染'
-        if 属性 is not None:
-            自身.更新(属性)#刷新
-        return 自身.渲染()
+def 分叉会话菜单项组件(属性):
+    '渲染器按函数调用'
+    return 分叉会话菜单项(属性).渲染()#节点

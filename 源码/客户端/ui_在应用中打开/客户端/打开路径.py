@@ -1,94 +1,59 @@
-from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
+'主机能不能把路径交给桌面，以及打开、显示位置、查询文件关联。'
 from ...存储 import 创建快照存储
-from ..异常 import 页面失败文案
 
 __all__=['在应用中打开路径控制器']
 
+
 class 在应用中打开路径控制器:
-    '页面寿命内的桌面可用性与打开/揭示载体'
+    '整页一份桌面可用性，以及各处路径按钮共用的打开和揭示'
     def __init__(自身,远程):
+        '记下会话远程'
         自身.远程=远程
         自身.桌面=创建快照存储(None)
         自身.加载中=None
-        自身.失败句=''
 
     def 加载(自身):
-        if 自身.加载中 is None:
-            自身.跑()
-            自身.加载中=True
-        return
+        '每个控制器只问一次桌面。失败发布不可用'
+        if 自身.加载中 is not None:
+            return
+        自身.加载中=True
+        自身.跑()
 
     def 打开路径(自身,路径,动作,应用=None):
-        '返回期约：成功解决 None，失败解决错误文案键'
-        请求={'path':路径,'action':动作} if 动作=='reveal' else {'path':路径}
-        if 动作!='reveal' and 应用 is not None:
-            请求['application']=应用
-        结算=期约()#本次打开
-        失败文案='openError' if 动作=='open' else 'revealError'#失败键
-        def 失败(错误):
-            '当失败。文案键或去掉路径的失败句'
-            if 错误 is None:
-                结算.解决(失败文案)
-                return
-            句=页面失败文案(错误)
-            自身.失败句=句
-            结算.解决(句)
-        def 已应答(应答):
-            'ok 则无错误键'
-            if isinstance(应答,dict) and 应答.get('ok') is True:#成功
-                结算.解决(None)#无错误
-                return
-            失败(None)#失败
-        try:#打开
-            接上(自身.远程.session.openWorkspacePath(请求),已应答,失败)#期约
-        except Exception as 错误:
-            失败(错误)
-        return 结算#期约
+        '打开或显示位置。返回要宣告的失败种类，主机确认则是 None'
+        if 动作=='reveal':
+            请求={'path':路径,'action':动作}
+        elif 应用 is None:
+            请求={'path':路径}
+        else:
+            请求={'path':路径,'application':应用}
+        成功=False
+        try:
+            成功=自身.远程.session.openWorkspacePath(请求)['ok'] is True
+        except Exception:
+            成功=False
+        if 成功:
+            return None
+        if 动作=='open':
+            return 'openError'
+        return 'revealError'
 
-    def 应用列表(自身,路径,信号):
-        '返回期约，失败解决 None'
-        结算=期约()#本次列表
-        def 失败(错误):
-            '当无列表，并留下去掉路径的失败句'
-            if 错误 is not None:
-                自身.失败句=页面失败文案(错误)
-            结算.解决(None)
-        def 已应答(应答):
-            'ok 则取 value'
-            if isinstance(应答,dict) and 应答.get('ok') is True:#成功
-                结算.解决(应答.get('value'))#表
-                return
-            失败(None)#失败
-        try:#列举
-            接上(自身.远程.session.workspacePathApplications({'path':路径},信号),已应答,失败)#期约
-        except Exception as 错误:
-            失败(错误)
-        return 结算#期约
+    def 查询应用(自身,路径,信号):
+        '刷新这个文件的系统关联。查询失败是 None，和空列表分开'
+        try:
+            结果=自身.远程.session.workspacePathApplications({'path':路径},信号)
+        except Exception:
+            return None
+        if 结果['ok'] is True:
+            return 结果['value']
+        return None
 
     def 跑(自身):
-        '可用性落到桌面快照'
-        def 发布(可用):
-            '写入快照'
-            自身.桌面.set(可用)#发布
-        def 失败(错误):
-            '不可用，并留下去掉路径的失败句'
-            if 错误 is not None:
-                自身.失败句=页面失败文案(错误)
-            发布(False)
-        def 已应答(应答):
-            'ok 且值为真才可用'
-            发布(isinstance(应答,dict) and 应答.get('ok') is True and 应答.get('value') is True)#可用
-        try:#探测
-            接上(自身.远程.session.canOpenWorkspacePath(),已应答,失败)#期约
-        except Exception as 错误:
-            失败(错误)
-
-def 接上(产出,成功,失败):
-    '期约走 然后，上游 then 走 then；已是值则直接成功'
-    if hasattr(产出,'然后'):#本层期约
-        产出.然后(成功,失败)#接上
-        return
-    if hasattr(产出,'then'):#上游期约
-        产出.then(成功,失败)#接上
-        return
-    成功(产出)#已是值
+        '问主机能否把路径交给桌面。到不了就当成不能'
+        可用=False
+        try:
+            结果=自身.远程.session.canOpenWorkspacePath()
+            可用=bool(结果['ok'] and 结果['value'])
+        except Exception:
+            可用=False
+        自身.桌面.set(可用)

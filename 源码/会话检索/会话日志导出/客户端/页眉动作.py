@@ -1,139 +1,154 @@
-'会话 Header 的下载菜单，以及可选的会话反馈'
-from nicegui import ui as 界面
-from .对话框 import 会话日志下载对话框,读下载
+'会话页眉上的更多菜单：下载日志，反馈插件在时再多一项'
+from ....客户端.模块.客户端.通告 import 取握手窗口
+import os#样式路径
+from ....客户端.ui_基础界面组件 import 按钮,菜单#更多按钮和菜单
+from ....客户端.ui_基础界面组件.icons import 描边图标,常规描边#省略号
+from ....客户端.ui_对话.异常 import 注入模块样式文件,标样式模块#模块类名
+from .对话框 import 会话日志下载对话框#同一会话的状态对话框
 
-__all__=['会话日志下载页眉动作','快照仓']
+样式模块='session-log-download'#样式隔离名
+__all__=['会话日志下载页眉动作']
 
-样式表='''
-button.q-btn.导出会话更多{width:28px;min-width:28px;height:28px;padding:0;color:var(--dsw-alias-label-secondary) !important;background:transparent !important;box-shadow:none !important}
-.导出会话菜单{min-width:180px;padding:4px;background:var(--dsw-specific-menu);border-radius:var(--dsw-radius-lg);box-shadow:var(--dsw-elevation-prominent)}
-button.q-btn.导出会话项{min-height:36px;padding:6px 10px;border-radius:var(--dsw-radius-md);background:transparent !important;box-shadow:none !important;color:var(--dsw-alias-label-primary) !important;font-size:14px;justify-content:flex-start}
-'''
-
-界面.add_css(样式表,shared=True)
-
-class 快照仓:
-    'getSnapshot / set / subscribe；反馈插件是否仍在'
-    def __init__(自身,初值):
-        '记下初值'
-        自身._状态=初值
-        自身._监听=set()
-
-    def getSnapshot(自身):
-        '当前值'
-        return 自身._状态
-
-    def set(自身,次值):
-        '写入并通知'
-        自身._状态=次值
-        for 监听 in list(自身._监听):
-            监听()
-
-    def subscribe(自身,监听):
-        '返回退订'
-        自身._监听.add(监听)
-        def 退订():
-            '去掉这一个监听'
-            自身._监听.discard(监听)
-        return 退订
-
-def 读反馈(属性):
-    '注入面 hooks.feedbackAvailable；缺键与显式 False 都是没有反馈项'
-    钩=属性['hooks'] if 'hooks' in 属性 and 属性['hooks'] is not None else {}
-    存储=钩['feedbackAvailable'] if isinstance(钩,dict) and 'feedbackAvailable' in 钩 else None
-    if 存储 is not None:
-        return 存储.getSnapshot() is True
-    if 'useFeedbackAvailable' in 属性 and 属性['useFeedbackAvailable'] is not None:
-        return 属性['useFeedbackAvailable'](lambda 值:值) is True
-    return False
 
 class 会话日志下载页眉动作:
-    '更多菜单：下载会话日志，反馈插件在时多一项'
+    '页眉右侧的更多菜单，以及这一会话的导出对话框'
     def __init__(自身,属性):
-        '记下 props。槽位只调用构造，键齐了就画'
-        自身.属性=属性
-        自身.已打开=False
-        自身.对话框=会话日志下载对话框(属性)
-        自身._画=None
-        自身._已订阅=False
-        if 'sessionId' in 属性 and 't' in 属性 and 'request' in 属性 and 'dismiss' in 属性:
-            自身.渲染()
+        '记下份额并画出菜单和对话框'
+        自身.属性=属性#props
+        自身.根=None#当前根
+        自身.已打开=False#菜单是否打开
+        自身.对话框=None#状态对话框
+        自身.已订=False#是否已订阅
+        自身.退订表=[]#快照退订
+        自身.绘制中=False#挡住重入
+        自身.待重画=False#绘制中又来了一次
+        自身.渲染()#第一次画出
 
     def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性
-        自身.对话框.更新(属性)
+        '换成这一次的份额'
+        自身.属性=属性#最新
 
-    def 关菜单(自身):
-        '收起菜单'
-        自身.已打开=False
+    def 拆除(自身):
+        '退掉下载和反馈可用性的订阅'
+        for 退 in 自身.退订表:#逐个
+            if callable(退):#是函数
+                退()#退订
+        自身.退订表=[]#清空
+        自身.已订=False#不再订阅
 
-    def 刷新(自身):
-        '菜单开关变化时重画'
-        if 自身._画 is not None:
-            自身._画.refresh()
+    def 订上(自身,属性):
+        '下载状态或反馈插件进出时重画。渲染器不订钩子，这里自己订'
+        if 自身.已订:#已经订过
+            return#不重复
+        自身.已订=True#记下
 
-    def 切菜单(自身):
-        '开或关'
-        自身.已打开=not 自身.已打开
-        自身.刷新()
+        def 状态变了():
+            '快照变了就重画菜单和对话框'
+            自身.渲染()#重画
 
-    def 条目(自身):
-        '当前会话的下载条目'
-        状态=读下载(自身.属性)
-        按会话=状态['bySession'] if isinstance(状态,dict) and 'bySession' in 状态 and 状态['bySession'] is not None else {}
-        标识=自身.属性['sessionId'] if 'sessionId' in 自身.属性 else None
-        return 按会话[str(标识)] if str(标识) in 按会话 else None
-
-    def 选中(自身,标识):
-        '下载或打开反馈草稿'
-        自身.已打开=False
-        if 标识=='feedback':
-            自身.属性['openFeedback'](自身.属性['sessionId'])
-        else:
-            自身.属性['request'](自身.属性['sessionId'])
-        自身.刷新()
-
-    def _画体(自身):
-        '菜单按钮、菜单项和共享对话框'
-        翻译=自身.属性['t']
-        条目=自身.条目()
-        忙碌=条目 is not None and 条目.get('status')=='downloading'
-        项=[{'id':'download','label':翻译('menu.download'),'icon':'download','disabled':忙碌}]
-        if 读反馈(自身.属性) is True:
-            项.append({'id':'feedback','label':翻译('menu.feedback'),'icon':'send'})
-        界面.button(icon='more_horiz', on_click=自身.切菜单).props('flat round').classes('导出会话更多').tooltip(翻译('header.more'))
-        if 自身.已打开:
-            with 界面.column().classes('导出会话菜单'):
-                for 条 in 项:
-                    def 点条(标识=条['id']):
-                        '选中这一项'
-                        自身.选中(标识)
-                    图标=条['icon'] if 'icon' in 条 else None
-                    钮=界面.button(条['label'], icon=图标, on_click=点条).props('flat no-caps align=left').classes('导出会话项')
-                    if 'disabled' in 条 and 条['disabled'] is True:
-                        钮.disable()
-        自身.对话框.渲染()
+        自身.退订表.append(属性['useSessionLogDownload']._subscribe(状态变了))#下载状态
+        自身.退订表.append(属性['useFeedbackAvailable']._subscribe(状态变了))#反馈是否还在
 
     def 渲染(自身):
-        '订阅下载与反馈可用性后再画'
-        if 自身._画 is None:
-            @界面.refreshable
-            def 画():
-                '状态变化时重画菜单和对话框'
-                自身._画体()
-            自身._画=画
-        if not 自身._已订阅:
-            自身._已订阅=True
-            钩=自身.属性['hooks'] if 'hooks' in 自身.属性 and 自身.属性['hooks'] is not None else {}
-            for 名 in ('sessionLogDownload','feedbackAvailable'):
-                存储=钩[名] if isinstance(钩,dict) and 名 in 钩 else None
-                if 存储 is not None and hasattr(存储,'subscribe'):
-                    存储.subscribe(lambda:自身._画.refresh())
-        自身._画()
+        '画出更多按钮、下载和反馈菜单，以及导出对话框'
+        if 自身.绘制中:#这一轮还没结束
+            自身.待重画=True#结束再画
+            return 自身.根#先交出现在的根
+        自身.绘制中=True#占住
+        try:#结束时一定放开
+            属性=自身.属性#这一次份额
+            if 'window' in 属性:#调用方带了窗口
+                窗口=属性['window']#用它
+            else:#槽位份额里没有窗口
+                窗口=取握手窗口()#当前页
+            文档=窗口.document#文档
+            自身.订上(属性)#只订一次
+            if 自身.根 is not None:#拆掉上一轮
+                自身.根.remove()#连同对话框一起摘掉
+            会话标识=属性['sessionId']#这一会话
 
-    def __call__(自身,属性=None):
-        '对齐调用'
-        if 属性 is not None:
-            自身.更新(属性)
-        return 自身.渲染()
+            def 选条目(状态):
+                '这一会话的下载条目'
+                return 状态['bySession'].get(str(会话标识))#没有则是 None
+
+            条目=属性['useSessionLogDownload'](选条目)#当前条目
+            忙碌=条目 is not None and 条目.get('status')=='downloading'#正在准备
+
+            def 原样(值):
+                '反馈插件是否仍在'
+                return 值#原值
+
+            反馈可用=属性['useFeedbackAvailable'](原样) is True#在才多一项
+
+            def 切菜单():
+                '开或关更多菜单'
+                自身.已打开=not 自身.已打开#翻转
+                自身.渲染()#重画
+
+            def 关闭菜单():
+                '收起菜单'
+                自身.已打开=False#关上
+                自身.渲染()#重画
+
+            def 选中(标识):
+                '下载，或打开反馈草稿'
+                自身.已打开=False#先关菜单
+                if 标识=='feedback':#反馈
+                    属性['openFeedback'](会话标识)#没有插件则无事
+                else:#下载
+                    属性['request'](会话标识)#HEAD 然后保存
+                自身.渲染()#重画
+
+            项=[{'id':'download','label':'下载 Session 日志','disabled':忙碌}]#menu.download
+            if 反馈可用:#反馈插件还在
+                项.append({'id':'feedback','label':'反馈'})#menu.feedback
+            钮=按钮({#更多
+                'window':窗口,
+                'size':'sm',
+                'className':'moreButton',
+                'onClick':切菜单,
+            }).渲染()
+            注入模块样式文件(#按钮样式先插，模块样式后插，同权重时 moreButton 生效
+                文档,
+                'session-log-download-header',
+                os.path.join(os.path.dirname(__file__),'页眉动作.module.css'),
+                样式模块,
+            )
+            标样式模块(钮,样式模块)#接上 moreButton
+            钮.setAttribute('aria-label','更多操作')#header.more
+            钮.setAttribute('aria-haspopup','menu')#菜单
+            钮.setAttribute('aria-expanded','true' if 自身.已打开 else 'false')#是否展开
+            钮.setAttribute('aria-busy','true' if 忙碌 else 'false')#是否在准备
+            图=描边图标({'window':窗口,'size':16},'0 0 16 16',[#省略号，填充不随描边变粗
+                {'d':'M3 9C3.55228 9 4 8.55228 4 8C4 7.44772 3.55228 7 3 7C2.44772 7 2 7.44772 2 8C2 8.55228 2.44772 9 3 9Z','fill':'currentColor'},
+                {'d':'M8 9C8.55228 9 9 8.55228 9 8C9 7.44772 8.55228 7 8 7C7.44772 7 7 7.44772 7 8C7 8.55228 7.44772 9 8 9Z','fill':'currentColor'},
+                {'d':'M13 9C13.5523 9 14 8.55228 14 8C14 7.44772 13.5523 7 13 7C12.4477 7 12 7.44772 12 8C12 8.55228 12.4477 9 13 9Z','fill':'currentColor'},
+            ],16,常规描边)
+            钮.appendChild(图)#放进按钮
+            菜单根=菜单({#对齐末端，紧凑对应上游 dense
+                'window':窗口,
+                'open':自身.已打开,
+                'align':'end',
+                'compact':True,
+                'items':项,
+                'onClose':关闭菜单,
+                'onSelect':选中,
+                'anchor':钮,
+            }).渲染()
+            if 自身.对话框 is None:#第一次
+                自身.对话框=会话日志下载对话框(属性)#建对话框
+            else:#已有
+                自身.对话框.更新(属性)#换份额
+            对话框根=自身.对话框.渲染()#关着则没有节点
+            根=文档.createElement('div')#不占布局，对齐上游片段
+            根.style.display='contents'#不产生盒子
+            根.appendChild(菜单根)#菜单
+            if 对话框根 is not None:#开着才挂
+                根.appendChild(对话框根)#对话框
+            自身.根=根#这一轮的根
+        finally:#放开重入
+            自身.绘制中=False#结束
+        if 自身.待重画:#绘制中又脏了
+            自身.待重画=False#清标记
+            return 自身.渲染()#再画
+        return 自身.根#根

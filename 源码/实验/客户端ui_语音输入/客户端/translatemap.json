@@ -1,10 +1,15 @@
 {
-    "mount":"挂载",
-    "locales":"文案",
-    "readiness":"就绪度",
-    "audio":"音频",
-    "VoiceInput":"语音输入",
-    "Waveform":"波形图",
-    "VoiceSetupPrompt":"语音输入安装提示",
-    "PreparationCard":"准备卡片"
+    "mount": "挂载",
+    "locales": "文案",
+    "readiness": "就绪度",
+    "audio": "音频",
+    "failure-text": "故障文本",
+    "microphone-device": "麦克风设备",
+    "VoiceInput": "语音输入",
+    "Waveform": "波形图",
+    "VoiceSetupPrompt": "语音输入安装提示",
+    "VoiceSetupDialog": "语音输入安装对话框",
+    "PreparationCard": "准备卡片",
+    "MicrophonePicker": "麦克风选择器",
+    "VoiceInput.module": "语音输入.module"
 }

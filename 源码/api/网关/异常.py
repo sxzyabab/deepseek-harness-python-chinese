@@ -1,93 +1,42 @@
 '网关分发失败与远程流载体失败'
-import os
-from ...类型化远程调用.协议.异常 import 远程错误#Remote 标记与失败
+from ...类型化远程调用.协议.异常 import 远程错误#线路失败
 
-__all__=['网关错误','远程调用已取消','远程流载体错误','去掉敏感文案','失败说明']#仅中文公开名
-
-def 去掉敏感文案(文本):
-    '去掉绝对路径、用户名和环境变量，其余原文保留。'
-    原文=str(文本)
-    屏蔽名=set(os.environ)
-    屏蔽值=set()
-    for 键 in ('USERNAME','USER','LOGNAME','USERPROFILE','HOME'):
-        值=os.environ.get(键)
-        if isinstance(值,str) and 值!='':
-            屏蔽值.add(值)
-            基=os.path.basename(值.rstrip('\\/'))
-            if 基!='':
-                屏蔽值.add(基)
-    for 值 in os.environ.values():
-        if isinstance(值,str) and (len(值)>=8 or '\\' in 值 or '/' in 值):
-            屏蔽值.add(值)
-    留下=[]
-    for 词 in 原文.split():
-        裸=词.strip('\'"')
-        统一=裸.replace('\\','/')
-        if 统一.startswith('/') or 统一.startswith('~/') or (len(统一)>2 and 统一[0].isalpha() and 统一[1]==':' and 统一[2]=='/'):
-            continue
-        if 裸.startswith('$') and len(裸)>1:
-            continue
-        if len(裸)>2 and 裸.startswith('%') and 裸.endswith('%'):
-            continue
-        if '=' in 裸 and 裸.split('=',1)[0] in 屏蔽名:
-            continue
-        if 裸 in 屏蔽名 or 裸 in 屏蔽值 or 统一 in 屏蔽值:
-            continue
-        含敏感=False
-        for 项 in 屏蔽值:
-            if len(项)>=3 and 项 in 裸:
-                含敏感=True
-                break
-        if 含敏感:
-            continue
-        留下.append(词)
-    return ' '.join(留下).strip()
-
-def 失败说明(错误):
-    '保留去掉路径后的说明；说明被掏空时留下异常类型名。'
-    说明=去掉敏感文案(错误)
-    if 说明!='':
-        return 说明
-    if isinstance(错误,BaseException):
-        return type(错误).__name__
-    return 说明
+__all__=['网关错误','远程流载体错误','远程已取消','协议违规']#公开名
 
 class 网关错误(远程错误):
     '在被调业务方法之外产生的分发失败'
     def __init__(自身,码,端点,消息,选项=None):
-        '消息中不嵌入边界值。选项为 dict'
+        '消息中不嵌入边界值。选项为 dict，可含 cause 与 field'
         if 选项 is None:#无选项
             选项={}#空
-        if not 码.startswith('gateway/'):#线路码带 gateway/ 前缀
-            码='gateway/'+码#补前缀
-        原因=选项['cause'] if 'cause' in 选项 else None#可选原因
+        字段=选项['field'] if 'field' in 选项 else None#可选线字段
         细节={'endpoint':端点}#端点
-        if 'field' in 选项 and 选项['field'] is not None:#有字段
-            细节['field']=选项['field']#字段
-        全文=去掉敏感文案('typert gateway: '+端点+': '+消息)#带端点前缀，去掉绝对路径
-        if 全文=='':
-            全文='typert gateway: '+端点+': '+失败说明(原因 if 原因 is not None else 消息)
-        super().__init__(码,全文,细节,原因=原因 if isinstance(原因,BaseException) else None)#构造
+        if 字段 is not None:#有字段
+            细节['field']=字段#带上
+        原因=选项['cause'] if 'cause' in 选项 else None#可选原因
+        因果=原因 if isinstance(原因,BaseException) else None#只把异常挂上
+        super().__init__(码,'typert gateway: '+端点+': '+消息,细节,因果)#构造
         自身.name='TypertGatewayError'#固定错误名
         自身.endpoint=端点#端点
-        自身.field=选项['field'] if 'field' in 选项 else None#可选线字段
-
-class 远程调用已取消(Exception):
-    'Remote 调用已被取消'
-    def __init__(自身,端点,原因):
-        '记下端点与原因'
-        super().__init__('Remote invocation "'+端点+'" was aborted')#消息
-        自身.name='RemoteInvocationCancelled'#按结构识别
-        自身.endpoint=端点#端点
-        if isinstance(原因,BaseException):#原因已是异常
-            自身.__cause__=原因#挂原因
+        自身.field=字段#字段
 
 class 远程流载体错误(Exception):
     '可由域传输重试的物理 Remote 流套接字失败'
-
     def __init__(自身,消息,原因=None):
-        '记下消息与可选因果'
+        '记下消息与可选因果。原因可以是异常，或带 cause 的选项'
         super().__init__(消息)#构造
         自身.name='RemoteStreamCarrierError'#稳定名
-        if isinstance(原因,BaseException):#有因果
-            自身.__cause__=原因#挂上
+        因果=原因#待挂
+        if isinstance(原因,dict) and 'cause' in 原因:#ErrorOptions
+            因果=原因['cause']#取出
+        if isinstance(因果,BaseException):#是异常
+            自身.__cause__=因果#挂上
+
+def 远程已取消(端点,原因):
+    '载体取消折成 gateway/cancelled。多处抛出'
+    因果=原因 if isinstance(原因,BaseException) else None#只挂异常
+    return 远程错误('gateway/cancelled','Remote invocation "'+端点+'" was aborted',{},因果)#失败
+
+def 协议违规(消息):
+    '宿主侧流协议违规，标成 gateway/internal 以便界面进入错误态'
+    return 远程错误('gateway/internal',消息,{})#失败

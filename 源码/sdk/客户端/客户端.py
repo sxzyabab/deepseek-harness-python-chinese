@@ -8,7 +8,7 @@ from .拆除 import 拆除运行时进程#运行时进程拆除阶梯
 
 __all__=[#仅中文公开名
     '传输已关闭错误','请求超时错误','SDK协议错误',
-    '通知订阅','装备客户端','是否普通对象',
+    '通知订阅','Harness客户端','是否普通对象',
 ]#公开面结束
 
 标准错误尾上限=400#stderr 尾部最多保留行数
@@ -20,11 +20,11 @@ def 是否普通对象(值):
     '当且仅当值是非 null、非数组对象时为真'
     return isinstance(值,dict)#排除 list 等
 
-def 错误消息(错误):
+def 取出错误消息(错误):
     '取出错误消息'
     return str(错误)#字符串化
 
-def 选项字段(选项,键,缺省=None):
+def 读取选项键(选项,键,缺省=None):
     '从启动选项 dict 读键；缺席为缺省'
     if 键 in 选项:#自有键
         return 选项[键]#取值
@@ -65,7 +65,7 @@ class 通知订阅:
         for 一项 in 等待者:#拒绝并清空等待者
             一项['拒绝'](自身.状态['failure'])#拒绝
 
-    def 推送(自身,通知):
+    def 推入通知(自身,通知):
         '过滤器抛错只让本订阅失败'
         try:
             过滤=自身.状态['filter']#可选判断
@@ -84,7 +84,7 @@ class 通知订阅:
         else:#否则入队
             自身.状态['queue'].append(通知)#入队
 
-class 装备客户端:
+class Harness客户端:
     '经子进程标准输入输出对接 DeepSeek Harness SDK 运行时的 JSON-RPC 客户端'
     def __init__(自身,选项):
         '记下启动规格、完整子进程环境与超时'
@@ -109,11 +109,11 @@ class 装备客户端:
             raise 传输已关闭错误('DeepSeek Harness 运行时客户端已关闭')#不能再 start
         if 自身.子进程 is not None:#已有子进程
             return#幂等返回
-        命令=选项字段(自身.选项,'command')#运行时命令
-        原始参数=选项字段(自身.选项,'args')#可选命令参数
+        命令=读取选项键(自身.选项,'command')#运行时命令
+        原始参数=读取选项键(自身.选项,'args')#可选命令参数
         参数=list(原始参数) if 原始参数 is not None else []#缺席为空列表
-        工作目录=选项字段(自身.选项,'cwd')#可选工作目录
-        环境=选项字段(自身.选项,'env')#可选完整子进程环境
+        工作目录=读取选项键(自身.选项,'cwd')#可选工作目录
+        环境=读取选项键(自身.选项,'env')#可选完整子进程环境
         if 环境 is None:#缺省继承当前进程
             环境=os.environ.copy()#继承
         子=subprocess.Popen(#按选项 spawn 运行时
@@ -166,7 +166,7 @@ class 装备客户端:
         def 派发通知(方法,参数):
             '把通知交给订阅'
             自身._派发通知({'method':方法,'params':参数})#统一形状
-        传输.当通知(派发通知)#挂通知
+        传输.安装通知处理函数(派发通知)#挂通知
         传输.启动()#开始读帧
         自身.传输=传输#记下传输
 
@@ -182,18 +182,18 @@ class 装备客户端:
                 or not isinstance(信息['version'],str)):#缺少身份
                 raise SDK协议错误(f'initialize 未返回服务器身份：{结果}')#协议错误
             return {'serverInfo':{'name':信息['name'],'version':信息['version']}}#只交出线稳定字段
-        return 自身.请求('initialize',dict(参数)).然后(校验身份)#发 initialize 后校验
+        return 自身.发送请求('initialize',dict(参数)).然后(校验身份)#发 initialize 后校验
 
-    def 提示(自身,会话号,内容块列表):
+    def 排队提示(自身,会话号,内容块列表):
         '排队一条提示，返回期约，兑现其持久收件箱身份；响应缺消息 id 则以 SDK协议错误拒绝'
         def 取出消息号(结果):
             '提示响应兑现后校验并取出 messageId'
             if (not 是否普通对象(结果)) or 'messageId' not in 结果 or not isinstance(结果['messageId'],str):#缺 messageId
                 raise SDK协议错误(f'session/prompt 未返回消息 id：{结果}')#协议错误
             return 结果['messageId']#交出消息 id
-        return 自身.请求('session/prompt',{'sessionId':会话号,'contentBlocks':内容块列表}).然后(取出消息号)#发提示后取消息 id
+        return 自身.发送请求('session/prompt',{'sessionId':会话号,'contentBlocks':内容块列表}).然后(取出消息号)#发提示后取消息 id
 
-    def 请求(自身,方法,参数=None,超时毫秒=None):
+    def 发送请求(自身,方法,参数=None,超时毫秒=None):
         '发送 JSON-RPC 请求，返回期约，兑现原始结果。对端错误响应拒绝为 JSONRPC响应错误，超时拒绝为 请求超时错误，运行时已不在拒绝为 传输已关闭错误'
         def 执行器(解决,拒绝):
             '惰性启动、检查运行时存活、按超时发出请求，并把传输层失败补上进程上下文'
@@ -226,10 +226,10 @@ class 装备客户端:
                 if isinstance(错误,(JSONRPC响应错误,请求超时错误)):#协议错误响应或超时
                     拒绝(错误)#原样
                     return#已落定
-                等落定后拒绝(错误消息(错误))#包成传输已关闭错误
+                等落定后拒绝(取出错误消息(错误))#包成传输已关闭错误
             载荷=参数 if 参数 is not None else {}#缺 params 则空对象
             if 超时 is None:#无超时则一直等
-                传输.请求(方法,载荷).然后(解决,转换失败)#响应兑现即解决
+                传输.发送请求(方法,载荷).然后(解决,转换失败)#响应兑现即解决
                 return#已挂接
             控制器=中止控制器()#超时用的中止
             def 到期():
@@ -237,10 +237,10 @@ class 装备客户端:
                 time.sleep(超时/1000.0)#等待
                 控制器.中止(请求超时错误(f'{方法} 等待 DeepSeek Harness 运行时超时，已过 {超时}ms'))#中止
             启动守护线程(到期)#定时
-            传输.请求(方法,载荷,控制器.信号).然后(解决,转换失败)#带信号发请求
+            传输.发送请求(方法,载荷,控制器.信号).然后(解决,转换失败)#带信号发请求
         return 期约(执行器)#上游 async request 对应返回期约
 
-    def 订阅(自身,过滤=None):
+    def 订阅通知(自身,过滤=None):
         '订阅服务端通知'
         标识=str(自身.订阅序号)#分配订阅 id
         自身.订阅序号+=1#递增
@@ -272,7 +272,7 @@ class 装备客户端:
                 return 子号==会话号#或子会话本身就是根
             相关号=参数['sessionId'] if 'sessionId' in 参数 else None#普通会话类通知的 sessionId
             return isinstance(相关号,str) and 自身._是后代(相关号,会话号)#该会话是根或其后代
-        return 自身.订阅(过滤)#过滤后的订阅
+        return 自身.订阅通知(过滤)#过滤后的订阅
 
     def 关闭(自身):
         '先协议 shutdown，再走拆除阶梯。幂等，返回期约，兑现于完整拆除结束，拆除阶梯失败则拒绝'
@@ -301,7 +301,7 @@ class 装备客户端:
             杀宽限=3000#默认 3 秒
         def 记录关机失败(错误):
             'shutdown 请求只作诊断，失败也要继续拆除，所以写进 stderr 尾部后视为已处理'
-            自身.标准错误尾.append(f'shutdown 请求失败：{错误消息(错误)}')#写入 stderr 尾部
+            自身.标准错误尾.append(f'shutdown 请求失败：{取出错误消息(错误)}')#写入 stderr 尾部
         def 走拆除阶梯(落定值):
             'shutdown 请求落定后，走 EOF → SIGTERM → SIGKILL，再关传输并让剩余订阅失败'
             拆除运行时进程(子,{#走 EOF → SIGTERM → SIGKILL
@@ -311,7 +311,7 @@ class 装备客户端:
             if 自身.传输 is not None:#有传输
                 自身.传输.关闭()#关掉传输
             自身.令订阅失败(自身._关闭错误('DeepSeek Harness 运行时已关闭'))#让剩余订阅失败
-        return 自身.请求('shutdown',None,关超时).捕获(记录关机失败).然后(走拆除阶梯)#先尽量走协议 shutdown，失败只记诊断
+        return 自身.发送请求('shutdown',None,关超时).捕获(记录关机失败).然后(走拆除阶梯)#先尽量走协议 shutdown，失败只记诊断
 
     def _派发通知(自身,通知):
         '先记下子智能体系谱'
@@ -319,7 +319,7 @@ class 装备客户端:
         with 自身.锁:#互斥
             列表=list(自身.订阅表.values())#快照
         for 订阅 in 列表:#逐个 push
-            订阅.推送(通知)#过滤器各自决定
+            订阅.推入通知(通知)#过滤器各自决定
 
     def _记录会话关系(自身,通知):
         '只关心启动边'
@@ -369,7 +369,7 @@ class 装备客户端:
         '多段用换行拼'
         段列表=[原因]#先放原因
         if 自身.拉起错误 is not None:#有 spawn 错误
-            段列表.append('拉起错误：'+错误消息(自身.拉起错误))#附上
+            段列表.append('拉起错误：'+取出错误消息(自身.拉起错误))#附上
         if 自身._已退出:#有退出码
             段列表.append('退出码：'+str(自身.退出码))#附上
         if len(自身.标准错误尾)>0:#有 stderr 尾

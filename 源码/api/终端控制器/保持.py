@@ -1,160 +1,214 @@
 '一个终端所有者的窗口保持与保守空闲回收'
-import threading#观察与定时
-import time#单调时钟
-from .异常 import 远程错误#本包异常
+from threading import Event as 事件#保持结束与清理汇合
+from threading import Timer as 定时器#空闲与重试
+from time import perf_counter as 性能计数#对齐 performance.now
+from ...工具.超时 import 定时器延迟上限毫秒#调度延迟上限
+from ...类型化远程调用.协议 import 远程错误#终端不可用
+from ...基础设施.通用工具 import 启动守护线程#听取消与观察
+from ..网关.流协议 import 已中止,若中止则抛 as 若已中止则抛出#取消
+from ...客户端.连接.rpc import 中止信号,中止控制器#取消
 
-__all__=['终端保持']#仅中文公开名
+__all__=['终端保持']#仅这一类
+
+
+def 现在毫秒():
+    '单调时钟的毫秒数，用来比较空闲时长'
+    return 性能计数()*1000#秒换毫秒
+
+
+def 等到结果(结果):
+    '同步等到回调交出的期约。普通返回值直接用'
+    if not hasattr(结果,'然后'):#不是期约
+        return 结果#原样
+    完成=事件()#落定
+    盒子={'拒绝':False,'错误':None,'值':None}#结果
+
+    def 成功(值=None):
+        '兑现'
+        盒子['值']=值#记下
+        完成.set()#放开
+
+    def 失败(错误=None):
+        '拒绝'
+        盒子['拒绝']=True#标记
+        盒子['错误']=错误#记下
+        完成.set()#放开
+
+    结果.然后(成功,失败)#挂上
+    完成.wait()#阻塞到落定
+    if 盒子['拒绝']:#被拒绝
+        if isinstance(盒子['错误'],BaseException):#已经是异常
+            raise 盒子['错误']#原样抛出
+        raise RuntimeError(str(盒子['错误']))#包成异常
+    return 盒子['值']#兑现的值
+
 
 class 终端保持:
-    '恰好一个所有者编排保持、观察与可重试进程清理'
+    '恰好一个所有者编排保持、观察和可重试的进程清理'
+    def __init__(自身,策略,检查,终止,失败时):
+        '记下时序、观察、终止和失败去向，并立刻排一次检查'
+        自身._策略=策略#unattendedTimeoutMs、activityPollIntervalMs、cleanupRetryMs
+        自身._检查=检查#新鲜的壳与作业观察
+        自身._终止=终止#标记关闭、等进程静止、摘掉所有者记录
+        自身._失败时=失败时#自动清理失败的诊断
+        自身._寿命=中止控制器()#保持流的寿命
+        自身._保持者=set()#物理窗口
+        自身._纪元=0#输入使观察作废
+        自身._定时器=None#下一次观察或重试
+        自身._观察线程=None#进行中的观察
+        自身._空闲=None#连续空闲的起点
+        自身._关闭中=False#已经开始清理
+        自身._已拆除=False#所有者已拆
+        自身._清理=None#进行中的清理事件，失败后清空以便重试
+        自身._调度(0)#构造后马上看要不要观察
 
-    def __init__(自身,策略,观察,终止,失败汇):
-        '记下策略与回调。策略为 dict'
-        自身._策略=策略#时序
-        自身._观察=观察#inspect
-        自身._终止=终止#terminate
-        自身._失败汇=失败汇#failed
-        自身._寿命=中止控制器()#寿命
-        自身._保持者=set()#持有者 id
-        自身._纪元=0#纪元
-        自身._定时器=None#Timer
-        自身._观察中=None#观察任务标志
-        自身._空闲=None#空闲 dict
-        自身._关闭中=False#关闭中
-        自身._已拆除=False#已拆除
-        自身._清理=None
-        自身._锁=threading.Lock()#互斥
-        自身._调度(0)#即调度
+    def 保持(自身,信号):
+        '为一条物理远程流保持终端。先交出 retained，再开到取消或关闭'
+        若已中止则抛出(信号)#进来时已取消
+        if 自身._关闭中 or 自身._已拆除:#正在关或已拆
+            raise 远程错误('terminal/unavailable','Terminal is closing or unavailable',{})#拒绝新的保持
+        持有者=object()#这一路的记号
+        结束=事件()#放开或关闭时置位
+        融合=中止信号.任一([信号,自身._寿命.信号])#调用方或终端关闭
 
-    def retain(自身,信号):
-        '为一条物理 Remote 流保持终端'
-        若已中止则抛出(信号)#已取消
-        if 自身._关闭中 or 自身._已拆除:#不可用
-            raise 远程错误('terminal/unavailable','Terminal is closing or unavailable',{})#拒绝
-        持有者=object()#持有者
-        结束=threading.Event()#结束门
-        合成=合成信号([信号,自身._寿命.信号])#合成
-        def 释放():
-            '释放持有'
-            with 自身._锁:#互斥
-                if 持有者 not in 自身._保持者:#已释
-                    return
-                自身._保持者.discard(持有者)#移除
-            自身.作废()#作废
-            结束.set()#唤醒
-            自身._调度(0)#调度
-        with 自身._锁:#登记
-            自身._保持者.add(持有者)#加入
-        自身.作废()#作废空闲
-        自身._取消定时()#清定时
-        try:
-            yield {'type':'retained'}#确认
-            while not 结束.is_set():#等待结束
-                事件=getattr(合成,'事件',None)#中止事件
-                if 事件 is not None and 事件.is_set():#已中止
-                    break#停
-                结束.wait(0.05)#短等
-        finally:
-            释放()#释放
+        def 放开():
+            '摘掉这一路，并恢复空闲调度'
+            if 持有者 not in 自身._保持者:#已经摘过
+                return#只做一次
+            自身._保持者.discard(持有者)#摘掉
+            自身.作废()#未完成的空闲观察作废
+            结束.set()#让生成器离开等待
+            自身._调度(0)#没有保持者了就重新计时
+
+        自身._保持者.add(持有者)#登记
+        自身.作废()#接上保持就清掉空闲
+        自身._取消定时器()#有人在看就不回收
+
+        def 听到融合():
+            '融合信号中止则放开这一路'
+            融合._事件.wait()#阻塞到中止
+            放开()#摘掉
+
+        启动守护线程(听到融合)#后台听
+        if 已中止(融合):#登记时已经中止
+            放开()#立刻摘掉
+        try:#先给确认，再保持到结束
+            yield {'type':'retained'}#窗口确认
+            结束.wait()#开到取消或关闭
+        finally:#读者停下也要摘掉
+            放开()#幂等
 
     def 作废(自身):
-        '接受输入前作废未完成的空闲观察'
-        自身._纪元+=1#纪元
-        自身._空闲=None
+        '接受输入前作废尚未完成的空闲观察'
+        自身._纪元+=1#推进纪元
+        自身._空闲=None#清掉已看到的空闲
 
-    def close(自身):
-        '启动或加入清理'
-        with 自身._锁:#互斥
-            if 自身._清理 is not None:#共享
-                return 自身._清理#任务
-            自身._关闭中=True#标记
-            自身.作废()#作废
-            自身._寿命.中止(远程错误('gateway/internal','Terminal closed',{}))#中止寿命
-            自身._取消定时()#清定时
-            def 跑清理():
-                '执行终止'
-                try:
-                    自身._终止()#终止
-                except BaseException as 错误:
-                    with 自身._锁:#允许重试
-                        自身._清理=None
-                    自身._调度(自身._策略['cleanupRetryMs'])#重试
-                    raise 错误#上抛
-            任务=threading.Thread(target=跑清理)#线程
-            任务.daemon=True#守护
-            自身._清理=任务#记下
-            任务.start()
-            return 任务#任务
+    def 关闭(自身):
+        '开始或加入清理。成功后返回。失败则保持身份已关闭并排一次重试'
+        已有=自身._清理#进行中或已成功的那一次
+        if 已有 is not None:#已经开始过
+            已有.wait()#加入同一次
+            if 已有.错误 is not None:#那一次失败了
+                raise 已有.错误#把失败交给调用方
+            return#成功
+        自身._关闭中=True#不再接受新的保持
+        自身.作废()#停掉空闲判断
+        自身._寿命.中止配套信号(RuntimeError('Terminal closed'))#拆开还开着的保持流
+        自身._取消定时器()#停掉观察
+        完成=事件()#这一次清理
+        完成.错误=None#失败时写在这一次上，不写在所有者上
+        自身._清理=完成#记下，失败时再清掉
+        try:#等进程静止
+            等到结果(自身._终止())#标记关闭并终止
+        except BaseException as 错误:#失败可以再试
+            完成.错误=错误#加入者要看见同一次失败
+            自身._清理=None#下一次关闭重新开始
+            完成.set()#放开加入者
+            自身._调度(自身._策略['cleanupRetryMs'])#过一会再试
+            raise#调用方看见失败
+        完成.set()#成功
 
-    def dispose(自身):
-        '停止定时器与流并等待最终清理'
-        自身._已拆除=True#标记
-        自身._取消定时()#清定时
-        自身.close()#关闭
+    def 释放(自身):
+        '停掉定时器和流，并等观察与最后一次清理'
+        自身._已拆除=True#不再调度
+        自身._取消定时器()#停表
+        观察=自身._观察线程#可能还在看活动
+        try:#清理失败也要等观察结束
+            自身.关闭()#最终清理
+        finally:#观察要收口
+            if 观察 is not None:#有观察线程
+                观察.join()#等它离开
 
-    def _取消定时(自身):
-        '清定时器'
-        定时=自身._定时器#取出
-        自身._定时器=None
-        if 定时 is not None:#有
+    def _取消定时器(自身):
+        '清掉尚未触发的定时器'
+        定时=自身._定时器#当前
+        自身._定时器=None#先摘掉，回调里就知道被取消了
+        if 定时 is not None:#有定时器
             定时.cancel()#取消
 
-    def _调度(自身,延迟毫秒):
-        '调度观察或重试关闭'
-        with 自身._锁:#互斥
-            if 自身._已拆除 or 自身._定时器 is not None:#已有
-                return
-            if (not 自身._关闭中) and (len(自身._保持者)>0 or 自身._策略['unattendedTimeoutMs']==0):#有持有或禁用
-                return
-            def 到点():
-                '到期回调'
-                自身._定时器=None
-                if 自身._关闭中:#重试关闭
-                    try:
-                        自身.close()#关闭
-                    except BaseException as 错误:
-                        自身._失败汇(错误)#报告
-                    return
-                自身._观察空闲()#观察
-            定时=threading.Timer(max(延迟毫秒,0)/1000.0,到点)#定时
-            定时.daemon=True#守护
-            自身._定时器=定时#记下
-            定时.start()
+    def _调度(自身,延迟):
+        '到点后观察空闲，或在关闭中重试清理'
+        if 自身._已拆除 or 自身._定时器 is not None:#已拆或已经有表
+            return#不重复排
+        if not 自身._关闭中 and (len(自身._保持者)>0 or 自身._策略['unattendedTimeoutMs']==0):#有人持有，或关闭了回收
+            return#不排
+        到期=现在毫秒()+延迟#这一次的到期时刻
+        等待毫秒=min(延迟,定时器延迟上限毫秒)#不超过定时器上限
 
-    def _观察空闲(自身):
-        '观察空闲并可能回收'
-        if 自身._观察中 is not None:#进行中
-            return
-        纪元=自身._纪元#纪元
-        自身._观察中=True#标记
-        def 在线程执行():
-            '后台观察'
-            try:
-                try:
-                    活动=自身._观察()#观察
-                except BaseException:
-                    活动={'state':'unknown','revision':0}#未知
-                if 自身._已拆除 or 自身._关闭中 or len(自身._保持者)>0 or 纪元!=自身._纪元:#过期
-                    return
-                现在=time.monotonic()*1000#单调毫秒
-                if 活动.get('state')!='idle':#非空闲
-                    自身._空闲=None
-                    return
-                修订=活动.get('revision',0)#修订
-                空闲=自身._空闲#当前
-                轮询=自身._策略['activityPollIntervalMs']#轮询
-                if 空闲 is None or 空闲.get('revision')!=修订 or 现在-空闲['observedAt']>轮询*2:#新空闲
-                    自身._空闲={'since':现在,'observedAt':现在,'revision':修订}#记下
-                else:#刷新
-                    空闲['observedAt']=现在#刷新
-                if 现在-自身._空闲['since']>=自身._策略['unattendedTimeoutMs']:#超时
-                    自身.close()#回收
-            except BaseException as 错误:
-                自身._失败汇(错误)#报告
-            finally:
-                自身._观察中=None
-                if not 自身._关闭中:#再调度
-                    自身._调度(自身._策略['activityPollIntervalMs'])#调度
-        线=threading.Thread(target=在线程执行)#线程
-        线.daemon=True#守护
-        线.start()
+        def 到点():
+            '到点后看还要不要再等，然后观察或重试关闭'
+            if 自身._定时器 is not 定时:#已经被取消或换过
+                return#忽略迟到的回调
+            自身._定时器=None#这一发已经触发
+            剩余=到期-现在毫秒()#定时器可能早了
+            if 剩余>0:#还没到期
+                自身._调度(剩余)#按剩余再排
+                return#等下一次
+            if 自身._关闭中:#清理失败后的重试
+                try:#失败交给诊断，不再抛出
+                    自身.关闭()#再试
+                except BaseException as 错误:#自动清理失败
+                    自身._失败时(错误)#诊断
+                return#重试路径到此
+            自身._观察()#看现在是不是空闲
+
+        定时=定时器(等待毫秒/1000,到点)#毫秒换成秒
+        定时.daemon=True#进程退出时不等它
+        自身._定时器=定时#记下，取消时能对上
+        定时.start()#开始
+
+    def _观察(自身):
+        '看一次活动。空闲持续到时限就关闭'
+        if 自身._观察线程 is not None:#已经在看
+            return#join 同一次
+        纪元=自身._纪元#这一次观察的纪元
+
+        def 跑():
+            '在后台看活动，失败交给诊断'
+            try:#观察失败不拖垮所有者
+                try:#活动暂时看不了就当未知
+                    活动=自身._检查()#新鲜观察
+                except Exception:#活动不可用
+                    活动={'state':'unknown','revision':0}#不当成空闲
+                if 自身._已拆除 or 自身._关闭中 or len(自身._保持者)>0 or 纪元!=自身._纪元:#已经不能回收
+                    return#丢掉这次
+                此刻=现在毫秒()#现在
+                if 活动['state']!='idle':#不是空闲
+                    自身._空闲=None#打断连续空闲
+                    return#等下一次
+                间隔=自身._策略['activityPollIntervalMs']#轮询间隔
+                空闲=自身._空闲#上次看到的空闲
+                if 空闲 is None or 空闲['revision']!=活动['revision'] or 此刻-空闲['observedAt']>间隔*2:#修订变了或中间断了
+                    自身._空闲={'since':此刻,'observedAt':此刻,'revision':活动['revision']}#重新计时
+                else:#连续空闲
+                    自身._空闲['observedAt']=此刻#只推进观察时刻
+                if 此刻-自身._空闲['since']>=自身._策略['unattendedTimeoutMs']:#空得够久
+                    自身.关闭()#回收
+            except BaseException as 错误:#关闭或观察失败
+                自身._失败时(错误)#诊断
+            finally:#这一次看完
+                自身._观察线程=None#允许下一次
+                if not 自身._关闭中:#还没进入清理
+                    自身._调度(自身._策略['activityPollIntervalMs'])#下一轮
+
+        自身._观察线程=启动守护线程(跑)#记下以便释放时等待

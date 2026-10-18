@@ -4,15 +4,17 @@ __all__=['检查器realm会话集']#仅中文公开名
 
 class 检查器realm会话集:#realm会话集
     '为一条 DevTools 连接的每个活动 realm 精确拥有一个后端会话'
-    def __init__(自身,realms):#构造
-        '打开现有 realm 并订阅变更'
+    def __init__(自身,realms,客户端源标识=None):#构造
+        '打开现有 realm 并订阅变更。指定 Client 时只含 Host 和该源'
         自身.connectionId=str(uuid.uuid4())#连接id
+        自身._客户端源标识=客户端源标识#可选 Client 过滤
         自身._realms=realms#注册表
         自身._会话={}#会话表
         自身._监听=set()#监听
         自身._已关闭=False#是否已关闭
         for realm in realms.realms():#打开现有
-            自身._打开(realm)#打开
+            if 自身._包含(realm):#在这次连接里
+                自身._打开(realm)#打开
         自身._取消订阅=realms.订阅(自身._接收realm)#订阅
 
     def 全部(自身):#全部会话
@@ -65,8 +67,19 @@ class 检查器realm会话集:#realm会话集
         自身._会话.clear()#清空
         自身._监听.clear()#清监听
 
+    def _包含(自身,realm):#是否纳入这次连接
+        '未指定 Client 时全要。指定后只要 Host 和该源'
+        if 自身._客户端源标识 is None:#不过滤
+            return True#全要
+        描述=realm.descriptor#描述
+        if 描述.kind=='host':#Host 始终在
+            return True#要
+        return 描述.sourceId==自身._客户端源标识#同一 Client
+
     def _接收realm(自身,事件):#处理realm事件
         '打开或关闭会话'
+        if not 自身._包含(事件['realm']):#不在这次连接里
+            return#忽略
         if 事件['type']=='opened':#打开
             会话=自身._打开(事件['realm'])#打开会话
             自身._发出({'type':'opened','session':会话})#发出

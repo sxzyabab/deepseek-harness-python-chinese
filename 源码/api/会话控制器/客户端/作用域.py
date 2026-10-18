@@ -28,9 +28,10 @@ def 创建作用域(上下文,键):
 
 def 作用域身份(上下文):
     '读取 Client Context 继承的精确代际身份；无作用域为 None'
-    if hasattr(上下文,'__dict__') and _作用域符号 in 上下文.__dict__:#自有
-        return 上下文.__dict__[_作用域符号]#身份
-    return None#无
+    try:
+        return 上下文[_作用域符号]#属性链，子上下文沿父表读到
+    except (KeyError,TypeError):
+        return None#无
 
 def 作用域标签(上下文):
     '读取上下文继承到的最近 agent 标签；根为 None'

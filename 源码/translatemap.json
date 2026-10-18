@@ -17,7 +17,6 @@
     "fs":"文件系统",
     "goal":"目标",
     "guard":"护栏",
-    "hooks":"钩子",
     "host":"宿主",
     "identity":"身份",
     "interaction":"交互",
@@ -27,7 +26,6 @@
     "plan":"plan模式",
     "preset":"预设",
     "ptc-runtime":"ptc运行时",
-    "runtime-diagnostics":"运行时诊断",
     "sandbox":"沙盒",
     "schedule":"日程",
     "session":"会话",
@@ -45,7 +43,6 @@
     "todo":"待办",
     "typert":"类型化远程调用",
     "util":"工具",
-    "webhook":"web钩子",
     "workflow":"工作流",
     "workspace":"工作区",
     "deps":"依赖"

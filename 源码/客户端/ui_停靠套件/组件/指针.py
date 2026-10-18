@@ -1,50 +1,75 @@
+'停靠面和浮动层共用的指针占用。窗口监听才是手势本身，捕获只是不让路过的滚动容器把指针抢走'
+import pywebbridge
 
-__all__=['手势会话']#仅中文公开名
+__all__=['使用手势']
 
+def 使用手势(窗口,复位):
+    '一次只跟一个指针。松开、取消或新的按下都会结束。返回开始和拆除'
+    飞行={'当前':None}
 
-class 手势会话:
-    '组件级一次一根指针；新按压顶替旧手势，结束时调用复位'
+    def 拆除():
+        '卸掉还在飞的监听，不清预览'
+        当前=飞行['当前']
+        飞行['当前']=None
+        if 当前 is not None:
+            当前['停']()
 
-    def __init__(自身,复位):
-        '复位在释放、取消或顶替时清空预览'
-        自身._复位=复位#回调
-        自身._在途=None#当前跟随者
+    def 开始(元素,指针标识,跟随):
+        '从按下的元素开始跟这个指针'
+        上一=飞行['当前']
+        if 上一 is not None:
+            上一['结束']()
+        if callable(getattr(元素,'setPointerCapture',None)):
+            元素.setPointerCapture(指针标识)
+        控制器=窗口.AbortController()
+        信号=控制器.signal
+        元素.setAttribute('data-dockkit-pointer',str(指针标识))
 
-    def 开始(自身,移动,抬起):
-        '开始新手势；顶替在途者。返回喂入接口'
-        自身._结束在途()#顶替
-        def 结算():
-            '清在途并复位预览'
-            自身._在途=None
-            自身._复位()#复位
-        def 喂移动(事件):
-            '指针移动'
-            if 自身._在途 is None:#已结束
-                return#忽略
-            移动(事件)#回调
-        def 喂抬起(事件):
-            '指针抬起'
-            if 自身._在途 is None:#已结束
-                return#忽略
-            结算()#先清预览
-            抬起(事件)#再结算意图
-        def 喂取消():
-            '取消'
-            if 自身._在途 is None:#已结束
-                return#忽略
-            结算()#复位
-        自身._在途={'move':喂移动,'up':喂抬起,'cancel':喂取消}#登记
-        return 自身._在途#喂入
+        def 中止():
+            '手势结束时摘掉指针标记'
+            if 元素.getAttribute('data-dockkit-pointer')==str(指针标识):
+                元素.removeAttribute('data-dockkit-pointer')
 
-    def _结束在途(自身):
-        '顶替时结束旧手势'
-        if 自身._在途 is None:#无
-            return#止
-        旧=自身._在途#旧
-        自身._在途=None#先清，避免重入
-        自身._复位()#复位
-        # 旧跟随者不再接收
+        信号.addEventListener('abort',中止,{'once':True})
 
-    def 拆除(自身):
-        '卸载：去掉监听，不复位预览'
-        自身._在途=None#丢
+        def 落定():
+            '清掉飞行记录并让组件收起预览'
+            飞行['当前']=None
+            复位()
+
+        def 移动(事件):
+            '只认这一根指针的移动'
+            if 事件.pointerId!=指针标识:
+                return
+            跟随['move'](事件)
+
+        def 抬起(事件):
+            '松开：先结束手势和预览，再交给跟随'
+            if 事件.pointerId!=指针标识:
+                return
+            控制器.abort()
+            落定()
+            跟随['up'](事件)
+
+        def 取消(事件):
+            '指针被取消时只收起，不结算'
+            if 事件.pointerId!=指针标识:
+                return
+            控制器.abort()
+            落定()
+
+        def 停():
+            '卸掉三个窗口监听'
+            控制器.abort()
+
+        def 结束():
+            '新的按下挤掉这一笔时，先卸监听再收起预览'
+            停()
+            落定()
+
+        窗口.addEventListener('pointermove',移动,{'signal':信号})
+        窗口.addEventListener('pointerup',抬起,{'signal':信号})
+        窗口.addEventListener('pointercancel',取消,{'signal':信号})
+        飞行['当前']={'停':停,'结束':结束}
+
+    return {'开始':开始,'拆除':拆除}

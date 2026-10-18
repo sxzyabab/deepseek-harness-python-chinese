@@ -1,92 +1,59 @@
-from nicegui import ui as 界面
+from ...模块.客户端.通告 import 取握手窗口
 
-__all__=['终端图标','终端引导图标']
+__all__=['终端图标','终端作品']
 
 class 终端图标:
     '十六像素装饰线条字形'
-    def 视图(自身):
-        '返回标题用终端图标'
-        return {
-            'tag':'svg',
-            'width':'16',
-            'height':'16',
-            'viewBox':'0 0 16 16',
-            'fill':'none',
-            'aria-hidden':'true',
-            'children':[{
-                'tag':'path',
-                'd':'m3 4 4 4-4 4M9 12h4',
-                'stroke':'currentColor',
-                'strokeWidth':'1.5',
-                'strokeLinecap':'round',
-                'strokeLinejoin':'round',
-            }],
-        }
-
-    def 渲染(自身):
-        '画出十六像素终端折线'
-        界面.html(
-            '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">'
-            '<path d="M3 4L7 8L3 12" stroke="currentColor"/>'
-            '<path d="M9 12H13" stroke="currentColor"/>'
-            '</svg>',
-            sanitize=False,
-        )
-
-    def __call__(自身,属性=None):
-        '画出当前图标'
-        return 自身.渲染()
-
-class 终端引导图标:
-    '深色圆角终端卡片加白色提示符'
     def __init__(自身,属性=None):
-        '记下画布尺寸与布局类。父组件调用渲染，构造时不画'
-        自身.属性=属性 if 属性 is not None else {}
-
-    def 更新(自身,属性):
-        '刷新尺寸与类名'
-        自身.属性=属性
-
-    def 视图(自身):
-        '返回引导卡片图标'
-        尺寸=自身.属性['size'] if 'size' in 自身.属性 else 26
-        类名=自身.属性['className'] if 'className' in 自身.属性 else None
-        return {
-            'tag':'svg',
-            'width':尺寸,
-            'height':尺寸,
-            'className':类名,
-            'viewBox':'0 0 28 28',
-            'fill':'none',
-            'aria-hidden':'true',
-            'children':[{
-                'tag':'rect',
-                'x':'3','y':'5','width':'22','height':'19','rx':'3',
-                'fill':'#17191d',
-            },{
-                'tag':'path',
-                'd':'m8 10 4 4-4 4M15 18h5',
-                'stroke':'#fff',
-                'strokeWidth':'1.7',
-                'strokeLinecap':'round',
-                'strokeLinejoin':'round',
-            }],
-        }
+        '记下窗口。构造不画'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
 
     def 渲染(自身):
-        '画出引导卡片字形'
-        尺寸=自身.属性['size'] if 'size' in 自身.属性 else 26
-        宽=尺寸 if isinstance(尺寸,int) else 26
-        界面.html(
-            '<svg width="'+str(宽)+'" height="'+str(宽)+'" viewBox="0 0 28 28" fill="none" aria-hidden="true">'
-            '<rect x="3" y="5" width="22" height="19" rx="3" fill="#17191d"/>'
-            '<path d="m8 10 4 4-4 4M15 18h5" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>'
-            '</svg>',
-            sanitize=False,
-        )
+        '返回标题用终端图标'
+        if isinstance(自身.属性,dict) and 自身.属性.get('window') is not None:
+            窗=自身.属性['window']
+        else:
+            窗=取握手窗口()
+        文档=窗.document
+        图=文档.createElementNS('http://www.w3.org/2000/svg','svg')
+        图.setAttribute('width','16')
+        图.setAttribute('height','16')
+        图.setAttribute('viewBox','0 0 16 16')
+        图.setAttribute('fill','none')
+        图.setAttribute('aria-hidden','true')
+        for 路径 in ('M3 4L7 8L3 12','M9 12H13'):
+            笔=文档.createElementNS('http://www.w3.org/2000/svg','path')
+            笔.setAttribute('d',路径)
+            笔.setAttribute('stroke','currentColor')
+            图.appendChild(笔)
+        自身.根=图
+        return 图
 
     def __call__(自身,属性=None):
         '有新属性先更新，再画出'
-        if 属性 is not None:
-            自身.更新(属性)
+        if isinstance(属性,dict):
+            自身.属性=属性
         return 自身.渲染()
+
+def 终端作品(窗口,尺寸,类名):
+    '引导卡片上的终端字形。向导按窗口、尺寸、类名调用'
+    文档=窗口.document
+    图=文档.createElementNS('http://www.w3.org/2000/svg','svg')
+    图.setAttribute('xmlns','http://www.w3.org/2000/svg')
+    图.setAttribute('width',str(尺寸))
+    图.setAttribute('height',str(尺寸))
+    图.setAttribute('viewBox','0 0 36 36')
+    图.setAttribute('fill','none')
+    if isinstance(类名,str) and 类名!='':
+        图.setAttribute('class',类名)
+    for 路径 in (
+        'M10 11L16.606 17.606C16.6841 17.6841 16.6841 17.8107 16.606 17.8888L10 24.4948',
+        'M20.1211 24.4946H26.8685',
+    ):
+        笔=文档.createElementNS('http://www.w3.org/2000/svg','path')
+        笔.setAttribute('d',路径)
+        笔.setAttribute('stroke','#679EFE')
+        笔.setAttribute('stroke-width','3.5')
+        图.appendChild(笔)
+    return 图

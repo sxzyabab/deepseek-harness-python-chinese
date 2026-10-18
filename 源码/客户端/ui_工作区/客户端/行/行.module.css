@@ -1,15 +1,11 @@
-/* Tree rows: project 34px, session 32px, radius 8, indent step 22px
-   (16px slot + 6px gap). Hover swaps
-   are pure CSS: project folder -> chevron + action buttons; session time ->
-   ellipsis button. */
-
 .projectRow,
 .sessionRow {
   display: flex;
   align-items: center;
   gap: 6px;
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-md);
   padding: 0 8px;
+  padding-inline-start: calc(8px + var(--dsh-workspace-indent, 0px));
   cursor: pointer;
   user-select: none;
   color: var(--dsw-alias-label-primary);
@@ -32,7 +28,7 @@
   min-height: 48px;
   box-sizing: border-box;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-lg);
   padding: 4px 8px;
   background: transparent;
   cursor: pointer;
@@ -55,6 +51,7 @@
 }
 
 .searchResultTitle {
+  flex: 0 1 auto;
   min-width: 0;
   margin-left: 4px;
   overflow: hidden;
@@ -87,13 +84,16 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
+.searchResultWorkspace:only-child {
+  max-width: 100%;
+}
+
 .searchResultSnippet {
   flex: 1;
   min-width: 0;
   color: var(--dsw-alias-label-secondary);
 }
 
-/* Compact one-line Workspace row after removing the session-count subtitle. */
 .projectRow {
   height: 34px;
   align-items: center;
@@ -104,25 +104,13 @@
   height: 20px;
 }
 
-/* Session cell (figma): pad 8, a 16px status slot, then a 4px title gap. */
 .sessionRow {
   height: 32px;
   gap: 0;
-  /* Mount fade: session rows appear by unfolding a group (or the tree
-     mounting). Stable row keys keep already-visible rows from replaying it. */
-  animation: row-in 150ms var(--ds-ease-in-out);
 }
 
 .sessionRow .title {
   margin: 0 6px 0 4px;
-}
-
-.flatSessionRowWithoutStatus .title {
-  margin-left: 0;
-}
-
-@keyframes row-in {
-  from { opacity: 0; }
 }
 
 .slot {
@@ -148,13 +136,10 @@
   color: var(--dsw-alias-state-business-primary);
 }
 
-
-/* Project leading slot: folder by default, expand arrow on row hover. */
 .projectRow .chevron { display: none; }
 .projectRow:hover .chevron { display: inline-flex; }
 .projectRow:hover .folder { display: none; }
 
-/* Expand arrow (filled triangle): points right closed, rotates to point down open. */
 .arrow {
   transition: transform 150ms var(--ds-ease-in-out);
 }
@@ -185,8 +170,8 @@
   font-size: 14px;
   line-height: 20px;
   padding: 0 2px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 4px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-sm);
   background: var(--dsw-alias-button-elevated-fill);
   color: inherit;
   outline: none;
@@ -194,6 +179,18 @@
 
 .sessionRow .title {
   flex: 1;
+}
+
+.sessionRow .title[data-scrolled] {
+  mask-image: linear-gradient(to right, transparent, #000 12px);
+}
+
+.sessionRow .title[data-clipped] {
+  mask-image: linear-gradient(to left, transparent, #000 12px);
+}
+
+.sessionRow .title[data-scrolled][data-clipped] {
+  mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
 }
 
 .meta {
@@ -207,29 +204,50 @@
 
 .time {
   flex: none;
-  font-size: 12px;
-  line-height: 20px;
+  font-size: 10px;
+  line-height: 16px;
   color: var(--dsw-alias-label-tertiary);
+}
+
+.pinIndicator {
+  display: inline-flex;
+  flex: none;
+  width: 16px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  color: var(--dsw-alias-label-caption);
+}
+
+.sessionRow.archived .title,
+.searchResultRow.archived .searchResultTitle,
+.searchResultRow.archived .searchResultWorkspace,
+.searchResultRow.archived .searchResultSnippet {
+  color: var(--dsw-alias-label-caption);
 }
 
 .dot {
   flex: none;
 }
 
-/* Trailing action buttons surface on hover only (figma 27:4668 / 27:4656):
-   bare 16px glyphs, gap 12, tertiary grey. */
 .rowActions {
   flex: none;
   display: none;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
 }
 
 .projectRow:hover .rowActions,
 .sessionRow:hover .rowActions,
+.searchResultRow:hover .rowActions,
 .projectRow.menuOpen .rowActions,
 .sessionRow.menuOpen .rowActions {
   display: inline-flex;
+}
+
+.searchResultHeading .rowActions {
+  margin-left: auto;
 }
 
 .sessionRow:hover .time,
@@ -237,15 +255,23 @@
   display: none;
 }
 
-/* An open row menu pins the hover affordances (figma: the row keeps its
-   hover fill while its dropdown is up). */
+.sessionRow:hover .pinIndicator,
+.sessionRow.menuOpen .pinIndicator {
+  display: none;
+}
+
+@media (hover: hover) {
+  .sessionRow:hover .title,
+  .sessionRow.menuOpen .title {
+    text-overflow: clip;
+  }
+}
+
 .projectRow.menuOpen,
 .sessionRow.menuOpen {
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
-/* Session drag insert marker: a leading chevron and 2px rule between rows,
-   absolutely positioned so it neither resembles a row border nor changes layout. */
 .sessionRow.dropBefore,
 .sessionRow.dropAfter {
   position: relative;
@@ -286,7 +312,6 @@
   bottom: -7px;
 }
 
-/* Hover-card body (figma 169:16903): dark surface, fixed colors both themes. */
 .hoverContent {
   display: flex;
   flex-direction: column;
@@ -322,6 +347,11 @@
   color: #ADB2B8;
 }
 
+.hoverArchived svg {
+  flex-shrink: 0;
+  margin: 0 -4px;
+}
+
 .iconButton {
   flex: none;
   display: inline-flex;
@@ -330,7 +360,7 @@
   width: 16px;
   height: 16px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--dsw-radius-xs);
   padding: 0;
   background: transparent;
   cursor: pointer;
@@ -341,14 +371,11 @@
   color: var(--dsw-alias-label-primary);
 }
 
-/* Chevrons ride the caption grey (#ADB2B8); the folder glyph stays one step
-   darker (tertiary, #81858C) per the cell spec. */
 .chevron {
   color: var(--dsw-alias-label-caption);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sessionRow,
   .arrow {
     animation: none;
     transition: none;

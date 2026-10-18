@@ -1,0 +1,17 @@
+{
+    "settings-store": "设置存储",
+    "section-store": "分区存储",
+    "seat-store": "芯片存储",
+    "locales": "文案",
+    "guide-locales": "指南文案",
+    "AgentPresetSection": "预设分区",
+    "AgentPresetSeat": "预设芯片",
+    "AgentPresetLabel": "预设标签",
+    "CreatePluginMenuItem": "创建插件菜单项",
+    "PresetGuideDialog": "预设指南",
+    "AgentPresetSection.module": "预设分区.module",
+    "AgentPresetSeat.module": "预设芯片.module",
+    "AgentPresetLabel.module": "预设标签.module",
+    "CreatePluginMenuItem.module": "创建插件菜单项.module",
+    "PresetGuideDialog.module": "预设指南.module"
+}

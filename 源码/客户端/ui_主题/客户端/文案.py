@@ -1,16 +1,12 @@
 __all__=['设置命名空间','中文','英文','主题文案键']
 
-设置命名空间='settings.theme'#外观行与字号行文案命名空间
+设置命名空间='settings.theme'
 
 中文={
     'appearance.title':'外观',
     'appearance.light':'浅色',
     'appearance.dark':'深色',
     'appearance.system':'跟随系统',
-    'fontSize.title':'字号大小',
-    'fontSize.description':'仅影响会话内容的字号',
-    'fontSize.increase':'增大字号',
-    'fontSize.decrease':'减小字号',
     'fontSize.text.title':'字号大小',
     'fontSize.text.description':'仅影响会话内容的字号',
     'fontSize.text.increase':'增大字号',
@@ -39,10 +35,6 @@ __all__=['设置命名空间','中文','英文','主题文案键']
     'appearance.light':'Light',
     'appearance.dark':'Dark',
     'appearance.system':'System',
-    'fontSize.title':'Font size',
-    'fontSize.description':'Only affects conversation content',
-    'fontSize.increase':'Increase font size',
-    'fontSize.decrease':'Decrease font size',
     'fontSize.text.title':'Font size',
     'fontSize.text.description':'Only affects conversation content',
     'fontSize.text.increase':'Increase font size',
@@ -66,4 +58,4 @@ __all__=['设置命名空间','中文','英文','主题文案键']
     'fontSize.more':'More font settings',
 }
 
-主题文案键=tuple(中文.keys())
+主题文案键=tuple(中文)

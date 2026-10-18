@@ -27,7 +27,7 @@ def 桌面数据目录(家目录,环境):
         系统目录='/usr/local/share:/usr/share'
     return [数据家]+[段 for 段 in 系统目录.split(':') if 段]
 
-def 读图标(路径):
+def 读取图标(路径):
     '读取已安装的 PNG 或 SVG 图标；缺席路径与目录没有像素'
     if 路径.endswith('.png'):
         内容类型='image/png'
@@ -46,19 +46,19 @@ def 读图标(路径):
 def 桌面应用程序图标(名称,目录列表):
     '解析绝对图标路径或已安装的 hicolor/pixmaps 图标名'
     if os.path.isabs(名称):
-        return 读图标(名称)
+        return 读取图标(名称)
     尺寸表=['512x512','256x256','128x128','64x64','48x48','32x32']
     for 目录 in 目录列表:
         for 尺寸 in 尺寸表:
             for 扩展 in ('png','svg'):
-                图标=读图标(os.path.join(目录,'icons','hicolor',尺寸,'apps',名称+'.'+扩展))
+                图标=读取图标(os.path.join(目录,'icons','hicolor',尺寸,'apps',名称+'.'+扩展))
                 if 图标 is not None:
                     return 图标
-        可缩放=读图标(os.path.join(目录,'icons','hicolor','scalable','apps',名称+'.svg'))
+        可缩放=读取图标(os.path.join(目录,'icons','hicolor','scalable','apps',名称+'.svg'))
         if 可缩放 is not None:
             return 可缩放
         for 扩展 in ('png','svg'):
-            图标=读图标(os.path.join(目录,'pixmaps',名称+'.'+扩展))
+            图标=读取图标(os.path.join(目录,'pixmaps',名称+'.'+扩展))
             if 图标 is not None:
                 return 图标
     return None

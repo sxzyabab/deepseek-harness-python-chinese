@@ -1,24 +1,9 @@
-'实时会话任务与投影控制流'
+'实时会话投影控制流'
 import threading#流等待
 from ...工具.双端队列 import 双端队列#缓冲
 from .远程错误与并发 import 已中止#中止查询
 
 __all__=['会话控制控制器']#仅中文公开名
-
-def _任务视图(任务):
-    '任务快照转视图。任务为 dict'
-    视图={
-        'id':任务['id'],
-        'kind':任务['kind'],
-        'label':任务['label'],
-        'status':任务['status'],
-        'startedAt':任务['startedAt'],
-    }#基础
-    if 'detail' in 任务 and 任务['detail'] is not None:#细节
-        视图['detail']=任务['detail']#写入
-    if 'finishedAt' in 任务 and 任务['finishedAt'] is not None:
-        视图['finishedAt']=任务['finishedAt']#写入
-    return 视图#视图
 
 class _控制队列:
     '缓冲控制帧'
@@ -28,14 +13,14 @@ class _控制队列:
         自身._事件=threading.Event()#等待
         自身._已结束=False
 
-    def 推(自身,帧):
+    def 推入帧(自身,帧):
         '入队并唤醒'
         if 自身._已结束:#已结束
             return#忽略
         自身._缓冲.尾推(帧)#入队
         自身._事件.set()#唤醒
 
-    def 结束(自身):
+    def 结束队列(自身):
         '关闭队列'
         自身._已结束=True#标记
         自身._事件.set()#唤醒
@@ -60,33 +45,22 @@ class 会话控制控制器:
     '拥有宿主范围会话控制流'
 
     def __init__(自身,上下文):
-        '订阅会话、投影与任务变化'
+        '订阅投影变化'
         自身._上下文=上下文#Cordis
         自身._流集合=set()#活跃流
         def 投影变更(会话,键,值,序号):
             '投影变更'
-            自身._广播({'type':'projection','sessionId':会话.id,'key':键,'value':值,'seq':序号})#投影
-        def 挂任务(任务上下文):
-            '订阅任务变化'
-            def 任务变化(所有者):
-                '任务变化'
-                自身._任务变化(所有者)#委托
-            任务上下文.jobs.onJobsChanged(任务变化)#监听
-        def 会话创建(会话):
-            '新会话'
-            自身._会话创建(会话)#委托
+            自身._广播帧({'type':'projection','sessionId':会话.id,'key':键,'value':值,'seq':序号})#投影
         def 拆除控制():
             '拆除'
             自身._拆除()#委托
-        上下文.sessionProjections.onChanged(投影变更)#投影
-        上下文.依赖启动(['jobs'],挂任务)#依赖启动
-        上下文.监听('session/created',会话创建)#创建
+        上下文.sessionProjections.变更时(投影变更)#投影，上游 onChanged
         上下文.副作用(拆除控制,'session-controller.control')#拆除
 
     def _拆除(自身):
         '结束全部代'
         for 流 in list(自身._流集合):#逐个
-            流.结束()
+            流.结束队列()#结束
         自身._流集合.clear()#清空
 
     def control(自身,信号):
@@ -100,49 +74,17 @@ class 会话控制控制器:
             yield from 队列.迭代(信号)#增量
         finally:
             自身._流集合.discard(队列)#移除
-            队列.结束()
+            队列.结束队列()#结束
 
     def _基线(自身):
-        '同步读完整控制基线'
-        会话列表=自身._上下文.sessions.list()#全部会话
-        任务表={}#任务
-        取=getattr(自身._上下文.agents,'get',None)#英文 get
-        for 会话 in 会话列表:#逐个
-            标识=会话.id#id
-            智能体=取(标识) if 取 is not None else 自身._上下文.agents.获取(标识)#智能体
-            任务表[标识]=自身._任务用于(智能体)#任务
+        '同步读完整投影基线'
         投影表={}#投影
-        for 会话 in 会话列表:#投影基线
-            快照=自身._上下文.sessionProjections.snapshot(会话)#快照 dict
+        for 会话 in 自身._上下文.sessions.list():#全部会话
+            快照=自身._上下文.sessionProjections.快照(会话)#一致切面
             投影表[会话.id]={'asOfSeq':快照['asOfSeq'],'values':快照['values']}#块
-        return {'jobs':任务表,'projections':投影表}#基线
+        return {'projections':投影表}#基线
 
-    def _任务用于(自身,智能体):
-        '读智能体任务快照'
-        任务服务=自身._上下文.获取服务('jobs')#jobs
-        if 任务服务 is None:#无
-            return []#空
-        return [_任务视图(任务) for 任务 in 任务服务.list(智能体)]#列表
-
-    def _会话创建(自身,会话):
-        '新会话时补 jobs 帧'
-        取=getattr(自身._上下文.agents,'get',None)#英文 get
-        智能体=取(会话.id) if 取 is not None else 自身._上下文.agents.获取(会话.id)#智能体
-        任务表=自身._任务用于(智能体)#任务
-        if len(任务表)>0:#有任务
-            自身._广播({'type':'jobs','sessionId':会话.id,'jobs':任务表})#广播
-
-    def _任务变化(自身,所有者):
-        '广播 jobs 帧'
-        if 所有者 is not None:#单所有者
-            自身._广播({'type':'jobs','sessionId':所有者.id,'jobs':自身._任务用于(所有者)})#广播
-            return
-        取=getattr(自身._上下文.agents,'get',None)#英文 get
-        for 会话 in 自身._上下文.sessions.list():#全量
-            智能体=取(会话.id) if 取 is not None else 自身._上下文.agents.获取(会话.id)#智能体
-            自身._广播({'type':'jobs','sessionId':会话.id,'jobs':自身._任务用于(智能体)})#广播
-
-    def _广播(自身,帧):
+    def _广播帧(自身,帧):
         '向全部代推送'
         for 流 in 自身._流集合:#逐个
-            流.推(帧)#推
+            流.推入帧(帧)#推

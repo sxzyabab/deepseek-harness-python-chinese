@@ -1,6 +1,7 @@
 {
     "commands":"命令",
     "default-directory":"默认目录",
+    "default-workspace":"默认工作区",
     "directory-picker":"目录选择器",
     "feed":"提要",
     "types":"类型"

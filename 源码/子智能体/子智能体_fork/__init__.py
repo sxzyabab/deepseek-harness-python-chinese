@@ -29,8 +29,8 @@ class 进程内分叉提供方:
         自身.能力={'agentOptions':True,'outputSchema':True,'depthLimit':True,'toolFilter':True,'persona':True}#能力
         自身.继承父上下文=True#契约
 
-    def 准备可续跑(自身,请求):
-        '准备可续跑分叉规格。请求为 dict'
+    def 准备可续运行(自身,请求):
+        '准备可续运行分叉规格。请求为 dict'
         种子=已完成回合前缀(请求['parent'])#种子
         return {} if len(种子)==0 else {'seed':种子}#规格
 

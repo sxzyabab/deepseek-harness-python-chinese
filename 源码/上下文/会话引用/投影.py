@@ -80,7 +80,7 @@ def 保留引用会话(快照,标签,最大字节):#按字节预算保留引用�
         项=保留[最长下标]#取出最长项
         if 项 is None:#理论上下标有效
             raise 会话引用错误('session-reference retention selected a missing longest message','SESSION_REFERENCE_READ_FAILED')#最长项缺失
-        缩短=附通知截断(项['originalText'],目标)#按目标截断并附省略通知
+        缩短=附着通知截断(项['originalText'],目标)#按目标截断并附省略通知
         if 缩短['text']==保留[最长下标]['text']:#截断没有变短则无法继续
             return None
         下一=dict(项)#写回截断结果
@@ -113,7 +113,7 @@ def 抽出文本(内容):#抽出文本块并换行拼接
             段列表.append(块['text'])#收下
     return '\n'.join(段列表)#换行拼接
 
-def 附通知截断(文本,最大输出字节):#头尾截断并附省略通知
+def 附着通知截断(文本,最大输出字节):#头尾截断并附省略通知
     '头尾截断并附省略通知'
     if utf8字节数(文本)<=最大输出字节:#已能装下则原样返回
         return {'text':文本,'omittedBytes':0}#原样

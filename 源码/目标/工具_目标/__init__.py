@@ -3,7 +3,7 @@ from ...基础设施.通用工具 import 是否正安全整数,紧凑json编码
 from ...依赖 import cordis#外部依赖胶水
 from ...依赖.schemastery import 整数字段#配置字段
 from ..目标 import 目标标识#目标 id 品牌
-from ...模型后端.llm.异常 import 装备错误#策略错误
+from ...模型后端.llm.异常 import harness错误#策略错误
 from ...模型后端.llm import 截上下文摘要,创建用户消息#摘要与收尾消息
 from ...内核.工具 import 定义工具#定义面向模型的工具
 from .权限 import 目标工具执行,要求直接人类,完成权限#执行时权限
@@ -106,12 +106,12 @@ def 有轮次上限(值):
 def 目标引用(标识,修订):
     '从模型参数构造精确比较交换引用'
     if len(标识)==0 or 标识!=标识.strip():#id 必须非空且已规范化
-        raise 装备错误(#参数非法
+        raise harness错误(#参数非法
             'goal_id must be non-empty and revision must be a positive safe integer',#人类可读
             'GOAL_TOOL_INVALID_UPDATE',#更新参数错误
         )#结束抛错
     if not 是否正安全整数(修订):#修订必须是正安全整数
-        raise 装备错误(#参数非法
+        raise harness错误(#参数非法
             'goal_id must be non-empty and revision must be a positive safe integer',#人类可读
             'GOAL_TOOL_INVALID_UPDATE',#更新参数错误
         )#结束抛错
@@ -234,13 +234,13 @@ def 应用(上下文,配置值):
         if 动作=='edit':#编辑
             要求直接人类(上下文,执行)#必须人类回合
             if 有文本(阻塞原因文本):#编辑不得带阻塞原因
-                raise 装备错误('blocked_reason is valid only with action blocked','GOAL_TOOL_INVALID_UPDATE')#字段用错
+                raise harness错误('blocked_reason is valid only with action blocked','GOAL_TOOL_INVALID_UPDATE')#字段用错
             目标=上下文.goals.edit(执行['agent'],引用,替换)#走域编辑
             return 目标工具值(目标)#编辑后视图
         if 动作=='pause' or 动作=='resume':#暂停或恢复
             要求直接人类(上下文,执行)#必须人类回合
             if 有文本(陈述) or 有轮次上限(上限) or 有文本(阻塞原因文本):#不得带 edit/blocked 字段
-                raise 装备错误(#字段用错
+                raise harness错误(#字段用错
                     'objective and max_goal_rounds are valid only with action edit; blocked_reason is valid only with action blocked',#指出合法 action
                     'GOAL_TOOL_INVALID_UPDATE',#更新参数错误
                 )#结束抛错
@@ -248,7 +248,7 @@ def 应用(上下文,配置值):
             if (动作=='resume' and 当前 is not None
                 and 当前.get('id')==引用['id'] and 当前.get('revision')==引用['revision']
                 and 当前.get('phase')=='paused'):#模型不得自行恢复已暂停目标
-                raise 装备错误(#须由用户恢复
+                raise harness错误(#须由用户恢复
                     'the model cannot resume a paused goal; the user must resume it',#人类可读
                     'GOAL_TOOL_RESUME_PAUSED',#暂停恢复拒绝
                 )#结束抛错
@@ -259,18 +259,18 @@ def 应用(上下文,配置值):
             return 目标工具值(目标)#变更后视图
         权限=完成权限(上下文,执行)#完成/阻塞权限
         if 有文本(陈述) or 有轮次上限(上限):#完成/阻塞不得改定义
-            raise 装备错误(#字段用错
+            raise harness错误(#字段用错
                 'objective and max_goal_rounds are valid only with action edit',#仅 edit
                 'GOAL_TOOL_INVALID_UPDATE',#更新参数错误
             )#结束抛错
         if 动作=='complete' and 有文本(阻塞原因文本):#完成不得带阻塞原因
-            raise 装备错误('blocked_reason is valid only with action blocked','GOAL_TOOL_INVALID_UPDATE')#字段用错
+            raise harness错误('blocked_reason is valid only with action blocked','GOAL_TOOL_INVALID_UPDATE')#字段用错
         if 动作=='blocked' and (阻塞原因文本 is None or len(阻塞原因文本.strip())==0):#阻塞必须有原因
-            raise 装备错误('blocked_reason is required with action blocked','GOAL_TOOL_INVALID_UPDATE')#缺原因
+            raise harness错误('blocked_reason is required with action blocked','GOAL_TOOL_INVALID_UPDATE')#缺原因
         if 动作=='blocked' and 权限['kind']=='goal-round':#自动轮次自我报告阻塞
             权限目标=权限['goal']#轮次权限上的目标
             if 权限目标['roundsStarted']<阻塞阈值:#未达阈值
-                raise 装备错误(#硬下限
+                raise harness错误(#硬下限
                     'blocked requires at least '+str(阻塞阈值)+' consecutive goal rounds; '#阈值
                     +'current round is '+str(权限目标['roundsStarted']),#当前轮次
                     'GOAL_TOOL_BLOCK_THRESHOLD',#未达阻塞阈值

@@ -1,13 +1,19 @@
-__all__=['命名空间','中文','英文']
+'voice-input 的中英文案表。页面上的字直接写中文，登记时两份都留下'
 
-命名空间='voice-input'
+__all__=['命名空间','中文','英文']#登记用
 
-中文={
+命名空间='voice-input'#槽位文案命名空间，保持英文
+
+中文={#简体中文，键集合的真源。显示读这里的原文，不经过英文表
     'dictate':'听写',
     'setupPrompt.title':'使用语音输入前需要安装',
     'setupPrompt.body':'语音输入插件已开启。首次使用需要在本机下载并准备识别模型，请前往插件详情页查看空间、内存和时间说明，再开始安装。',
     'setupPrompt.later':'稍后',
     'setupPrompt.open':'前往安装',
+    'setupPrompt.trigger':'打开语音输入引导',
+    'setupPrompt.details':'前往语音插件设置',
+    'setupPrompt.unavailableTitle':'语音识别尚未就绪',
+    'setupPrompt.unavailableBody':'请前往语音插件详情页查看识别服务状态、准备进度或错误信息',
     'setup.local':'将在运行 DSH 的机器上下载本地模型，无需安装 Python 或编译工具。',
     'setup.disk':'硬盘空间',
     'setup.diskValue':'建议预留约 {gb} GB，包含模型、运行时和下载缓存',
@@ -72,7 +78,6 @@ __all__=['命名空间','中文','英文']
     'preparation.cancelled':'准备已取消，已完成的下载会保留。',
     'preparation.cancelling':'正在取消准备…',
     'cloudReady':'云端语音识别已就绪。',
-    'prepareRequired':'请先在语音插件设置中准备识别服务',
     'discard':'丢弃识别文字',
     'transcribingShort':'识别中…',
     'wakingShort':'唤醒中…',
@@ -111,12 +116,16 @@ __all__=['命名空间','中文','英文']
     'tooLarge':'录音超过服务限制，请缩短录音后重试。',
 }
 
-英文={
+英文={#英文词典，只随登记留下。显示不读这里
     'dictate':'Dictate',
     'setupPrompt.title':'Set up voice input before recording',
     'setupPrompt.body':'Voice input is enabled. First use requires downloading and preparing local recognition models. Open the plugin details to review disk space, memory and time estimates before starting setup.',
     'setupPrompt.later':'Later',
     'setupPrompt.open':'Go to setup',
+    'setupPrompt.trigger':'Open voice input setup',
+    'setupPrompt.details':'Open voice plugin settings',
+    'setupPrompt.unavailableTitle':'Speech recognition is not ready',
+    'setupPrompt.unavailableBody':'Open the voice plugin details to check recognition status, preparation progress, or errors.',
     'setup.local':'Local models will be downloaded to the machine running DSH. No Python or compiler is required.',
     'setup.disk':'Disk space',
     'setup.diskValue':'Allow about {gb} GB for models, runtime, and download caches',
@@ -181,7 +190,6 @@ __all__=['命名空间','中文','英文']
     'preparation.cancelled':'Preparation cancelled. Completed downloads are retained.',
     'preparation.cancelling':'Cancelling preparation…',
     'cloudReady':'Cloud speech recognition is ready.',
-    'prepareRequired':'Prepare recognition in the voice plugin settings first',
     'discard':'Discard transcript',
     'transcribingShort':'Transcribing…',
     'wakingShort':'Waking…',

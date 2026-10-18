@@ -1,8 +1,8 @@
-__all__=['命名空间','轨迹文案键','中文','英文']#仅中文公开名
+'轨迹命名空间词表。登记中英两份；界面上的字直接写中文，不经过英文表'
 
-命名空间='trajectory'#词典命名空间名
+命名空间='trajectory'#本插件的词典命名空间
 
-中文={#简体中文词条（键集权威源）
+中文={
     'view.trajectory':'轨迹',
     'toolbar.aria':'轨迹工具栏',
     'toolbar.duration':'时长',
@@ -158,9 +158,9 @@ __all__=['命名空间','轨迹文案键','中文','英文']#仅中文公开名
     'details.toolCalls':'工具调用',
     'details.subtoolCalls':'子工具调用',
     'details.error':'错误',
+    'details.lastAttemptError':'上次尝试错误',
     'details.failure.auth':'API 密钥无效',
     'details.retry':'重试',
-    'details.scheduled':'已计划',
     'details.retryDelay':'重试延迟',
     'details.result':'结果',
     'details.compacted':'已压缩',
@@ -185,13 +185,19 @@ __all__=['命名空间','轨迹文案键','中文','英文']#仅中文公开名
     'layout.initialSystemPrompt':'初始系统提示词',
     'layout.systemPromptUpdated':'系统提示词已更新',
     'layout.toolsUpdated':'工具已更新',
+    'layout.toolAdded':'已添加工具：{name}',
+    'layout.toolRemoved':'已移除工具：{name}',
+    'layout.toolUpdateNotice':'工具已更新',
+    'layout.toolsAdded':'新增：{names}',
+    'layout.toolsAddedCount':'新增 {count} 个',
+    'layout.toolsChanged':'新增 {added} 个，移除 {removed} 个',
+    'layout.toolsRemoved':'移除：{names}',
+    'layout.toolsRemovedCount':'移除 {count} 个',
     'layout.systemPromptAndToolsUpdated':'系统提示词和工具已更新',
     'layout.compactionInterrupted':'上下文压缩在完成前被中断。',
-}#中文结束
+}
 
-轨迹文案键=tuple(中文.keys())#键集
-
-英文={#英文词条
+英文={
     'view.trajectory':'Trajectory',
     'toolbar.aria':'Trajectory toolbar',
     'toolbar.duration':'Duration',
@@ -347,9 +353,9 @@ __all__=['命名空间','轨迹文案键','中文','英文']#仅中文公开名
     'details.toolCalls':'Tool calls',
     'details.subtoolCalls':'Subtool calls',
     'details.error':'Error',
+    'details.lastAttemptError':'Last attempt error',
     'details.failure.auth':'API key is invalid',
     'details.retry':'Retry',
-    'details.scheduled':'Scheduled',
     'details.retryDelay':'Retry delay',
     'details.result':'Result',
     'details.compacted':'Compacted',
@@ -374,6 +380,14 @@ __all__=['命名空间','轨迹文案键','中文','英文']#仅中文公开名
     'layout.initialSystemPrompt':'Initial System Prompt',
     'layout.systemPromptUpdated':'System Prompt Updated',
     'layout.toolsUpdated':'Tools Updated',
+    'layout.toolAdded':'Tool added: {name}',
+    'layout.toolRemoved':'Tool removed: {name}',
+    'layout.toolUpdateNotice':'Tools updated',
+    'layout.toolsAdded':'Added: {names}',
+    'layout.toolsAddedCount':'{count} added',
+    'layout.toolsChanged':'{added} added, {removed} removed',
+    'layout.toolsRemoved':'Removed: {names}',
+    'layout.toolsRemovedCount':'{count} removed',
     'layout.systemPromptAndToolsUpdated':'System Prompt and Tools Updated',
     'layout.compactionInterrupted':'Compaction was interrupted before completion.',
-}#英文结束
+}

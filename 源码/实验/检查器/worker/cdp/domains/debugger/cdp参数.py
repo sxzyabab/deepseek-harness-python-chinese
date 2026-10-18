@@ -1,4 +1,4 @@
-__all__=['解析调用帧求值','取请求脚本id']#仅中文公开名
+__all__=['解析调用帧求值','获取请求脚本id']#仅中文公开名
 
 def _精确键(参数,允许键,标签):#精确键校验
     '拒绝未声明键'
@@ -49,7 +49,7 @@ def 解析调用帧求值(参数):#解析调用帧求值
         结果['timeoutMs']=超时#超时毫秒
     return 结果#返回
 
-def 取请求脚本id(参数):#取脚本id
+def 获取请求脚本id(参数):#取脚本id
     '查找直接携带或由 Debugger 位置参数携带的 ScriptId'
     if isinstance(参数.get('scriptId'),str):#直接字段
         return 参数['scriptId']#返回

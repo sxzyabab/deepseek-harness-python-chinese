@@ -1,42 +1,15 @@
-'浏览器本地的麦克风选择，和 Host 识别设置分开保存'
+'浏览器本地的麦克风偏好，设置预览和听写共用'
+from ....客户端.存储 import 创建快照存储#可持久化的快照
 
-__all__=['创建麦克风设备存储','快照仓']
+__all__=['创建麦克风设备存储']#导出的存储工厂
 
-class 快照仓:
-    'getSnapshot / set / subscribe'
-    def __init__(自身,初值):
-        '记下初值'
-        自身._状态=初值
-        自身._监听=set()
-
-    def getSnapshot(自身):
-        '当前设备'
-        return 自身._状态
-
-    def set(自身,次值):
-        '写入并通知'
-        自身._状态=次值
-        for 监听 in list(自身._监听):
-            监听()
-
-    def subscribe(自身,监听):
-        '返回退订'
-        自身._监听.add(监听)
-        def 退订():
-            '去掉这一个监听'
-            自身._监听.discard(监听)
-        return 退订
-
-def 合法设备(值):
-    'id 与 label 都必须是字符串；空 id 表示跟随系统输入'
-    if not isinstance(值,dict):
-        return False
-    return isinstance(值.get('id'),str) and isinstance(值.get('label'),str)
 
 def 创建麦克风设备存储():
-    '缺省跟随系统输入'
-    存储=快照仓({'id':'','label':''})
-    已存=存储.getSnapshot()
-    if not 合法设备(已存):
-        存储.set({'id':'','label':''})
-    return 存储
+    '恢复浏览器偏好。空 id 跟随系统输入，标签只存浏览器给出的名字'
+    存储=创建快照存储({'id':'','label':''},{'persist':{'name':'dsh.voice-input.microphone'}})#按这个名字持久化
+    已存=存储.getSnapshot()#读回来的值
+    标识可用=isinstance(已存,dict) and 'id' in 已存 and isinstance(已存.get('id'),str)#id 必须是字符串
+    标签可用=isinstance(已存,dict) and 'label' in 已存 and isinstance(已存.get('label'),str)#label 必须是字符串
+    if 已存 is None or 标识可用 is False or 标签可用 is False:#坏数据退回系统默认
+        存储.set({'id':'','label':''})#清空
+    return 存储#共享这一份

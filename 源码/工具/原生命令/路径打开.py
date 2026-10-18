@@ -68,7 +68,7 @@ def 资源管理器目标(windows路径):
     href=re.sub(r'(?:%[89A-Fa-f][0-9A-Fa-f])+',解码非ascii,href)
     return href.replace(',','%2C').replace('=','%3D')
 
-def 跑资源管理器(参数列表,信号,运行):
+def 运行资源管理器(参数列表,信号,运行):
     '把目标交给 Explorer；退出码 1 视为委托交接'
     try:
         运行('explorer.exe',参数列表,信号)
@@ -79,7 +79,7 @@ def 跑资源管理器(参数列表,信号,运行):
 
 def 打开Windows路径(路径,信号,运行):
     '经 Explorer 打开一条 Windows 可解析路径'
-    跑资源管理器([资源管理器目标(路径)],信号,运行)
+    运行资源管理器([资源管理器目标(路径)],信号,运行)
 
 def 打开WSL路径(路径,信号,运行):
     '交给 Windows 桌面前先翻译 WSL 路径'
@@ -166,7 +166,7 @@ def 揭示原生路径(路径,信号,内部=None):
             windows路径=re.sub(r'[\r\n]+$','',译['stdout'])
             if windows路径=='':
                 raise 原生命令错误('wslpath 没有返回 Windows 路径','EINVAL','','',None)
-        跑资源管理器(['/select,',资源管理器目标(windows路径)],信号,运行)
+        运行资源管理器(['/select,',资源管理器目标(windows路径)],信号,运行)
         return
     if 管理器=='directory':
         运行('xdg-open',[str(Path(路径).parent)],信号)

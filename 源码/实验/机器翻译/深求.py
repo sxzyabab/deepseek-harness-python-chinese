@@ -6,7 +6,7 @@ from ...模型后端.llm import 块组装器,推理力度标识
 from ...工具.值 import 深冻结
 from ...基础设施.通用工具 import utf8字节数,紧凑json编码
 from .异常 import 翻译错误
-from .类型 import 中止控制器,截止,取信号超时,取原因,读易失,若已中止则抛出
+from .类型 import 中止控制器,截止,取信号超时,取原因,读取易失,若已中止则抛出
 
 __all__=['深求配方','可用付费提供方','用深求翻译']
 
@@ -63,11 +63,11 @@ def 密钥引用(主人):
     配置=主人['config']
     if not isinstance(配置,dict) or 'apiKeyEnv' not in 配置:
         return 未定义
-    return 读易失(配置['apiKeyEnv'])
+    return 读取易失(配置['apiKeyEnv'])
 
 def 模型表(主人):
     '易失模型目录的当前值，身份比较用这个对象'
-    return 读易失(主人['config']['models'])
+    return 读取易失(主人['config']['models'])
 
 def 未变(上下文,提供方,先前):
     '纤程、模型表身份和官方密钥字符串都没变'

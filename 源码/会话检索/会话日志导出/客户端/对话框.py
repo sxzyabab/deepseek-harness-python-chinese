@@ -1,108 +1,68 @@
-'会话 Header 下载项与 /export 共用的状态对话框'
-from nicegui import ui as 界面
+'页眉下载项和 /export 共用的状态对话框'
+from ....客户端.模块.客户端.通告 import 取握手窗口
+from ....客户端.ui_基础界面组件 import 按钮,模态#关闭按钮和对话框
 
-__all__=['会话日志下载对话框']
-
-样式表='''
-.q-card.导出会话对话{box-sizing:border-box;border:0.5px solid var(--dsw-alias-border-inverted);background:var(--dsw-alias-bg-layer-2)}
-.导出会话内容{display:flex;flex-direction:column;width:100%;max-width:420px}
-.导出会话题{margin:0;padding:22px 24px 8px;font-size:16px;line-height:24px;font-weight:500;color:var(--dsw-alias-label-primary)}
-.导出会话述{margin:0;padding:0 24px 8px;font-size:14px;line-height:22px;color:var(--dsw-alias-label-primary)}
-.导出会话动作{display:flex;justify-content:flex-end;width:100%;padding:8px 24px 20px}
-button.q-btn.导出会话关{min-width:72px;height:36px;padding:0 16px;border-radius:var(--dsw-radius-md);font-size:14px;font-weight:500;background:var(--dsw-alias-label-primary) !important;color:var(--dsw-alias-bg-layer-3) !important}
-'''
-
-界面.add_css(样式表,shared=True)
-
-def 是绝对路径(词):
-    '空白分隔后的一词是否为绝对路径或家目录路径'
-    统一=词.strip('\'"').replace('\\','/')
-    if 统一.startswith('/') or 统一.startswith('~/'):
-        return True
-    if len(统一)>2 and 统一[0].isalpha() and 统一[1]==':' and 统一[2]=='/':
-        return True
-    return False
-
-def 失败说明(原文,兜底):
-    '失败句去掉绝对路径；没有剩下的字就用兜底'
-    if isinstance(原文,BaseException):
-        文本=str(原文.args[0]) if len(原文.args)>0 else ''
-    elif isinstance(原文,str):
-        文本=原文
-    else:
-        return 兜底
-    留下=[]
-    for 词 in 文本.split():
-        if 是绝对路径(词):
-            continue
-        留下.append(词)
-    说明=' '.join(留下).strip()
-    if 说明=='':
-        return 兜底
-    return 说明
-
-def 读下载(属性):
-    '注入面 hooks.sessionLogDownload 的整份快照'
-    钩=属性['hooks'] if 'hooks' in 属性 and 属性['hooks'] is not None else {}
-    存储=钩['sessionLogDownload'] if isinstance(钩,dict) and 'sessionLogDownload' in 钩 else None
-    if 存储 is not None:
-        return 存储.getSnapshot()
-    if 'useSessionLogDownload' in 属性 and 属性['useSessionLogDownload'] is not None:
-        return 属性['useSessionLogDownload'](lambda 快照:快照)
-    return {'bySession':{}}
 
 class 会话日志下载对话框:
-    '按会话展示准备中、已开始或失败'
+    '按这一会话显示准备中、已开始或失败'
     def __init__(自身,属性):
-        '记下 props。父组件调用渲染，构造不画'
-        自身.属性=属性
+        '记下份额。由页眉调用渲染'
+        自身.属性=属性#props
+        自身.模态=模态()#共享对话框
+        自身.根=None#当前节点
 
     def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性
-
-    def 条目(自身):
-        '当前会话的对话框条目；没有则未打开'
-        状态=读下载(自身.属性)
-        按会话=状态['bySession'] if isinstance(状态,dict) and 'bySession' in 状态 and 状态['bySession'] is not None else {}
-        标识=自身.属性['sessionId'] if 'sessionId' in 自身.属性 else None
-        return 按会话[str(标识)] if str(标识) in 按会话 else None
-
-    def 关闭(自身):
-        '关掉对话框，不取消在途下载'
-        自身.属性['dismiss'](自身.属性['sessionId'])
+        '换成这一次的份额'
+        自身.属性=属性#最新
 
     def 渲染(自身):
-        '打开时画标题、说明和关闭'
-        条目=自身.条目()
-        if 条目 is None or 条目.get('open') is not True:
-            return
-        翻译=自身.属性['t']
-        状态=条目.get('status')
-        if 状态=='error':
-            说明原文=失败说明(条目.get('error'),翻译('dialog.commandFailed'))
-        else:
-            说明原文=None
-        if 状态=='downloading':
-            标题=翻译('dialog.preparingTitle')
-            说明=翻译('dialog.preparingDescription')
-        elif 状态=='success':
-            标题=翻译('dialog.successTitle')
-            说明=翻译('dialog.successDescription')
-        else:
-            标题=翻译('dialog.errorTitle')
-            说明=说明原文 or 翻译('dialog.commandFailed')
-        with 界面.dialog() as 对话框:
-            with 界面.card().classes('导出会话对话'):
-                with 界面.column().classes('导出会话内容'):
-                    界面.label(标题).classes('导出会话题')
-                    界面.label(说明).classes('导出会话述')
-                    with 界面.row().classes('导出会话动作'):
-                        界面.button(翻译('dialog.close'), on_click=自身.关闭).props('unelevated no-caps').classes('导出会话关')
-        对话框.open()
+        '打开时画出标题、说明和关闭。关着则没有节点'
+        属性=自身.属性#这一次
+        if 'window' in 属性:#调用方带了窗口
+            窗口=属性['window']#用它
+        else:#槽位份额里没有窗口
+            窗口=取握手窗口()#当前页
+        会话标识=属性['sessionId']#这一会话
 
-    def __call__(自身,属性=None):
-        '对齐调用'
-        if 属性 is not None:
-            自身.更新(属性)
-        return 自身.渲染()
+        def 选出(状态):
+            '这一会话的下载条目'
+            return 状态['bySession'].get(str(会话标识))#没有则是 None
+
+        条目=属性['useSessionLogDownload'](选出)#当前条目
+        状态=None if 条目 is None else 条目.get('status')#阶段
+        打开=条目 is not None and 条目.get('open') is True#是否开着
+        错误=None#失败说明
+        if 状态=='error':#失败才有说明
+            原文=None if 条目 is None else 条目.get('error')#控制器写下的句子
+            if 原文:#空串也走文案
+                错误=原文#原句
+            else:#没有句子
+                错误='无法启动 Session 导出。'#中文表 dialog.commandFailed
+        if 状态=='downloading':#准备中
+            标题='正在导出 Session'#dialog.preparingTitle
+            说明='正在准备包含当前 Session、子 Session 和附件的 ZIP 文件。'#dialog.preparingDescription
+        elif 状态=='success':#已开始
+            标题='Session 导出已开始下载'#dialog.successTitle
+            说明='浏览器正在下载 Session ZIP 文件。'#dialog.successDescription
+        else:#失败或还没有条目
+            标题='Session 导出失败'#dialog.errorTitle
+            说明=错误 if 错误 is not None else '无法启动 Session 导出。'#失败句或兜底
+
+        def 关闭():
+            '关掉对话框，不取消在途下载'
+            属性['dismiss'](会话标识)#只关这一会话
+
+        自身.模态.更新({#对话框份额
+            'window':窗口,#页面
+            'open':打开,#开合
+            'onClose':关闭,#关
+            'title':标题,#标题
+            'description':说明,#说明
+            'closeLabel':'关闭',#dialog.close
+            'footer':按钮({'variant':'primary','onClick':关闭,'children':'关闭'}),#页脚同一句
+        })
+        自身.根=自身.模态.渲染()#关着则为 None
+        return 自身.根#节点或 None
+
+
+__all__=['会话日志下载对话框']

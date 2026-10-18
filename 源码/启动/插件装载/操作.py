@@ -8,15 +8,15 @@ from ..app启动 import (
     默认组合包,
     初始化配置档,
     配置模板,
-    读配置清单,
+    读取配置清单,
     解析组合包目录,
     解析配置目录,
     加载覆盖补丁,
 )
 
 __all__=[
-    '锚定路径规格','组合包清单','保存清单','跑配置档pnpm','跑插件命令','查看配置档包',
-    '读配置档注册表','注册表参数',
+    '锚定路径规格','组合包清单','保存清单','运行配置档pnpm','运行插件命令','查看配置档包',
+    '读取配置档注册表','注册表参数',
 ]
 
 相对路径规格=re.compile(r'^(?P<prefix>(?:file|link):)?(?P<path>\.{1,2}(?:[/\\].*)?)$')
@@ -32,7 +32,7 @@ def 锚定路径规格(参数,工作目录):
 def 组合包清单(名称,目录,锚点):
     '读组合包元数据而不加载其 JavaScript；无组合包元数据则返回 None'
     包目录=解析组合包目录('dsh',名称,锚点,目录)
-    清单=读配置清单('dsh',包目录)
+    清单=读取配置清单('dsh',包目录)
     补丁=((清单.get('dsh') or {}).get('bundle') or {}).get('patch')
     return None if 补丁 is None else 清单
 
@@ -47,7 +47,7 @@ def json_dumps_清单(清单):
 
 def 调和(之前,目录,锚点,选项):
     '调和包删除与新装组合包，不重开保留依赖'
-    之后=读配置清单('dsh',目录)
+    之后=读取配置清单('dsh',目录)
     依赖=list((之后.get('dependencies') or {}).keys())
     之前依赖=set((之前.get('dependencies') or {}).keys())
     先前=list(((之后.get('dsh') or {}).get('profile') or {}).get('bundles') or [])
@@ -105,10 +105,10 @@ def 收集流(流,种类,日志句柄,写出锁,状态,选项):
         状态['streamError']=True
         raise
 
-def 跑配置档pnpm(上下文,参数列表,选项):
+def 运行配置档pnpm(上下文,参数列表,选项):
     '在调用方已持有配置档写锁的前提下于配置档内执行 pnpm'
     目录=上下文['dir'] if 上下文.get('dir') is not None else 解析配置目录(上下文['profile'],上下文.get('home'))
-    之前=读配置清单('dsh',目录)
+    之前=读取配置清单('dsh',目录)
     日志根=os.path.join(目录,'.plugin-manager','logs')
     os.makedirs(日志根,mode=0o700,exist_ok=True)
     日志目录=tempfile.mkdtemp(prefix='operation-',dir=日志根)
@@ -193,7 +193,7 @@ def 跑配置档pnpm(上下文,参数列表,选项):
         结果['timedOut']=True
     return 结果
 
-def 跑插件命令(上下文,参数列表,选项):
+def 运行插件命令(上下文,参数列表,选项):
     '与服务共用写锁地初始化并跑 dsh plugin 命令'
     目录=上下文['dir'] if 上下文.get('dir') is not None else 解析配置目录(上下文['profile'],上下文.get('home'))
     os.makedirs(目录,exist_ok=True)
@@ -205,7 +205,7 @@ def 跑插件命令(上下文,参数列表,选项):
             回调=选项.get('onOutput')
             if 回调 is not None:
                 回调('dsh: 已初始化配置档 '+上下文['profile']+'\n','stderr')
-        return 跑配置档pnpm(上下文,参数列表,选项)
+        return 运行配置档pnpm(上下文,参数列表,选项)
     return 带文件锁(os.path.join(目录,'package.json'),持锁)
 
 def 注册表参数(注册表):
@@ -214,7 +214,7 @@ def 注册表参数(注册表):
         return []
     return ['--registry='+注册表]
 
-def 读配置档注册表(目录,选项):
+def 读取配置档注册表(目录,选项):
     '读 pnpm 在配置档里解析出的 registry'
     命令=选项.get('command') or 'pnpm'
     前缀=list(选项.get('args') or [])

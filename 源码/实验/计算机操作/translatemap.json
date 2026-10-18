@@ -1,0 +1,10 @@
+{
+    "types":"类型",
+    "protocol":"协议",
+    "native-client":"原生客户端",
+    "coordinates":"坐标",
+    "application-types":"应用程序类型",
+    "bridge":"桥接",
+    "application-access":"应用程序访问",
+    "api":"接口"
+}

@@ -9,5 +9,6 @@
     "extension-cookbook":"拓展实操手册",
     "maintaining-dsh-code-review":"维护代码审查skill",
     "responding-to-pr-review-on-a-stack":"回复堆叠PR",
-    "reviewing-persistence-type-changes":"审阅持久化类型变更"
+    "reviewing-persistence-type-changes":"审阅持久化类型变更",
+    "adding-a-plugin-preview":"添加插件功能配图"
 }

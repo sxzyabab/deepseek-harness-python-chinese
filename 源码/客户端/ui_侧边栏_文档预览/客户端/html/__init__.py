@@ -1,6 +1,6 @@
 from ..远程过程调用 import 宿主文件#宿主文件
 from .文案 import 中文,英文,超文本预览键#词典
-from .超文本体 import 超文本体,超文本面板,样式表#正文
+from .超文本体 import 超文本体,超文本面板,处理超文本面板,样式表#正文
 from . import (
     基础文档,
     字节,
@@ -9,7 +9,7 @@ from . import (
     读取相对,
 )
 
-__all__=['超文本体标识','超文本体定义','应用','超文本体','超文本面板','样式表','中文','英文','超文本预览键']
+__all__=['超文本体标识','超文本体定义','应用','超文本体','超文本面板','处理超文本面板','样式表','中文','英文','超文本预览键']
 超文本体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/html'#实现 id
 
 
@@ -25,7 +25,7 @@ def 超文本体定义(标题):
     }#结束
 
 
-def 应用(上下文):
+def 应用(上下文,配置=None):
     '登记 HTML 词典、元数据与正文'
     翻译=上下文.locale.bind('documentHtml')#绑定
 
@@ -35,9 +35,12 @@ def 应用(上下文):
 
     上下文.副作用(登记词典)#寿命
 
+    def 标题():
+        '实现名。是 HTML'
+        return 中文['title']
     def 登记元数据():
         '挂 HTML 元数据'
-        return 上下文.documentPreviews.register(超文本体定义(lambda:翻译('title')))#登记
+        return 上下文.documentPreviews.register(超文本体定义(标题))
 
     上下文.副作用(登记元数据)#寿命
 

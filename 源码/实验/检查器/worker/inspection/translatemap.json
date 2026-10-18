@@ -1,4 +1,5 @@
 {
+    "realm":"领域",
     "query-router":"查询路由",
     "realm-store":"realm存储",
     "cordis-query":"cordis查询",

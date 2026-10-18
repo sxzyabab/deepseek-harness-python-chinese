@@ -1,3 +1,17 @@
+class 工作区活动会话错误(Exception):
+    '会话还有运行中的工作，不能归档'
+    def __init__(自身,活动):
+        '记下还在跑的活动'
+        super().__init__('cannot archive session: activity is still running')
+        自身.activity=活动
+
+class 工作区已归档会话钉住错误(Exception):
+    '已归档会话不能钉住'
+    def __init__(自身,会话号):
+        '记下被拒绝的会话'
+        super().__init__('cannot pin an archived session')
+        自身.sessionId=会话号
+
 class 工作区错误(Exception):
     '工作区包的一般错误'
 

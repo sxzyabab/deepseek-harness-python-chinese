@@ -1,7 +1,3 @@
 {
-    "entries":"条目",
-    "entry-lifecycle":"条目生命周期",
-    "invariant":"不变量",
-    "manifest":"清单",
-    "system":"系统"
+    "invariant": "不变量"
 }

@@ -10,7 +10,7 @@ from ...基础设施.通用工具.序列化编码 import 字节转base64url
 from ...基础设施.js特性 import PromiseEX as 期约
 from ..凭据 import 凭证键
 from ..deepseek账号 import deepseek账号,合并平台Cookie,桌面客户端头
-from .细节列表 import 投影配置档,读账号细节
+from .细节列表 import 投影配置档,读取账号细节
 from .登出 import 吊销账号
 from .异常 import 平台认证错误
 from .协议 import (
@@ -144,7 +144,7 @@ class 平台账号(deepseek账号):
 
     def _初始化(自身):
         '校验已存授予的签发方'
-        记录=自身.ctx.credentials.读记录(授予键)
+        记录=自身.ctx.credentials.读取记录(授予键)
         if 记录 is None:
             return
         if 记录.get('kind')!='grant':
@@ -159,7 +159,7 @@ class 平台账号(deepseek账号):
 
     def 获取状态(自身):
         '已存账号与最近尝试'
-        记录=自身.ctx.credentials.读记录(授予键)
+        记录=自身.ctx.credentials.读取记录(授予键)
         if 记录 is not None and (记录.get('kind')!='grant' or 解析授予(记录.get('payload')) is None):
             raise 平台认证错误('storage')
         尝试视图=自身._尝试['view'] if 自身._尝试 is not None else None
@@ -175,7 +175,7 @@ class 平台账号(deepseek账号):
     def 获取配置档(自身):
         '独立查询配置档'
         寿命=自身._细节寿命
-        结果=自身._取细节('profile')
+        结果=自身._获取细节('profile')
         if 自身._细节寿命 is not 寿命:
             return None
         if 结果 is not None and 结果.get('status')=='ready':
@@ -186,12 +186,12 @@ class 平台账号(deepseek账号):
 
     def 获取平衡(自身):
         '独立查询钱包'
-        return 自身._取细节('balance')
+        return 自身._获取细节('balance')
 
-    def _取细节(自身,字段):
+    def _获取细节(自身,字段):
         '读一项平台字段'
         寿命=自身._细节寿命
-        已存=自身._读当前授予(寿命)
+        已存=自身._读取当前授予(寿命)
         if 已存 is None or 已中止(寿命.信号):
             return None
         if 字段=='profile' and 自身._尝试 is not None:
@@ -201,7 +201,7 @@ class 平台账号(deepseek账号):
                 return 初['value']
         句柄=截止(寿命.信号,自身._请求超时,'account-detail')
         try:
-            细节=读账号细节(字段,自身._来源,已存['token'],句柄.信号,{**自身._账号头,**自身._客户端头})
+            细节=读取账号细节(字段,自身._来源,已存['token'],句柄.信号,{**自身._账号头,**自身._客户端头})
         finally:
             句柄.释放()
         if 自身._细节寿命 is not 寿命:
@@ -211,7 +211,7 @@ class 平台账号(deepseek账号):
     def 获取平台会话(自身):
         '宿主专用会话快照'
         寿命=自身._细节寿命
-        已存=自身._读当前授予(寿命)
+        已存=自身._读取当前授予(寿命)
         if 已存 is None or 已中止(寿命.信号):
             return None
         结果={'origin':自身._来源,'token':已存['token'],'requestHeaders':{**自身._账号头,**自身._客户端头}}
@@ -219,11 +219,11 @@ class 平台账号(deepseek账号):
             结果['embeddedPageDist']=自身._嵌入发行
         return 结果
 
-    def _读当前授予(自身,寿命):
+    def _读取当前授予(自身,寿命):
         '匹配当前来源的授予'
         if 自身._已关闭:
             return None
-        记录=自身.ctx.credentials.读记录(授予键)
+        记录=自身.ctx.credentials.读取记录(授予键)
         if 记录 is None or 已中止(寿命.信号):
             return None
         if 记录.get('kind')!='grant':
@@ -241,7 +241,7 @@ class 平台账号(deepseek账号):
         目的来源=目的.scheme+'://'+目的.netloc
         if 目的来源!=自身._推理来源 or 目的.username or 目的.password:
             return None
-        记录=自身.ctx.credentials.读记录(授予键)
+        记录=自身.ctx.credentials.读取记录(授予键)
         if 记录 is None:
             return None
         if 记录.get('kind')!='grant':
@@ -357,7 +357,7 @@ class 平台账号(deepseek账号):
                 raise 平台认证错误('protocol')
             if 自身._尝试 is not None:
                 自身.取消登录(自身._尝试['view']['id'])
-            记录=自身.ctx.credentials.读记录(授予键)
+            记录=自身.ctx.credentials.读取记录(授予键)
             if 记录 is not None:
                 if 记录.get('kind')!='grant':
                     raise 平台认证错误('storage')

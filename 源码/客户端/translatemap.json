@@ -62,5 +62,6 @@
     "product-analytics":"产品埋点",
     "ui-settings-session-log":"ui_会话日志设置",
     "shortcuts":"快捷键",
-    "ui-shortcuts":"ui_快捷键"
+    "ui-shortcuts":"ui_快捷键",
+    "ui-secret-mask":"ui_密钥掩码"
 }

@@ -1,8 +1,17 @@
-__all__=['markdown标签']#仅中文公开名
+__all__=['markdown标签']
 
-def markdown标签(翻译):#构造 Markdown 标签
-    '为一版本地化构造完整 Markdown 饰件文案'
-    return {#标签表
-        'code':{'copyLabel':翻译('copy'),'copiedLabel':翻译('copied')},#代码复制文案
-        'footnotes':翻译('markdown.footnotes'),#脚注标题
-    }#返回结束
+
+def markdown标签(翻译=None):
+    '代码块和脚注交给共享 Markdown。字是公共中文表里实际取到的原文'
+    return {
+        'code':{
+            'copyLabel':'复制',
+            'copiedLabel':'复制成功',
+            'toolbarLabels':{
+                'codeLabel':'代码块',
+                'wrapLabel':'自动换行',
+                'unwrapLabel':'取消自动换行',
+            },
+        },
+        'footnotes':'脚注',
+    }

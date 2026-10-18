@@ -52,6 +52,7 @@
   text-decoration: underline;
 }
 
+/* Claude Code's terminal palette, on this theme's tokens. */
 [data-color='yellow'] { color: var(--dsw-alias-state-warn-primary); }
 [data-color='red'] { color: var(--dsw-alias-state-error-primary); }
 [data-color='green'] { color: var(--dsw-alias-state-success-primary); }

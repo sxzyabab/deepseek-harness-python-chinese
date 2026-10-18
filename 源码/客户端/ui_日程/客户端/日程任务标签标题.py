@@ -1,58 +1,44 @@
-'右侧标签芯片：时钟加任务标题'
-from nicegui import ui as 界面
-from ..异常 import 页面失败文案
-from .日历图标 import 日历图标
-from .任务标签目标 import 解析任务标签目标
+'右栏任务页芯片：时钟加存下的标题。目录还没有这一行时用任务详情'
+from ...模块.客户端.通告 import 取握手窗口
+import os
+from ...ui_对话.异常 import 注入模块样式文件
+from .管理文案 import 管理中文
 from .日程格式 import 任务名
+from .任务标签目标 import 用任务标签目标
+from .任务管理图标 import 画时钟
 
 __all__=['日程任务标签标题']
 
-def 取(对象,键):
-    '字典或对象'
-    if isinstance(对象,dict):
-        return 对象[键] if 键 in 对象 else None
-    return getattr(对象,键,None)
+样式模块='task-manager-page'
+
+def 确保样式(文档):
+    '芯片图标用任务管理页样式'
+    注入模块样式文件(文档,'日程任务管理页样式',os.path.join(os.path.dirname(__file__),'任务管理页.module.css'),样式模块)
 
 class 日程任务标签标题:
-    '槽位只调用构造'
-    def __init__(自身,属性=None):
-        '记下 props。槽位只调用构造，键齐了就画。'
-        自身.属性=属性 if isinstance(属性,dict) else {}
-        if 'useTabInfo' in 自身.属性 and 'useCatalog' in 自身.属性:
-            自身.渲染()
-
-    def 更新(自身,属性):
-        '刷新'
-        自身.属性=属性 if isinstance(属性,dict) else {}
-
-    def 渲染(自身):
-        '有目录行用标题，否则用详情名'
-        属性=自身.属性
-        翻译=属性['t'] if 't' in 属性 and callable(属性['t']) else (lambda 键,_参数=None:键)
-        标签={}
-        用=属性['useTabInfo'] if 'useTabInfo' in 属性 else None
-        if callable(用):
-            try:
-                标签=取(用(lambda 当前:当前),'tab') or {}
-            except Exception:
-                标签={}
-        解析=解析任务标签目标(属性.get('sessionId'),标签,属性['taskBindings'] if 'taskBindings' in 属性 else None)
-        参数=解析['params']
+    '时钟在前，后面是任务标题或任务详情'
+    def __new__(类,属性=None):
+        '按这一页解析出的任务重画'
+        窗口=属性['window'] if isinstance(属性,dict) and 'window' in 属性 else 取握手窗口()
+        文档=窗口.document
+        确保样式(文档)
+        信息=属性['useTabInfo']()
+        页=信息['tab']
+        解析=用任务标签目标(属性['sessionId'],页,属性['taskBindings'])
+        def 取记录(快照):
+            '只要记录列'
+            return 快照['records']
+        记录列=属性['useCatalog'](取记录)
         记录=None
-        用目录=属性['useCatalog'] if 'useCatalog' in 属性 else None
-        if callable(用目录) and isinstance(参数,dict):
-            try:
-                快照=用目录(lambda 当前:当前)
-            except Exception:
-                快照={}
-            表=快照['records'] if isinstance(快照,dict) and 'records' in 快照 and isinstance(快照['records'],list) else []
-            记录=next((项 for 项 in 表 if isinstance(项,dict) and 项.get('id')==参数.get('id')),None)
-        with 界面.row().classes('schedule-tab-title').style('align-items:center;gap:6px'):
-            日历图标({'size':16}).渲染()
-            界面.label(翻译('detail.label') if 记录 is None else 任务名(记录))
-
-    def __call__(自身,属性=None):
-        '更新后渲染'
-        if 属性 is not None:
-            自身.更新(属性)
-        return 自身.渲染()
+        if 解析['params'] is not None:
+            for 项 in 记录列:
+                if 项.get('id')==解析['params']['id']:
+                    记录=项
+                    break
+        片段=文档.createDocumentFragment()
+        图=画时钟(文档,16,'tabTitleIcon')
+        图.setAttribute('data-dsh-css',样式模块)
+        片段.appendChild(图)
+        字=管理中文['detail.label'] if 记录 is None else 任务名(记录)
+        片段.appendChild(文档.createTextNode(字))
+        return 片段

@@ -2,7 +2,7 @@
 import os,math#工作目录与有限数
 from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
-from ..命令 import 外壳设置命名空间,外壳执行器#shell设置命名空间与执行器基类
+from ..命令 import 命令解释器设置命名空间,命令解释器执行器#shell设置命名空间与执行器基类
 from ...配置.配置 import 安装设置段#设置段安装
 from ...工具.超时 import (
     夹取超时,#夹取超时
@@ -76,7 +76,7 @@ def 取出已收集(句柄):#取出收集模式的两路读取器
         raise 本地powershell错误('pwsh-local: subprocess implementation dropped a requested collect stream')#按约定这两路必须在
     return {'stdout':标准输出,'stderr':标准误}#两路读取器
 
-class 后台进程句柄:#外壳执行器.启动 返回的后台进程
+class 后台进程句柄:#命令解释器执行器.启动 返回的后台进程
     def __init__(自身,运行中,收集,规格,宿主,分类函数):#钉住子进程与收集器
         '记下存活子进程、两路收集器、规格与宿主执行器'
         自身.status='running'#刚拉起，算在跑
@@ -197,7 +197,7 @@ class 后台进程句柄:#外壳执行器.启动 返回的后台进程
                 拆除截止()#释放
         自身.运行中.done.然后(已退出,启动拒绝)#等到关闭
 
-class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
+class 本地PowerShell执行器(命令解释器执行器):#本地 PowerShell 执行器
     """架在子进程能力上的本地 PowerShell 执行器。
 
     有界输出、溢出文件和进程树终止是子进程服务的机制；本执行器在每次启动时提供它们的配置预算
@@ -226,7 +226,7 @@ class 本地PowerShell执行器(外壳执行器):#本地 PowerShell 执行器
                 return#不用重探文件系统
             自身.已声明Pwsh路径=声明#记下新的声明
             自身.已解析Pwsh路径=解析Pwsh路径(声明)#按新声明重新解析
-        安装设置段(上下文,外壳设置命名空间,配置模式,配置,{#与 bash 家族共用外壳设置命名空间
+        安装设置段(上下文,命令解释器设置命名空间,配置模式,配置,{#与 bash 家族共用命令解释器设置命名空间
             'validate':断言可用Pwsh配置,#写入时再断言能跑
             'setSource':设源,#切换权威配置源
             'onChange':变更时,#仅声明路径变化才重探

@@ -1,140 +1,158 @@
-import threading#中止与等待
-from ..异常 import 命令错误#本包异常
-from .解析 import 解析命令#精确名优先于本地化别名
+import threading
+from ..异常 import 目录等待中止原因
+from .解析 import 第一方定义,拼写别名
 
-__all__=['命令目录','已中止','若已中止则抛出']#仅中文公开名
+__all__=['命令目录']
 
-def 已中止(信号):
-    'Event 已置位'
-    return 信号 is not None and 信号.is_set()#已中止
+def 信号已中止(信号):
+    'AbortSignal 认 aborted，触发源传来的 Event 认 is_set'
+    if hasattr(信号,'aborted'):
+        return bool(信号.aborted)
+    return 信号.is_set()
 
-def 若已中止则抛出(信号):
-    '已置位则抛本包异常'
-    if 已中止(信号):#已中止
-        raise 命令错误('command directory wait aborted')#中止
-
-class 目录格子:#一个会话键的缓存格子
-    'cold / pending / ready / failed'
+class 目录格子:
+    '一场会话的目录缓存格'
     def __init__(自身):
         '从未拉过'
-        自身.状态='cold'#缓存生命周期
-        自身.命令表=()#热快照
-        自身.代次=0#拉取代次
-        自身.最近错误=None#最近一次胜出拉取的拒绝值
-        自身.等待者=[]#等落定的 Event
+        自身.状态='cold'
+        自身.命令表=()
+        自身.代次=0
+        自身.最近错误=None
+        自身.等待者=[]
 
-class 命令目录:#按会话键的目录缓存
-    '拥有它的服务负责接线事件与 RPC'
+class 命令目录:
+    '按会话缓存宿主命令目录。事件和远程调用由拥有它的服务来接'
     def __init__(自身,拉命令):
-        '记下按会话拉宿主目录的回调'
-        自身.拉命令=拉命令#拉取
-        自身.格子表={}#会话 → 格子
+        '记下按会话拉目录的回调'
+        自身.拉命令=拉命令
+        自身.格子表={}
 
-    def status(自身,会话标识):
-        '一场会话当前的缓存状态'
-        if 会话标识 not in 自身.格子表:#从未碰过
-            return 'cold'#cold
-        return 自身.格子表[会话标识].状态#格子状态
+    def 取状态(自身,会话标识):
+        '这场会话现在的缓存状态。没碰过是 cold'
+        if 会话标识 not in 自身.格子表:
+            return 'cold'
+        return 自身.格子表[会话标识].状态
 
-    def resolve(自身,会话标识,名):
-        '就绪目录上同步查找；精确名优先于本地化别名'
-        if 会话标识 not in 自身.格子表:#无格子
-            return None#缺席
-        格子=自身.格子表[会话标识]#格子
-        if 格子.状态!='ready':#未就绪
-            return None#缺席
-        return 解析命令(名,格子.命令表)#精确名优先，再别名
+    def 解析(自身,会话标识,名):
+        '在就绪目录上同步查找。精确名优先，再按中英文令牌别名'
+        if 会话标识 not in 自身.格子表:
+            return None
+        格子=自身.格子表[会话标识]
+        if 格子.状态!='ready':
+            return None
+        for 描述符 in 格子.命令表:
+            if 描述符['name']==名:
+                return 描述符
+        if 名 not in 拼写别名:
+            return None
+        方名=拼写别名[名]
+        包名=第一方定义[方名]
+        for 描述符 in 格子.命令表:
+            if 描述符.get('definitionId')==包名:
+                return 描述符
+        return None
 
-    def invalidateAll(自身):
-        '软失效：已碰过的键后台重拉'
-        for 键 in list(自身.格子表.keys()):#每个键
-            自身.刷新(键)#重拉
+    def 全部失效(自身):
+        '软失效：每个已经碰过的会话再拉一次，就绪快照在新结果到来前继续可用'
+        for 键 in list(自身.格子表.keys()):
+            自身.刷新(键)
 
-    def resetSession(自身,会话标识):
-        '丢掉该会话旧组合并预热'
-        格子=自身.格子(会话标识)#取或建
-        格子.状态='cold'#丢掉状态
-        格子.命令表=()#丢掉快照
-        格子.最近错误=None#清错误
-        自身.刷新(会话标识)#预热重拉
+    def 重置会话(自身,会话标识):
+        '丢掉这场会话的旧组合，再预热新目录'
+        格子=自身.取格子(会话标识)
+        格子.状态='cold'
+        格子.命令表=()
+        格子.最近错误=None
+        自身.刷新(会话标识)
 
-    def resetConnected(自身):
-        '重连硬重置并预热'
-        for 键,格子 in list(自身.格子表.items()):#每个格子
-            格子.状态='cold'#丢掉状态
-            格子.命令表=()#丢掉快照
-            自身.刷新(键)#预热重拉
+    def 重置已连接(自身):
+        '重连后丢掉每个快照并预热'
+        for 键,格子 in list(自身.格子表.items()):
+            格子.状态='cold'
+            格子.命令表=()
+            自身.刷新(键)
 
-    def warm(自身,会话标识):
-        '对一场会话点火即忘预热'
-        格子=自身.格子(会话标识)#取或建
-        if 格子.状态 in ('cold','failed'):#从未拉过或上次失败
-            自身.刷新(会话标识)#拉
+    def 预热(自身,会话标识):
+        '冷的或失败的会话点火拉一次'
+        格子=自身.取格子(会话标识)
+        if 格子.状态=='cold' or 格子.状态=='failed':
+            自身.刷新(会话标识)
 
     def 刷新(自身,会话标识):
-        '启动一次拉取。仅在仍是该键最新拉取时才发布 ready/failed'
-        格子=自身.格子(会话标识)#取或建
-        格子.代次+=1#本拉取代次
+        '拉一次。只有仍是这场会话最新的那次才能写下 ready 或 failed'
+        格子=自身.取格子(会话标识)
+        格子.代次+=1
         本代=格子.代次
-        if 格子.状态!='ready':#非 ready 才标 pending
-            格子.状态='pending'#pending
-        try:#跑注入的拉取
-            命令表=自身.拉命令(会话标识)#拉命令列表
-            if 本代!=格子.代次:#已被更新的拉取抢过
-                return#丢弃
-            格子.命令表=tuple(命令表)#写入快照
-            格子.状态='ready'#标为就绪
-            格子.最近错误=None#清错误
-        except 命令错误 as 错误:#拉取失败
-            if 本代!=格子.代次:#已被更新的拉取抢过
-                return#丢弃
-            格子.命令表=()#丢掉快照
-            格子.状态='failed'#标为失败
-            格子.最近错误=错误#记下拒绝值
-        if 本代==格子.代次:#仍是胜者
-            自身.唤醒等待(格子)#唤醒等待者
+        if 格子.状态!='ready':
+            格子.状态='pending'
+        try:
+            命令表=自身.拉命令(会话标识)
+            if 本代!=格子.代次:
+                return
+            格子.命令表=tuple(命令表)
+            格子.状态='ready'
+            格子.最近错误=None
+        except Exception as 错误:
+            if 本代!=格子.代次:
+                return
+            格子.命令表=()
+            格子.状态='failed'
+            格子.最近错误=错误
+        finally:
+            if 本代==格子.代次:
+                醒来=格子.等待者
+                格子.等待者=[]
+                for 唤醒 in 醒来:
+                    唤醒()
 
-    def ensureReady(自身,会话标识,信号=None):
-        '强等到可服务。ready 立刻返回；cold/failed 起新拉取；pending 加入在飞的那次'
-        格子=自身.格子(会话标识)#取或建
-        while True:#直到 ready 或抛错
-            若已中止则抛出(信号)#中止
-            if 格子.状态=='ready':#已就绪
-                return 格子.命令表#交出快照
-            if 格子.状态!='pending':#cold/failed 起新拉取
-                自身.刷新(会话标识)#拉
-            if 格子.状态=='ready':#同步拉取已落定
-                return 格子.命令表#交出
-            自身.等落定(格子,信号)#等下一次胜出发布
-            if 格子.状态=='failed':#等待的拉取失败
-                错=格子.最近错误#拒绝值
-                文=错.args[0] if isinstance(错,命令错误) and len(错.args)>0 else str(错)#消息
-                raise 命令错误('command directory warmup failed: '+文)#把失败抬成 Error
+    def 确保就绪(自身,会话标识,信号):
+        '等到目录能用。失败或中止都抛出'
+        格子=自身.取格子(会话标识)
+        while True:
+            if 格子.状态=='ready':
+                return 格子.命令表
+            if 格子.状态!='pending':
+                自身.刷新(会话标识)
+                if 格子.状态=='ready':
+                    return 格子.命令表
+                if 格子.状态=='failed':
+                    raise Exception('command directory warmup failed: '+str(格子.最近错误))
+                continue
+            if 信号已中止(信号):
+                raise 目录等待中止原因(信号)
+            盒子={'错误':None}
+            门=threading.Event()
+            持有={}
+            def 当中止(盒=持有,本盒=盒子,本门=门):
+                '摘掉等待并带上中止原因'
+                格子.等待者=[项 for 项 in 格子.等待者 if 项 is not 盒['完成']]
+                本盒['错误']=目录等待中止原因(信号)
+                本门.set()
+            def 完成(盒=持有,本门=门):
+                '这次拉取已经发布'
+                if hasattr(信号,'removeEventListener'):
+                    信号.removeEventListener('abort',盒['当中止'])
+                本门.set()
+            持有['完成']=完成
+            持有['当中止']=当中止
+            if hasattr(信号,'addEventListener'):
+                信号.addEventListener('abort',当中止,{'once':True})
+            格子.等待者.append(完成)
+            if 格子.状态!='pending' and 完成 in 格子.等待者:
+                格子.等待者=[项 for 项 in 格子.等待者 if 项 is not 完成]
+                完成()
+            while 门.is_set() is False:
+                if 信号已中止(信号) and 盒子['错误'] is None:
+                    当中止()
+                    break
+                门.wait(0.05)
+            if 盒子['错误'] is not None:
+                raise 盒子['错误']
+            if 格子.状态=='failed':
+                raise Exception('command directory warmup failed: '+str(格子.最近错误))
 
-    def 格子(自身,会话标识):
-        '取或建格子'
-        if 会话标识 not in 自身.格子表:#从未碰过
-            自身.格子表[会话标识]=目录格子()#新建
-        return 自身.格子表[会话标识]#交出
-
-    def 等落定(自身,格子,信号):
-        '等一次胜出发布或中止'
-        若已中止则抛出(信号)#已中止
-        唤醒=threading.Event()#本次等待
-        格子.等待者.append(唤醒)#挂上
-        if 信号 is None:#无中止
-            唤醒.wait()#等
-            return#落定
-        while 唤醒.is_set() is False:#未唤醒
-            若已中止则抛出(信号)#中止则摘掉
-            if 唤醒 in 格子.等待者 and 已中止(信号):#中止
-                格子.等待者=[项 for 项 in 格子.等待者 if 项 is not 唤醒]#摘掉
-                raise 命令错误('command directory wait aborted')#拒绝
-            唤醒.wait(0.05)#短等
-
-    def 唤醒等待(自身,格子):
-        '唤醒该条目全部等待者'
-        醒来=格子.等待者#拷出
-        格子.等待者=[]#清空
-        for 项 in 醒来:#逐个
-            项.set()#唤醒
+    def 取格子(自身,会话标识):
+        '没有格子就建一格'
+        if 会话标识 not in 自身.格子表:
+            自身.格子表[会话标识]=目录格子()
+        return 自身.格子表[会话标识]

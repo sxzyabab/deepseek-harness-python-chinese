@@ -1,6 +1,8 @@
 {
-    "HeaderLeadingControls":"头部前置控件",
-    "SidebarRoot":"侧栏根",
-    "contract":"约定",
-    "locales":"文案"
+    "HeaderLeadingControls": "头部前置控件",
+    "SidebarRoot": "侧栏根",
+    "contract": "约定",
+    "locales": "文案",
+    "SidebarRoot.module": "侧栏根.module",
+    "HeaderLeadingControls.module": "头部前置控件.module"
 }

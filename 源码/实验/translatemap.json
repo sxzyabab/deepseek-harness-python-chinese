@@ -42,5 +42,7 @@
     "translator":"机器翻译",
     "webhook":"web钩子",
     "webhook-github":"web钩子_github",
-    "worktree":"工作树"
+    "worktree":"工作树",
+    "cua":"计算机操作",
+    "cua-macos":"计算机操作_macos"
 }

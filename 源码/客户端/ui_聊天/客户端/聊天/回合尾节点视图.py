@@ -1,120 +1,178 @@
-from .消息图标动作 import 消息图标动作#图标行
-from .回合用量面板 import 回合用量面板,回合时间面板#胶囊
-from .消息项 import 打开列,收起列
-from .聊天节点席 import 绘制已登记组件
+from ....ui_对话.异常 import 标样式模块
+from ..约定.助手内容 import 有助手回复内容
+from .回合助手 import 助手文本
+from .回合用量面板 import 回合用量面板
+from .消息图标动作 import 消息图标动作
+from .用披露 import 取钩,注入聊天样式,挂节点
 
-__all__=['回合尾节点视图']#仅中文公开名
+__all__=['回合尾节点视图']
 
-from nicegui import ui as 界面
+样式模块='turn-tail'
 
-from nicegui import ui as 界面
 
-def 恒等翻译(键,参数=None):
-    '无文案表时返回键本身'
-    return 键#键即文案
+def 末内容(快照,回合,跳过警告):
+    '从后往前找这条回合里最后一块真正的内容'
+    if not isinstance(快照,dict):
+        return None
+    位置=快照.get('locations')
+    键表=[]
+    if hasattr(位置,'getTurn'):
+        键表=位置.getTurn(回合) or []
+    elif isinstance(位置,dict) and callable(位置.get('getTurn')):
+        键表=位置['getTurn'](回合) or []
+    节点表=快照.get('nodes')
+    下标=len(键表)-1
+    while 下标>=0:
+        键=键表[下标]
+        节点=None
+        if hasattr(节点表,'get'):
+            节点=节点表.get(键)
+        if isinstance(节点,dict):
+            种=节点.get('kind')
+            if 种 not in ('turn-tail','turn-process') and not (跳过警告 and 种=='turn-max-tokens'):
+                return 节点
+        下标-=1
+    return None
 
-def 空渲染槽(*位置参数,**关键字参数):
-    '未注入槽渲染时不画'
-    return None#不画
 
 class 回合尾节点视图:
-    'turnTail 链 + 可选消息动作'
+    '回合本地动作和功能尾。助手放在哪不影响这里'
     def __init__(自身,属性=None):
-        '记下合成 props'
-        自身.属性=属性 if 属性 is not None else {}#合成
-        自身.动作=消息图标动作()#动作
-        自身.用量=回合用量面板()#用量
-        自身.时间=回合时间面板()#时间
-        自身.根=None#列
-        自身.渲染()#槽位只调用构造，这里就要画
+        '记下尾节点'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        if 'window' in 自身.属性:
+            自身.渲染()
 
     def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性 if 属性 is not None else {}#新
+        '刷新属性'
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
     def 渲染(自身):
-        '无 turn 不画'
-        属性=自身.属性#props
-        节点=属性['node'] if 'node' in 属性 else None#节点
-        数据=节点['data'] if 节点 is not None and 'data' in 节点 else None#数据
-        翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
-        用聊天=属性['useChat'] if 'useChat' in 属性 else None#聊天
-        打开文件=属性['openFile'] if 'openFile' in 属性 else None#打开
-        分叉=属性['forkAt'] if 'forkAt' in 属性 else None#分叉
-        渲染槽=属性['renderSlot'] if 'renderSlot' in 属性 else 空渲染槽#槽
-        渲染链=属性['renderSlotChain'] if 'renderSlotChain' in 属性 else 空渲染槽#链
-        位置=节点['location'] if 节点 is not None and 'location' in 节点 else None#位置
-        种=位置['kind'] if 位置 is not None and 'kind' in 位置 else None#种
-        回合=位置['turn'] if 种 in ('turn','step') and 位置 is not None and 'turn' in 位置 else None#回合
-        if 回合 is None:#无
-            收起列(自身)
-            return
-        有后节点=False#后
-        是最新=False#最新
-        数据回合=数据['turn'] if 数据 is not None and 'turn' in 数据 else None#数据回合
-        节点键=节点['key'] if 节点 is not None and 'key' in 节点 else None#键
-        if 用聊天 is not None:
-            def 判后(快照):
-                '本回合末键是否本节点。locations 为契约 dict'
-                列=快照['locations']['getTurn'](数据回合)#列
-                列=列 if 列 is not None else []#列；判 length
-                末键=列[-1] if len(列)>0 else None#末
-                return 末键!=节点键#后
-            def 判最新(快照):
-                'timeline.turnOrder 末'
-                线=快照['timeline'] if 'timeline' in 快照 else None#线
-                序=线['turnOrder'] if 线 is not None and 'turnOrder' in 线 and 线['turnOrder'] is not None else []#序
-                return len(序)>0 and 序[-1]==数据回合#末；判 length
-            有后节点=用聊天(判后) is True#后
-            是最新=用聊天(判最新) is True#最新
-        收尾=数据['closing'] if 数据 is not None and 'closing' in 数据 else None#closing
-        if 收尾 is not None and 'finalNode' in 收尾 and 收尾['finalNode'] is not None:#定稿序号
-            序号=收尾['finalNode']['seq'] if 'seq' in 收尾['finalNode'] else None#seq
-        else:#节点序号
-            序号=数据['seq'] if 数据 is not None and 'seq' in 数据 else None#seq
-        属主={'turn':回合,'seq':序号,'openFile':打开文件}#属主
-        with 打开列(自身,'回合尾'):
-            if 是最新 is True:
-                自身.根.classes(add='揭示始终')
-            else:
-                自身.根.classes(add='揭示悬停')
-            尾=渲染链('conversation.chat.turnTail',属主)#链
-            画了尾=绘制已登记组件(尾)
-            if 收尾 is None:#无收尾
-                if 画了尾 is not True:
-                    收起列(自身)
-                return
-            起=回合['start'] if isinstance(回合,dict) and 'start' in 回合 else None#start
-            终=回合['end'] if isinstance(回合,dict) and 'end' in 回合 else None#end
-            起点=起['time'] if 起 is not None and 'time' in 起 else None#起点
-            终点=终['time'] if 终 is not None and 'time' in 终 else None#终点
-            运行毫秒=None if 起点 is None or 终点 is None else max(0,终点-起点)#时长
-            终节=收尾['finalNode'] if 'finalNode' in 收尾 else None#终节
-            消息标识=终节['messageId'] if 终节 is not None and 'messageId' in 终节 else None#消息
-            定稿序号=终节['seq'] if 终节 is not None and 'seq' in 终节 else None#分支点
-            def 分支():
-                '分叉到定稿序号'
-                if 分叉 is not None:
-                    分叉(定稿序号)#叉
-            with 界面.column().classes('回合尾动作'):
-                if 数据 is not None and 'tokenUsage' in 数据 and 数据['tokenUsage'] is not None:#有用量
-                    自身.用量.更新({'usage':数据['tokenUsage'],'t':翻译})
-                    自身.用量.渲染()
-                if 运行毫秒 is not None:#有墙钟
-                    吞吐=数据['tokensPerSecond'] if 数据 is not None and 'tokensPerSecond' in 数据 else None#吞吐
-                    首令=数据['ttftMs'] if 数据 is not None and 'ttftMs' in 数据 else None#TTFT
-                    自身.时间.更新({'runMs':运行毫秒,'tokensPerSecond':吞吐,'ttftMs':首令,'t':翻译})
-                    自身.时间.渲染()
-            时=收尾['time'] if 'time' in 收尾 else None#时
-            不可=数据['branchUnavailable'] is True if 数据 is not None and 'branchUnavailable' in 数据 else False#不可
-            自身.动作.更新({'time':时,'clock':'end','onBranch':分支,'branchUnavailable':不可 is True or 有后节点 is True,'node':{'seq':定稿序号,'time':时,'branchUnavailable':不可 is True or 有后节点 is True},'t':翻译})
-            自身.动作.渲染()
-            if 消息标识 is not None:
-                助手动作=渲染槽('conversation.chat.assistant-actions',{'messageId':消息标识})
-                绘制已登记组件(助手动作)
+        '还没收束时只留功能尾。收束后加复制、分叉和用量'
+        if 自身.根 is not None:
+            自身.根.remove()
+            自身.根=None
+        属性=自身.属性
+        窗口=属性['window']
+        文档=窗口.document
+        注入聊天样式(文档,样式模块,'回合尾节点视图.module.css')
+        翻译=属性.get('t')
+        节点=属性.get('node') if isinstance(属性.get('node'),dict) else {}
+        位置=节点.get('location') if isinstance(节点.get('location'),dict) else {}
+        回合位=位置.get('turn') if 位置.get('kind') in ('turn','step') and isinstance(位置.get('turn'),dict) else None
+        if 回合位 is None:
+            return None
+        数据=节点.get('data') if isinstance(节点.get('data'),dict) else {}
+        用量钩=取钩(属性,'usePerformanceUsage')
+        if 用量钩 is None and callable(属性.get('usePerformanceUsage')):
+            用量钩=属性['usePerformanceUsage']
+        详细=False
+        if callable(用量钩):
+            def 选模式(模式):
+                '详细模式才显示用量'
+                return 模式
+            详细=用量钩(选模式)=='detailed'
+        访问=取钩(属性,'useAccess')
+        if 访问 is None and callable(属性.get('useAccess')):
+            访问=属性['useAccess']
+        允许分叉=False
+        if callable(访问):
+            允许分叉=访问('session/fork') is True
+        聊天=属性.get('useChat')
+        更晚=False
+        以回复结束=False
+        if callable(聊天):
+            def 选更晚(快照):
+                '后面还有聊天节点就不能从这里分叉'
+                收束=数据.get('closing') if isinstance(数据.get('closing'),dict) else None
+                终=收束.get('finalNode') if isinstance(收束,dict) and isinstance(收束.get('finalNode'),dict) else {}
+                锚=末内容(快照,数据.get('turn'),True)
+                锚序=锚.get('anchorSeq') if isinstance(锚,dict) else -1
+                if 锚序 is None:
+                    锚序=-1
+                return 锚序>(终.get('seq') if 终.get('seq') is not None else 数据.get('seq'))
 
-    def __call__(自身,属性=None):
-        '对齐'
-        if 属性 is not None:
-            自身.更新(属性)#刷
-        自身.渲染()#画
+            def 选回复(快照):
+                '最后一回合的最后一块是面对用户的回复'
+                if not isinstance(快照,dict):
+                    return False
+                时间线=快照.get('timeline') if isinstance(快照.get('timeline'),dict) else {}
+                序=时间线.get('turnOrder') if isinstance(时间线.get('turnOrder'),list) else []
+                if len(序)==0 or 序[-1]!=数据.get('turn'):
+                    return False
+                最后=末内容(快照,数据.get('turn'),False)
+                if not isinstance(最后,dict) or 最后.get('kind')!='assistant-step':
+                    return False
+                步数据=最后.get('data') if isinstance(最后.get('data'),dict) else {}
+                块表=步数据.get('blocks') if isinstance(步数据.get('blocks'),list) else []
+                块=None
+                下标=len(块表)-1
+                while 下标>=0:
+                    候选=块表[下标]
+                    if isinstance(候选,dict):
+                        种=候选.get('kind')
+                        文=候选.get('text') if isinstance(候选.get('text'),str) else ''
+                        if 种 not in ('text','reasoning') or 文.strip()!='':
+                            块=候选
+                            break
+                    下标-=1
+                return 块 is not None and 有助手回复内容([块])
+
+            更晚=聊天(选更晚) is True
+            以回复结束=聊天(选回复) is True
+        收束=数据.get('closing')
+        属主={'turn':回合位,'seq':数据.get('seq'),'openFile':属性.get('openFile'),'window':窗口}
+        if isinstance(收束,dict) and isinstance(收束.get('finalNode'),dict) and 收束['finalNode'].get('seq') is not None:
+            属主['seq']=收束['finalNode']['seq']
+        槽=属性.get('renderSlot')
+        尾=槽('conversation.chat.turnTail',属主) if callable(槽) else None
+        根=文档.createElement('div')
+        根.className='root'
+        标样式模块(根,样式模块)
+        根.setAttribute('data-turn-tail',str(数据.get('turn')))
+        if 收束 is None:
+            if 尾 is None:
+                return None
+            挂节点(根,尾)
+            自身.根=根
+            if 属性.get('parent') is not None:
+                属性['parent'].appendChild(根)
+            return 根
+        根.setAttribute('data-actions-reveal','always' if 以回复结束 else 'hover')
+        挂节点(根,尾)
+        消息号=None
+        终节点=收束.get('finalNode') if isinstance(收束.get('finalNode'),dict) else {}
+        if 终节点.get('messageId') is not None:
+            消息号=终节点['messageId']
+        助手动作=None
+        if 消息号 is not None and callable(槽):
+            助手动作=槽('conversation.chat.assistant-actions',{'messageId':消息号,'window':窗口})
+        用量=None
+        if 详细 and isinstance(数据.get('tokenUsage'),dict):
+            用量=回合用量面板({'window':窗口,'usage':数据['tokenUsage'],'t':翻译})
+        分叉=None
+        if 允许分叉:
+            def 去分叉():
+                '用尾节点自己的序号切开'
+                切=属性.get('forkAt')
+                if callable(切):
+                    切(数据.get('seq'))
+            分叉=去分叉
+        动作=消息图标动作({
+            'window':窗口,
+            'text':助手文本(收束.get('blocks')),
+            'time':收束.get('time'),
+            'clock':'end',
+            'onBranch':分叉,
+            'branchUnavailable':数据.get('branchUnavailable') is True or 更晚 is True,
+            'className':'actions',
+            'extraActions':助手动作,
+            'usageAction':用量,
+            't':翻译,
+        })
+        挂节点(根,动作.根)
+        自身.根=根
+        if 属性.get('parent') is not None:
+            属性['parent'].appendChild(根)
+        return 根

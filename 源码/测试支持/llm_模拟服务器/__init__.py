@@ -117,15 +117,15 @@ def 结束记录(选项,记录,结局):#结束请求记录
         'behavior':记录['behavior'],'outcome':结局,'chunksSent':记录['chunksSent'],
     })#结果事件
 
-def 写SSE(记录,写出,载荷):#写 SSE 事件
+def 写入SSE(记录,写出,载荷):#写 SSE 事件
     '写一条 data 事件'
     正文=载荷 if isinstance(载荷,str) else 紧凑json编码(载荷)#载荷文本
     写出(f'data: {正文}\n\n'.encode('utf-8'))#写 data 事件
     记录['chunksSent']+=1#计数
 
-def 写完成哨兵(记录,写出):#写 DONE
+def 写入完成哨兵(记录,写出):#写 DONE
     '写结束哨兵'
-    写SSE(记录,写出,'[DONE]')#写结束哨兵
+    写入SSE(记录,写出,'[DONE]')#写结束哨兵
 
 def 终止分片(原因,输出令牌):#终止分片
     '构造终止分片载荷'
@@ -254,7 +254,7 @@ def 启动模拟LLM服务器(选项):#启动服务器
         def _流文本(自身,记录,文本,延迟毫秒):#流式发文本
             '流式发出文本；客户端关闭返回 False'
             for 片 in 切分文本(文本,已解析['chunkSize']):#逐分片
-                写SSE(记录,自身._写出,{'choices':[{'index':0,'delta':{'content':片},'finish_reason':None}]})#写文本增量
+                写入SSE(记录,自身._写出,{'choices':[{'index':0,'delta':{'content':片},'finish_reason':None}]})#写文本增量
                 if not 可取消等待(延迟毫秒,自身._已关闭):#客户端已关
                     return False#已关
             return True#全部发出
@@ -264,8 +264,8 @@ def 启动模拟LLM服务器(选项):#启动服务器
             if not 自身._流文本(记录,已解析['successText'],延迟毫秒):#客户端关闭
                 结束记录(已解析,记录,'client_closed')#客户端关闭
                 return
-            写SSE(记录,自身._写出,终止分片(原因,len(list(已解析['successText']))))#终止分片
-            写完成哨兵(记录,自身._写出)#DONE
+            写入SSE(记录,自身._写出,终止分片(原因,len(list(已解析['successText']))))#终止分片
+            写入完成哨兵(记录,自身._写出)#DONE
             结束记录(已解析,记录,'completed')#完成
 
         def _断开(自身,记录):#延迟断开
@@ -297,15 +297,15 @@ def 启动模拟LLM服务器(选项):#启动服务器
                 自身._断开(记录)#再断开
             elif 行为=='empty':#空完成
                 自身._开SSE()#开 SSE
-                写SSE(记录,自身._写出,终止分片('stop',0))#空 stop
-                写完成哨兵(记录,自身._写出)#DONE
+                写入SSE(记录,自身._写出,终止分片('stop',0))#空 stop
+                写入完成哨兵(记录,自身._写出)#DONE
                 结束记录(已解析,记录,'completed')#完成
             elif 行为=='empty_body':#空正文
                 自身._开SSE()#开 SSE
                 结束记录(已解析,记录,'completed')#完成
             elif 行为=='stream_eof':#流 EOF
                 自身._开SSE()#开 SSE
-                写SSE(记录,自身._写出,{'choices':[{'index':0,'delta':{'role':'assistant'},'finish_reason':None}]})#角色增量
+                写入SSE(记录,自身._写出,{'choices':[{'index':0,'delta':{'role':'assistant'},'finish_reason':None}]})#角色增量
                 结束记录(已解析,记录,'completed')#完成
             elif 行为=='partial_eof':#部分 EOF
                 自身._开SSE()#开 SSE
@@ -322,13 +322,13 @@ def 启动模拟LLM服务器(选项):#启动服务器
                 活动连接.add(自身)#记账停滞连接
             elif 行为=='malformed_json':#畸形 JSON
                 自身._开SSE()#开 SSE
-                写SSE(记录,自身._写出,'{not-json')#非法 JSON
-                写完成哨兵(记录,自身._写出)#DONE
+                写入SSE(记录,自身._写出,'{not-json')#非法 JSON
+                写入完成哨兵(记录,自身._写出)#DONE
                 结束记录(已解析,记录,'completed')#完成
             elif 行为=='malformed_event':#畸形事件
                 自身._开SSE()#开 SSE
-                写SSE(记录,自身._写出,{'choices':[None]})#畸形分片
-                写完成哨兵(记录,自身._写出)#DONE
+                写入SSE(记录,自身._写出,{'choices':[None]})#畸形分片
+                写入完成哨兵(记录,自身._写出)#DONE
                 结束记录(已解析,记录,'completed')#完成
             elif 行为=='wrong_content_type':#错误内容类型
                 自身._开SSE('application/json')#错误 Content-Type
@@ -353,14 +353,14 @@ def 启动模拟LLM服务器(选项):#启动服务器
             elif 行为=='reasoning_success':#带推理成功
                 自身._开SSE()#开 SSE
                 for 片 in 切分文本(已解析['reasoningText'],已解析['chunkSize']):#逐推理分片
-                    写SSE(记录,自身._写出,{'choices':[{'index':0,'delta':{'reasoning_content':片},'finish_reason':None}]})#推理增量
+                    写入SSE(记录,自身._写出,{'choices':[{'index':0,'delta':{'reasoning_content':片},'finish_reason':None}]})#推理增量
                 自身._完成文本(记录,'stop',0)#再发正文
             elif 行为=='tool_call_success':#工具调用成功
                 自身._开SSE()#开 SSE
                 for 片 in 工具调用分片(已解析):#工具调用
-                    写SSE(记录,自身._写出,片)#写分片
-                写SSE(记录,自身._写出,终止分片('tool_calls',2))#工具终止
-                写完成哨兵(记录,自身._写出)#DONE
+                    写入SSE(记录,自身._写出,片)#写分片
+                写入SSE(记录,自身._写出,终止分片('tool_calls',2))#工具终止
+                写入完成哨兵(记录,自身._写出)#DONE
                 结束记录(已解析,记录,'completed')#完成
             elif 行为=='max_tokens':#达 token 上限
                 自身._开SSE()#开 SSE

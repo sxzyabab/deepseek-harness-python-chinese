@@ -1,283 +1,289 @@
-from ....基础设施.通用工具 import 启动守护线程
+'客户端终端模型。视图键和宿主终端身份彼此独立'
+from threading import Thread as 线程类#先建线程再启动，避免清理表还没记下它就结束
 from ....依赖.cordis import 服务#服务基类
-from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
 from ....工具.加密 import 随机uuid#新终端身份
-from ..类型 import 取远程错误#远程失败形态
-from ..异常 import 远程错误,失败说明#本包异常
-from .模型 import 终端视图,快照存储#视图与通知
-from .外壳偏好 import 首选外壳,记住外壳#外壳偏好
+from ....客户端.存储 import 创建快照存储#关闭失败通知
+from ....基础设施.通用工具 import 启动守护线程#后台清理与释放
+from ....类型化远程调用.协议 import 取远程错误#会话已不存在
+from .模型 import 终端视图,取出值#视图与信封
+from .命令解释器偏好 import 首选命令解释器,记住命令解释器#壳偏好
 from .关闭请求 import 终端关闭请求#未完成关闭
 from .绑定 import 终端绑定#内容绑定
 from .窗口保持 import 终端窗口保持#窗口保持
+from . import (
+    命令解释器偏好,#偏好模块
+    关闭请求,#关闭请求模块
+    绑定,#绑定模块
+    模型,#视图模块
+    窗口保持,#保持模块
+)
 
-__all__=['依赖','应用','客户端终端','终端视图']
+__all__=[#同目录模块，加上本文件的服务和安装函数
+    '绑定',
+    '关闭请求',
+    '命令解释器偏好',
+    '模型',
+    '窗口保持',
+    '客户端终端',
+    '应用',
+    '依赖',
+]#不把这些类再转给包根
 
-依赖=['remote','remote.terminal']
+依赖=['remote','remote.terminal']#网关和终端命名空间
 
-def 取码(错误):#按结构读失败码，不依赖异常类型
-    '从本包远程错误、信封 dict 或带 code 属性的对象取码'
-    本=取远程错误(错误)
-    if 本 is not None:
-        return 本.code
-    if isinstance(错误,dict):
-        return 错误['code'] if 'code' in 错误 else None
-    return getattr(错误,'code',None)
 
-def 取消息(错误):#给人看的失败文案
-    '优先异常首参或信封 message。去掉绝对路径，其余说明保留。'
-    if isinstance(错误,BaseException) and len(错误.args)>0:
-        return 失败说明(错误.args[0])
-    if isinstance(错误,dict) and 'message' in 错误:
-        return 失败说明(错误['message'])
-    return 失败说明(错误)
-
-class 客户端终端(服务):#侧栏出现与后台清理
-    '标签键独立于宿主终端身份'
+class 客户端终端(服务):
+    '按会话和出现查找。标签身份和终端身份分开。清理在后台进行'
     def __init__(自身,上下文,远程):
-        '挂拆除副作用，并对未完成关闭请求启动后台重试'
-        super().__init__(上下文,'webTerminals')
+        '挂上拆除，并对还没完成的关闭再试一次'
+        super().__init__(上下文,'webTerminals')#服务名
         自身._远程=远程#terminal 面
-        自身.closeFailures=快照存储([])#失败通知
-        自身._请求=终端关闭请求()
-        自身._关闭中={}#id → 任务
-        自身._已关=set()#本页已关 id
-        for 请求 in 自身._请求.未完成():
-            自身._已关.add(请求['id'])
-        自身._已拆除=False
-        自身._视图={}#会话 → 键 → 视图
-        自身._绑定=终端绑定()
-        自身._保持={}#会话 → id → 保持
-        自身._释放中=set()
-        自身._打开标签=()
+        自身.closeFailures=创建快照存储([])#失败通知。成功和进行中不显示
+        自身._请求=终端关闭请求()#跨刷新的关闭意图
+        自身._关闭中={}#身份到清理线程
+        自身._已关=set()#这一页已经关闭的身份
+        for 请求 in 自身._请求.未完成():#启动时还在的请求
+            自身._已关.add(请求['id'])#当成已关
+        自身._已拆除=False#服务还在
+        自身._视图={}#会话到出现键到视图
+        自身._绑定=终端绑定()#内容到终端
+        自身._保持={}#会话到终端到窗口保持
+        自身._释放中=set()#正在释放的线程
+        自身._打开标签=()#侧栏给出的终端页
+
         def 拆除效果():
-            '卸视图与保持，等待进行中的关闭任务'
+            '卸掉视图和保持，并等进行中的关闭'
+
             def 清理():
-                '只清客户端态，不关宿主终端'
-                自身._已拆除=True
-                待拆=[]
-                for 会话表 in list(自身._视图.values()):
-                    for 视图 in list(会话表.values()):
-                        待拆.append(视图)
-                自身._视图.clear()
-                自身._绑定.清空()
-                for 会话保持 in list(自身._保持.values()):
-                    for 保持 in list(会话保持.values()):
-                        保持.dispose()
-                自身._保持.clear()
-                待结算=[]#视图的释放与进行中的关闭，关闭失败已记入 closeFailures
-                for 视图 in 待拆:
-                    待结算.append(视图.释放())
-                待结算.extend(自身._关闭中.values())
-                return 期约.全部已结算(待结算)#成败都等
-            return 清理
-        上下文.副作用(拆除效果,'terminal-controller.client.views')
-        for 请求 in 自身._请求.未完成():
-            自身._清理(请求)
+                '只清客户端状态，不关宿主终端'
+                自身._已拆除=True#不再开始新的清理
+                待拆=[]#视图
+                for 会话表 in list(自身._视图.values()):#每个会话
+                    for 视图 in list(会话表.values()):#每个出现
+                        待拆.append(视图)#记下
+                自身._视图.clear()#清掉
+                自身._绑定.清空()#清缓存
+                保持列表=[]#窗口保持
+                for 会话保持 in list(自身._保持.values()):#每个会话
+                    for 保持 in list(会话保持.values()):#每个终端
+                        保持列表.append(保持)#记下
+                自身._保持.clear()#清掉
+                for 视图 in 待拆:#拆视图流
+                    视图.释放()#不等宿主关闭
+                for 保持 in 保持列表:#拆保持流
+                    保持.释放()#等消费者
+                for 线程 in list(自身._释放中):#释放中的保持
+                    线程.join()#等完
+                for 线程 in list(自身._关闭中.values()):#进行中的关闭
+                    线程.join()#等完
 
-    def 视图(自身,会话标识,键,内容标识,终端标识=None,壳路径=None):#稳定模型
-        '一次侧栏出现；内容标识为持久键'
-        会话表=自身._视图.get(会话标识)#表
-        if 会话表 is None:#新建
-            会话表={}#空
+            return 清理#拆除器
+
+        上下文.副作用(拆除效果,'terminal-controller.client.views')#登记
+        for 请求 in 自身._请求.未完成():#再试未完成的关闭
+            自身._清理(请求)#后台
+
+    def 视图(自身,会话标识,键,内容标识,终端标识=None,壳路径=None):
+        '返回一次侧栏出现的稳定模型。内容标识才是持久键'
+        会话表=自身._视图.get(会话标识)#这个会话的出现
+        if 会话表 is None:#还没有
+            会话表={}#新建
             自身._视图[会话标识]=会话表#登记
-        if 键 not in 会话表:#新建
-            已存=终端标识 if 终端标识 is not None else 自身._绑定.获取(会话标识,内容标识)#已存
-            标识=已存 if 已存 is not None else 随机uuid()#身份
-            自身._绑定.设置(会话标识,内容标识,标识)#绑定
+        视图=会话表.get(键)#这一次出现
+        if 视图 is None:#新建
+            已存=终端标识 if 终端标识 is not None else 自身._绑定.获取(会话标识,内容标识)#恢复用的身份
+            标识=已存 if 已存 is not None else 随机uuid()#没有就新造
+            自身._绑定.设置(会话标识,内容标识,标识)#分配前先记住
+
             def 保持就绪(信号):
-                '窗口保持确认'
-                return 自身._取保持(会话标识,标识).就绪(信号)#就绪
-            视图=终端视图(会话标识,自身._远程,自身.所属上下文.remote,标识,已存 is None,壳路径,保持就绪)#视图
+                '输出附着前先等窗口保持确认'
+                return 自身._窗口保持(会话标识,标识).就绪(信号)#确认
+
+            视图=终端视图(会话标识,自身._远程,自身.ctx.remote,标识,已存 is None,壳路径,保持就绪)#模型
             会话表[键]=视图#登记
-            自身._对账保持()#对账
-            启动守护线程(视图.刷新)#void refresh
-        else:
-            视图=会话表[键]#已有
-        return 视图#模型
+            自身._对账保持()#打开的页可能需要保持
+            启动守护线程(视图.刷新)#不挡住取出模型
+        return 视图#稳定模型
 
-    def 启动外壳(自身,会话标识,信号):#按需探测
-        '不分配 PTY'
-        结果=自身._远程.shells(会话标识,信号)#探测
-        if not 结果['ok']:
-            raise RuntimeError(结果['error']['message'])#消息
-        壳列=结果['value']#列表
-        上次=首选外壳()#偏好
-        选中=None#路径
-        for 壳 in 壳列:#找偏好
-            if 壳['path']==上次:#可用
-                选中=壳['path']#用
+    def 启动命令解释器(自身,会话标识,信号):
+        '按需发现可启动的壳，不分配 PTY'
+        结果=取出值(自身._远程.shells(会话标识,信号))#已安装
+        上次=首选命令解释器()#浏览器记住的
+        选中=None#当前还能用的偏好
+        for 壳 in 结果:#找偏好
+            if 壳['path']==上次:#还能用
+                选中=壳['path']#用它
                 break#停
-        if 选中 is None and len(壳列)>0:#回落
-            选中=壳列[0]['path']#第一
-        return {'shells':壳列,'selectedShell':选中}#菜单
+        if 选中 is None and len(结果)>0:#偏好不可用
+            选中=结果[0]['path']#第一个
+        return {'shells':结果,'selectedShell':选中}#菜单
 
-    def 选择外壳(自身,路径):#引导选择
-        '打开标签前记住'
-        记住外壳(路径)#记下
+    def 选择命令解释器(自身,路径):
+        '打开标签之前记住引导里选的壳'
+        记住命令解释器(路径)#记下
 
-    def 关闭(自身,会话标识,键,内容标识,终端标识=None):#立刻放标签
-        '清理活过 DOM 卸挂与刷新'
-        会话表=自身._视图.get(会话标识)#表
-        视图=None if 会话表 is None else 会话表.get(键)#出现
-        标识=视图.id if 视图 is not None else (终端标识 if 终端标识 is not None else 自身._绑定.获取(会话标识,内容标识))#身份
-        if 标识 is None:#无从关
-            return#跳
-        标题=键#回落
+    def 关闭(自身,会话标识,键,内容标识,终端标识=None):
+        '先保存关闭意图并立刻放掉标签。清理活过卸挂和刷新'
+        会话表=自身._视图.get(会话标识)#出现表
+        视图=None if 会话表 is None else 会话表.get(键)#这一次出现
         if 视图 is not None:#有模型
-            快照=视图.状态.getSnapshot()#状态
-            if 'title' in 快照 and 快照['title'] is not None:#有标题
-                标题=快照['title']#用
-        请求={'sessionId':会话标识,'id':标识,'title':标题}#意图
-        自身._已关.add(标识)#本页
-        自身._请求.保存(请求)#持久
-        自身._绑定.删除(会话标识,内容标识)#解绑
+            标识=视图.id#用模型身份
+        elif 终端标识 is not None:#恢复出来的身份
+            标识=终端标识#用它
+        else:#只剩绑定
+            标识=自身._绑定.获取(会话标识,内容标识)#可能没有
+        if 标识 is None:#无从关闭
+            return#跳过
+        标题=键#没有模型时用出现键
+        if 视图 is not None:#有状态
+            快照=视图.状态.getSnapshot()#当前
+            if 快照.get('title') is not None:#有标题
+                标题=快照['title']#用标题
+        请求={'sessionId':会话标识,'id':标识,'title':标题}#关闭意图
+        自身._已关.add(标识)#这一页不再恢复它
+        自身._请求.保存(请求)#先落存储
+        自身._绑定.删除(会话标识,内容标识)#再解绑
         if 会话表 is not None:#有表
-            会话表.pop(键,None)#摘标签
-            if len(会话表)==0:#空会话
-                自身._视图.pop(会话标识,None)#摘
-        自身._清理(请求,视图)#后台
-        自身._对账保持()#对账
+            会话表.pop(键,None)#摘掉出现
+            if len(会话表)==0:#这个会话空了
+                自身._视图.pop(会话标识,None)#摘掉
+        自身._清理(请求,视图)#后台关进程
+        自身._对账保持()#放掉不再打开的保持
 
     def 保留标签(自身,标签列表):
-        '对账本窗口打开的终端出现'
+        '对账这个窗口打开的终端出现，包括还没激活的已保存会话'
         自身._打开标签=tuple(标签列表)#记下
         自身._对账保持()#对账
 
-    def 恢复(自身,会话标识):#Host 保留且本页未持有
-        '可开成恢复标签的终端'
-        结果=自身._远程.list(会话标识)#列表
-        if not 结果['ok']:
-            raise RuntimeError(结果['error']['message'])#消息
-        持有=set()#本页标签
-        会话表=自身._视图.get(会话标识)#表
+    def 恢复(自身,会话标识):
+        '查询宿主上还在、这一页没有拿着、也没有未完成关闭的终端'
+        结果=取出值(自身._远程.list(会话标识))#宿主列表
+        持有=set()#这一页的标签
+        会话表=自身._视图.get(会话标识)#出现
         if 会话表 is not None:#有
-            for 视图 in 会话表.values():#出现
+            for 视图 in 会话表.values():#每个出现
                 持有.add(视图.id)#记下
         关闭中=set()#未完成关闭
         for 请求 in 自身._请求.未完成():#请求
             关闭中.add(请求['id'])#记下
         可恢复=[]#结果
-        for 信息 in 结果['value']:#逐个
-            标识=信息['id']#id
-            if 标识 in 持有 or 标识 in 关闭中 or 标识 in 自身._已关:#占用
-                continue#跳
-            可恢复.append(信息)#收
+        for 信息 in 结果:#逐个
+            标识=信息['id']#身份
+            if 标识 in 持有 or 标识 in 关闭中 or 标识 in 自身._已关:#已经占着
+                continue#跳过
+            可恢复.append(信息)#可以开成恢复标签
         return 可恢复#列表
 
-    def 重试关闭(自身,标识):#失败通知
-        '不重开标签'
+    def 重试关闭(自身,标识):
+        '再试一次已保存的关闭，不重新打开标签'
         记录=None#命中
-        for 项 in 自身._请求.未完成():
+        for 项 in 自身._请求.未完成():#未完成
             if 项['id']==标识:#命中
                 记录=项#记下
                 break#停
-        if 记录 is not None:#有
+        if 记录 is not None:#还有这条
             自身._清理(记录)#再试
 
-    def _取保持(自身,会话标识,标识):
-        '取或建窗口保持'
+    def _窗口保持(自身,会话标识,标识):
+        '取或建这个终端的窗口保持。失败的可以换一条'
         会话保持=自身._保持.get(会话标识)#表
         if 会话保持 is None:#新建
             会话保持={}#空
             自身._保持[会话标识]=会话保持#登记
-        if 标识 not in 会话保持 or 会话保持[标识].已失败:#新建或重试
-            if 标识 in 会话保持:#旧失败
-                自身._释放保持(会话保持[标识])#释放
-            保持=终端窗口保持(自身.所属上下文.remote,自身._远程,会话标识,标识)#新建
+        保持=会话保持.get(标识)#已有
+        if 保持 is None or 保持.已失败:#没有或已经失败
+            if 保持 is not None:#旧的失败了
+                自身._释放保持(保持)#后台放开
+            保持=终端窗口保持(自身.ctx.remote,自身._远程,会话标识,标识)#新建
             会话保持[标识]=保持#登记
-        else:
-            保持=会话保持[标识]#已有
         return 保持#保持
 
     def _对账保持(自身):
-        '按打开标签对账保持'
+        '按打开的标签保留需要的保持，放掉其余'
         if 自身._已拆除:#已拆
-            return#空
-        需要={}#会话 → id 集
-        for 标签 in 自身._打开标签:#标签
+            return#不再建
+        需要={}#会话到还要的身份
+        for 标签 in 自身._打开标签:#侧栏成员
             标识=自身._绑定.获取(标签['sessionId'],标签['contentId'])#绑定
-            if 标识 is None or 标识 in 自身._已关:#无
-                continue#跳
-            if 标签['sessionId'] not in 需要:#新
-                需要[标签['sessionId']]=set()#集
-            需要[标签['sessionId']].add(标识)#加
-            视图=None#视图
-            会话表=自身._视图.get(标签['sessionId'])#表
-            if 会话表 is not None and 标签['tabId'] in 会话表:#有
-                视图=会话表[标签['tabId']]#出现
-            if 视图 is None or 视图.状态.getSnapshot().get('info') is not None:#需保持
-                if 标签['sessionId'] not in 自身._保持 or 标识 not in 自身._保持[标签['sessionId']]:#无
-                    自身._取保持(标签['sessionId'],标识)#建
-        for 会话标识,会话保持 in list(自身._保持.items()):#现有
-            for 标识,保持 in list(会话保持.items()):#各
-                if 会话标识 not in 需要 or 标识 not in 需要[会话标识]:#多余
-                    会话保持.pop(标识,None)#摘
-                    自身._释放保持(保持)#释放
-            if len(会话保持)==0:#空
-                自身._保持.pop(会话标识,None)#摘
+            if 标识 is None or 标识 in 自身._已关:#没有或已关
+                continue#跳过
+            if 标签['sessionId'] not in 需要:#新会话
+                需要[标签['sessionId']]=set()#集合
+            需要[标签['sessionId']].add(标识)#要保持
+            视图=None#这一页的模型
+            会话表=自身._视图.get(标签['sessionId'])#出现表
+            if 会话表 is not None:#有
+                视图=会话表.get(标签['tabId'])#按标签键
+            已有信息=视图 is not None and 视图.状态.getSnapshot().get('info') is not None#模型已经知道进程
+            if 视图 is None or 已有信息:#休眠页或已有信息都要保持
+                会话保持=自身._保持.get(标签['sessionId'])#现有
+                if 会话保持 is None or 标识 not in 会话保持:#还没有
+                    自身._窗口保持(标签['sessionId'],标识)#建
+        for 会话标识,会话保持 in list(自身._保持.items()):#现有保持
+            要的=需要.get(会话标识)#这个会话还要的
+            for 标识,保持 in list(会话保持.items()):#逐个
+                if 要的 is None or 标识 not in 要的:#多余
+                    会话保持.pop(标识,None)#摘掉
+                    自身._释放保持(保持)#后台放开
+            if len(会话保持)==0:#空了
+                自身._保持.pop(会话标识,None)#摘掉会话
 
     def _释放保持(自身,保持):
-        '后台释放保持'
-        def 释放保持线程():
-            '释放'
-            try:
-                保持.dispose()#拆
-            except BaseException as 错误:
-                print('Terminal hold release failed',错误)#日志
-            finally:
-                自身._释放中.discard(任务)#移除
-        任务=object()#标记
-        自身._释放中.add(任务)#登记
-        启动守护线程(释放保持线程)#启
+        '后台放开一条窗口保持。失败只记警告'
+        盒子={'线程':None}#跑起来之后才能摘掉自己
 
-    def _清理(自身,记录,视图=None):#后台 Host 清理
-        '成功与进行中无通知'
-        if 记录['id'] in 自身._关闭中 or 自身._已拆除:#已在做
-            return#跳
-        失败列=[项 for 项 in 自身.closeFailures.getSnapshot() if 项['id']!=记录['id']]#摘旧失败
-        自身.closeFailures.set(失败列)#写回
-        任务=期约()#本轮
-        自身._关闭中[记录['id']]=任务#登记
-        def 收尾():
-            '释放视图，摘出关闭中，解决本轮'
-            if 视图 is not None:#有
-                视图.释放()#放
-            自身._关闭中.pop(记录['id'],None)#摘
-            任务.解决()#完
-        def 确认已关(关闭结果=None):
-            '关闭成功：确认请求并收尾'
-            自身._请求.移除(记录['id'])#确认
-            收尾()
-        def 关闭失败(错误):
-            '关闭失败：会话没了就丢掉请求，否则记入失败通知，再收尾'
-            if 取码(错误)=='session/not-found':#会话没了
-                自身._请求.移除(记录['id'])#丢掉
-            elif not 自身._已拆除:#仍可见
-                自身.closeFailures.set(自身.closeFailures.getSnapshot()+[{
-                    'id':记录['id'],#身份
-                    'title':记录['title'],#标题
-                    'message':取消息(错误),#文案
-                }])#记失败
-            收尾()
-        def 后台关闭():#线程
-            '关进程或远程 close'
-            if 视图 is not None:#有模型
-                视图.关闭().然后(确认已关,关闭失败)#关
-                return
-            try:#仅身份
-                结果=自身._远程.close(记录['sessionId'],记录['id'])#远程
-                if not 结果['ok']:
-                    失败=结果['error']#载荷
-                    raise 远程错误(失败['code'],失败['message'],失败['details'] if 'details' in 失败 else {})#包装
-            except BaseException as 错误:#线程入口把失败收进失败通知
-                关闭失败(错误)
-                return
-            确认已关()
-        启动守护线程(后台关闭)#后台
+        def 跑():
+            '释放并摘掉线程'
+            try:#释放失败不向外抛
+                保持.释放()#拆流
+            except BaseException as 错误:#诊断
+                自身.ctx.日志.警告('Terminal hold release failed',错误)#警告
+            finally:#无论成败
+                自身._释放中.discard(盒子['线程'])#摘掉
 
-def 应用(上下文):
-    '安装客户端终端模型到上下文'
-    客户端终端(上下文,上下文.remote.terminal)
+        盒子['线程']=线程类(target=跑,daemon=True)#先建
+        自身._释放中.add(盒子['线程'])#先登记
+        盒子['线程'].start()#再跑
 
-inject=依赖
-apply=应用
+    def _清理(自身,记录,视图=None):
+        '后台关闭。成功和进行中没有通知'
+        if 记录['id'] in 自身._关闭中 or 自身._已拆除:#已经在做或已拆
+            return#跳过
+        留下=[项 for 项 in 自身.closeFailures.getSnapshot() if 项['id']!=记录['id']]#摘掉旧失败
+        自身.closeFailures.set(留下)#先清通知
+
+        def 跑():
+            '关进程。会话没了就丢掉请求，否则记下失败'
+            try:#关模型或只按身份关
+                if 视图 is not None:#有模型
+                    视图.关闭()#它自己调远程关闭
+                else:#只有身份
+                    取出值(自身._远程.close(记录['sessionId'],记录['id']))#远程关闭
+                自身._请求.移除(记录['id'])#宿主确认了
+            except BaseException as 错误:#关闭失败
+                远程=取远程错误(错误)#看码
+                if 远程 is not None and 远程.code=='session/not-found':#会话没了
+                    自身._请求.移除(记录['id'])#丢掉
+                elif not 自身._已拆除:#还能看见
+                    自身.closeFailures.set(list(自身.closeFailures.getSnapshot())+[{#追加一条
+                        'id':记录['id'],#身份
+                        'title':记录['title'],#标题
+                        'message':str(错误),#说明
+                    }])#通知
+            finally:#视图流也要放
+                if 视图 is not None:#有模型
+                    视图.释放()#不关宿主，上面已经关过
+                自身._关闭中.pop(记录['id'],None)#摘掉进行中
+
+        线程=线程类(target=跑,daemon=True)#先建，表里才有它
+        自身._关闭中[记录['id']]=线程#登记
+        线程.start()#再跑
+
+
+def 应用(上下文,配置=None):
+    '把客户端终端模型装进上下文'
+    客户端终端(上下文,上下文.remote.terminal)#用终端命名空间
+
+
+inject=依赖#框架槽
+apply=应用#框架槽

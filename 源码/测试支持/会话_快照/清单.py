@@ -2,7 +2,7 @@ import os,re#绝对路径与名模式
 import yaml
 from .异常 import 会话快照错误#会话快照包的异常基类
 
-__all__=['解析快照清单','写当前会话夹具']#仅中文公开名
+__all__=['解析快照清单','写入当前会话夹具']#仅中文公开名
 
 合法配置档=frozenset(['headless','sdk','acp','web'])#合法 profile
 合法录制=frozenset(['live','authored'])#合法录制
@@ -14,7 +14,7 @@ __all__=['解析快照清单','写当前会话夹具']#仅中文公开名
 名称模式=re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*\Z',re.ASCII)#kebab-case 名
 环境名模式=re.compile(r'^[A-Z][A-Z0-9_]*\Z',re.ASCII)#环境名
 
-def 写当前会话夹具(清单,模式):#是否写当前世代
+def 写入当前会话夹具(清单,模式):#是否写当前世代
     '一次运行是否为本场景写入当前写入器的 Session fixture'
     return 模式!='replay' and 'session' not in 清单 and 'sessionFormat' not in 清单#非回放且自有且无钉住历史
 def 要求映射(值,标签):#要求映射

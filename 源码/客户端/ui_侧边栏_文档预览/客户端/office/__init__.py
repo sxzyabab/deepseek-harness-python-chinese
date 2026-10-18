@@ -1,17 +1,17 @@
 '经授权 Host 渲染与既有 PDF 正文支撑的 Office 预览登记'
-from ..文档.标签寿命 import 保留文档标签#标签寿命
-from ..远程过程调用 import 文档文件字节#文档字节
-from ...异常 import 去掉敏感
+from ..文档.标签寿命 import 保留文档标签
+from ..面 import 已中止
 from ..失败行 import 失败行
-from ..文档.约定 import 文档标签信息工厂#文档标签信息
-from .文案 import 中文,英文#文案
+from ..文案 import 中文 as 文档中文,套入
+from ..文档.约定 import 文档标签信息工厂
+from .文案 import 中文,英文
 from .缓存 import Office预览缓存#缓存
 from .存储 import 创建Office存储#存储
 from .面 import office面#读取面
 from ..pdf import pdf体登记#PDF 存储与注入
 from ..pdf.pdf体 import pdf面板#Office 共用的 PDF 正文
-from .Office正文 import 办公正文
-from .字体提示 import 字体动作
+from .Office正文 import 办公正文,处理办公正文
+from .字体提示 import 字体动作,处理字体动作
 from . import (
     Office正文,
     字体提示,
@@ -44,12 +44,14 @@ def 应用(上下文,配置):
         return 上下文.locale.register('sidebarOffice',{'zh':中文,'en':英文})#登记
     上下文.副作用(登记词典)#寿命
     翻译=上下文.locale.bind('sidebarOffice')#翻译
+    def 标题():
+        '实现名。是 Office 文档'
+        return 中文['title']
     def 不可用读(文件,信号):
-        '不可用时拒绝'
-        文件#源
-        if 信号 is not None:#有信号
-            若已中止则抛出(信号)#已中止则抛
-        raise RuntimeError(翻译('unavailable'))#拒绝
+        '服务没挂上时拒绝'
+        if 已中止(信号):
+            raise RuntimeError('已中止')
+        raise RuntimeError(中文['unavailable'])
     当前读=[不可用读]#可变读
     def 登记类型():
         '挂预览类型'
@@ -58,7 +60,7 @@ def 应用(上下文,配置):
             'extensions':扩展名,#扩展
             'binaryExtensions':扩展名,#二进制扩展
             'priority':'builtin',#内建
-            'title':lambda:翻译('title'),#标题
+            'title':标题,#标题
             'loading':'renderer',#渲染器加载
             'wrap':False,#不换行
         })
@@ -67,12 +69,15 @@ def 应用(上下文,配置):
     保留标签=保留文档标签(上下文)#保留
     文档翻译=上下文.locale.bind('sidebarDocumentPreview')#文档文案
     def 描述失败(失败信息):
-        '本地化失败'
-        if isinstance(失败信息,dict) and 'code' in 失败信息:#远程失败
-            return 失败行(文档翻译,失败信息)#失败行
+        '本地化失败。工作区失败走文档预览中文，其余带上消息'
+        if isinstance(失败信息,dict) and 'code' in 失败信息:
+            return 失败行(失败信息)
         原文=失败信息.get('message') if isinstance(失败信息,dict) else str(失败信息)
-        return 文档翻译('error.unavailable',{'message':去掉敏感(原文)})
-    面=office面(lambda 文件,信号:当前读[0](文件,信号),描述失败)
+        return 套入(文档中文['error.unavailable'],{'message':原文})
+    def 读当前(文件,信号):
+        '当前这份读取。连接重置后会换成新缓存'
+        return 当前读[0](文件,信号)
+    面=office面(读当前,描述失败)
     def 登记动作():
         '挂缺字体动作'
         return 上下文.slots.inject('sidebar.right.tab.document.action',lambda:上下文.slots.register({
@@ -113,7 +118,5 @@ def 应用(上下文,配置):
                 **呈现,
             },pdf面板)
         return 上下文.slots.inject('sidebar.right.tab.document.office.pdf',登记)
-    上下文.副作用(登记pdf槽)#PDF 子槽寿命
-    配置#缓存上限供 Host 注入使用
-    Office预览缓存#缓存类型可被 Host 注入构造
-    文档文件字节#字节转换可用
+    上下文.副作用(登记pdf槽)
+    Office预览缓存

@@ -1,31 +1,22 @@
+'图片渲染器的文案。缩放词并进这张表'
+from ..缩放.文案 import 中文 as 缩放中文,英文 as 缩放英文
 
-__all__=['中文','英文','图像预览键']
+__all__=['中文','英文']
+
 中文={
+    **缩放中文,
     'title':'图片',
     'preview':'图片预览：{name}',
-    'loading':'正在读取…',
+    'loading':'文档渲染中...',
     'failed':'无法显示这张图片',
     'unsupported':'图片预览需要完整文件内容',
-    'zoomControls':'缩放控件',
-    'zoomMenu':'选择缩放比例',
-    'zoomOut':'缩小',
-    'zoomIn':'放大',
-    'zoomFitWidth':'适应宽度',
-    'zoomValue':'{percent}%',
 }
 
-图像预览键=tuple(中文.keys())
-
 英文={
+    **缩放英文,
     'title':'Image',
     'preview':'Image preview: {name}',
-    'loading':'Reading…',
+    'loading':'Rendering document...',
     'failed':'This image could not be displayed.',
     'unsupported':'Image preview requires the complete file contents.',
-    'zoomControls':'Zoom controls',
-    'zoomMenu':'Choose zoom',
-    'zoomOut':'Zoom out',
-    'zoomIn':'Zoom in',
-    'zoomFitWidth':'Fit width',
-    'zoomValue':'{percent}%',
 }

@@ -1,169 +1,82 @@
-'无 React 的 Client Workspace 服务与命令门面'
-from ....依赖.cordis import 服务#Cordis 服务基类
-from ....基础设施.js特性 import PromiseEX as 期约
-from ..异常 import 工作区创建错误,工作区归档错误,失败说明#本包异常
+'无 React 的客户端工作区服务。命令直接返回解决后的值'
+from ....依赖.cordis.服务 import 服务#服务基类
+from ..异常 import 工作区创建错误,工作区归档错误,命令错误#本包失败
 
-__all__=[#仅中文公开名
-    '工作区创建错误','工作区归档错误','工作区控制器','应用工作区服务',
-]#公开面结束
+__all__=['工作区控制器']
 
-def _命令错误(操作,失败):
-    '构造命令错误。文案去掉绝对路径，码和原说明保留。'
-    码=失败['code'] if isinstance(失败,dict) else getattr(失败,'code',None)#码
-    消息=失败['message'] if isinstance(失败,dict) else getattr(失败,'message',None)#消息
-    return RuntimeError('workspace '+操作+' failed: '+str(码)+': '+失败说明(消息))#错误
-
-def _可见失败(错误):
-    '把拒绝值收成调用方能读的异常，原因链保留。'
-    if isinstance(错误,BaseException):
-        包装=RuntimeError(失败说明(错误))
-        包装.__cause__=错误
-        return 包装
-    if isinstance(错误,dict):
-        文=失败说明(错误['message'] if 'message' in 错误 else 错误)
-        if 文=='':
-            文=str(错误['code'] if 'code' in 错误 else 'Error')
-        return RuntimeError(文)
-    return RuntimeError(失败说明(错误) or 'Error')
-
-def _接上(产出,成功,失败):
-    '期约走然后；已是值则直接成功。同步失败交给失败回调。'
-    try:
-        if hasattr(产出,'然后'):
-            产出.然后(成功,失败)
-            return
-        成功(产出)
-    except BaseException as 错误:
-        失败(错误)
 
 class 工作区控制器(服务):
-    '拥有裸 Workspace 快照与仅 Workspace 的命令'
-
+    '拥有工作区快照和只针对工作区的命令'
     def __init__(自身,上下文,模型):
-        '登记 ctx.workspaces；模型为客户端工作区模型'
-        super().__init__(上下文,'workspaces')#登记服务
-        自身._模型=模型#模型
-        自身.list=模型#模型即快照源
-
-    def _业务期约(自身,产出,成功值,失败值):
-        '把模型结果收成期约。成功交出值，失败拒绝并保留原因。'
-        落定=期约()
-        def 已返回(结果):
-            if not isinstance(结果,dict) or not 结果.get('ok'):
-                错=结果['error'] if isinstance(结果,dict) and 'error' in 结果 else 结果
-                落定.拒绝(失败值(错))
-                return
-            落定.解决(成功值(结果))
-        _接上(产出,已返回,lambda 错误:落定.拒绝(_可见失败(错误)))
-        return 落定
+        '以 workspaces 登记。list 就是模型的快照面'
+        super().__init__(上下文,'workspaces')#服务名
+        自身.模型=模型#远程投影
+        自身.list=模型#快照与订阅
 
     def create(自身,输入):
-        '把已有路径登记为 Workspace。输入含 path。返回期约，解决值是工作区视图。'
-        return 自身._业务期约(
-            自身._模型.create(输入),
-            lambda 结果:结果['value']['workspace'],
-            工作区创建错误,
-        )
+        '把已有路径登记为工作区。输入含 path。返回工作区视图'
+        结果=自身.模型.create(输入)#远程结果
+        if not 结果['ok']:#宿主拒绝
+            raise 工作区创建错误(结果['error'])#创建失败
+        return 结果['value']['workspace']#工作区视图
 
     def initializeDefault(自身,信号=None):
-        '初始化或复用默认工作区。返回期约，解决值是视图或 None。不创建会话。'
-        return 自身._业务期约(
-            自身._模型.initializeDefault(信号),
-            lambda 结果:None if 结果.get('value') is None else 结果['value']['workspace'],
-            工作区创建错误,
-        )
+        '准备或复用默认工作区。不具备条件时返回空。失败按创建失败抛出'
+        结果=自身.模型.initializeDefault(信号)#远程结果
+        if not 结果['ok']:#准备失败
+            raise 工作区创建错误(结果['error'])#创建失败
+        if 结果['value'] is None:#不具备条件
+            return None#空
+        return 结果['value']['workspace']#工作区视图
 
-    def rename(自身,工作区标识,标题):
-        '重命名 Workspace。返回期约，解决值是工作区视图。'
-        return 自身._业务期约(
-            自身._模型.rename(工作区标识,标题),
-            lambda 结果:结果['value']['workspace'],
-            lambda 失败:_命令错误('rename',失败),
-        )
+    def rename(自身,工作区号,标题):
+        '重命名工作区。返回改名后的工作区视图'
+        结果=自身.模型.rename(工作区号,标题)#远程结果
+        if not 结果['ok']:#拒绝
+            raise 命令错误('rename',结果['error'])#命令失败
+        return 结果['value']['workspace']#工作区视图
 
-    def delete(自身,工作区标识):
-        '删除一份 Workspace 登记，不删除会话或文件。返回期约。'
-        return 自身._业务期约(
-            自身._模型.delete(工作区标识),
-            lambda 结果:None,
-            lambda 失败:_命令错误('delete',失败),
-        )
+    def delete(自身,工作区号):
+        '删除一份工作区登记，不删除会话或文件'
+        结果=自身.模型.delete(工作区号)#远程结果
+        if not 结果['ok']:#拒绝
+            raise 命令错误('delete',结果['error'])#命令失败
 
-    def insertBefore(自身,工作区标识,锚点=None):
-        '在 Host 登记顺序内移动 Workspace。返回期约。'
-        return 自身._业务期约(
-            自身._模型.insertBefore(工作区标识,锚点),
-            lambda 结果:None,
-            lambda 失败:_命令错误('reorder',失败),
-        )
+    def insertBefore(自身,工作区号,锚=None):
+        '在宿主登记顺序里移动工作区。省略锚则追加到末尾'
+        结果=自身.模型.insertBefore(工作区号,锚)#远程结果
+        if not 结果['ok']:#拒绝
+            raise 命令错误('reorder',结果['error'])#命令失败
 
-    def archiveSession(自身,会话标识,选项=None):
-        '从 Workspace 分组表层归档一个会话。返回期约。'
-        return 自身._业务期约(
-            自身._模型.archiveSession(会话标识,选项),
-            lambda 结果:None,
-            工作区归档错误,
-        )
+    def archiveSession(自身,会话号,选项=None):
+        '从分组面归档会话。stopActivity 为真时宿主先停运行中的工作，否则仍在运行会拒绝'
+        if 选项 is None:#没给选项
+            选项={}#空
+        结果=自身.模型.archiveSession(会话号,选项)#远程结果
+        if not 结果['ok']:#拒绝
+            raise 工作区归档错误(结果['error'])#归档失败
 
-    def unarchiveSession(自身,会话标识):
-        '解除归档。返回期约。'
-        return 自身._业务期约(
-            自身._模型.unarchiveSession(会话标识),
-            lambda 结果:None,
-            lambda 失败:_命令错误('session unarchive',失败),
-        )
+    def unarchiveSession(自身,会话号):
+        '把会话从归档列表里拿出来'
+        结果=自身.模型.unarchiveSession(会话号)#远程结果
+        if not 结果['ok']:#拒绝
+            raise 命令错误('session unarchive',结果['error'])#命令失败
 
-    def pinSession(自身,会话标识):
-        '钉住会话。返回期约。'
-        return 自身._业务期约(
-            自身._模型.pinSession(会话标识),
-            lambda 结果:None,
-            lambda 失败:_命令错误('session pin',失败),
-        )
+    def pinSession(自身,会话号):
+        '把会话钉到未钉会话前面'
+        结果=自身.模型.pinSession(会话号)#远程结果
+        if not 结果['ok']:#拒绝
+            raise 命令错误('session pin',结果['error'])#命令失败
 
-    def unpinSession(自身,会话标识):
-        '去掉钉住。返回期约。'
-        return 自身._业务期约(
-            自身._模型.unpinSession(会话标识),
-            lambda 结果:None,
-            lambda 失败:_命令错误('session unpin',失败),
-        )
+    def unpinSession(自身,会话号):
+        '去掉会话的钉，不改已保存的会话顺序'
+        结果=自身.模型.unpinSession(会话号)#远程结果
+        if not 结果['ok']:#拒绝
+            raise 命令错误('session unpin',结果['error'])#命令失败
 
-    def insertSessionBefore(自身,工作区标识,会话标识,锚点=None):
-        '在一个 Workspace 账本内移动会话。返回期约，解决值是工作区视图。'
-        return 自身._业务期约(
-            自身._模型.insertSessionBefore(工作区标识,会话标识,锚点),
-            lambda 结果:结果['value']['workspace'],
-            lambda 失败:_命令错误('move',失败),
-        )
-
-    def listDirectory(自身,路径=None,信号=None):
-        '列一层目录。返回期约，解决值是目录列表。'
-        return 自身._目录期约(lambda:自身.ctx.remote.directoryPicker.list(路径,信号))
-
-    def createDirectory(自身,路径,名称):
-        '创建单段子目录。返回期约，解决值是新路径。'
-        return 自身._目录期约(lambda:自身.ctx.remote.directoryPicker.createDirectory(路径,名称))
-
-    def _目录期约(自身,开工):
-        '解开目录远程结果。失败保留去掉路径后的说明。'
-        落定=期约()
-        def 已返回(结果):
-            if isinstance(结果,dict) and 'ok' in 结果:
-                if not 结果.get('ok'):
-                    落定.拒绝(_可见失败(结果['error'] if 'error' in 结果 else 结果))
-                    return
-                落定.解决(结果.get('value'))
-                return
-            落定.解决(结果)
-        try:
-            产出=开工()
-        except BaseException as 错误:
-            落定.拒绝(_可见失败(错误))
-            return 落定
-        _接上(产出,已返回,lambda 错误:落定.拒绝(_可见失败(错误)))
-        return 落定
-
-def 应用工作区服务(上下文,模型):
-    '安装 workspaces 服务面'
-    return 工作区控制器(上下文,模型)#构造即登记
+    def insertSessionBefore(自身,工作区号,会话号,锚=None):
+        '在一个工作区账本里移动会话。返回变更后的工作区视图'
+        结果=自身.模型.insertSessionBefore(工作区号,会话号,锚)#远程结果
+        if not 结果['ok']:#拒绝
+            raise 命令错误('move',结果['error'])#命令失败
+        return 结果['value']['workspace']#工作区视图

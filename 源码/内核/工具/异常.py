@@ -1,4 +1,4 @@
-from ...模型后端.llm.异常 import 装备错误 as 框架错误#导入框架错误基类
+from ...模型后端.llm.异常 import harness错误 as 框架错误#导入框架错误基类
 
 class 工具错误(框架错误):
     '内核工具包的异常基类'

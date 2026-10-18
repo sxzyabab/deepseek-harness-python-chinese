@@ -1,7 +1,13 @@
 {
-    "AppearanceRow":"外观行",
-    "FontSizeRow":"字号行",
-    "locales":"文案",
-    "settings-store":"外观行存储",
-    "styles":"样式"
+    "AppearanceRow": "外观行",
+    "AppearanceRow.module": "外观行.module",
+    "FontFamilyRow": "字体族行",
+    "FontFamilyRow.module": "字体族行.module",
+    "FontSettingsGroup": "字体设置组",
+    "FontSettingsGroup.module": "字体设置组.module",
+    "FontSizeRow": "字号行",
+    "FontSizeRow.module": "字号行.module",
+    "locales": "文案",
+    "settings-store": "外观行存储",
+    "styles": "样式"
 }

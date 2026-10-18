@@ -38,7 +38,7 @@ class jsonl会话句柄:#JSONL 会话句柄
         '与日志一并存储的精确 fork 继承前缀长度'
         return 自身._状态['inheritedEventCount']#状态
 
-    def 读(自身,偏移=0,长度=None,选项=None):#读取
+    def 读取日志段(自身,偏移=0,长度=None,选项=None):#读取日志段
         '读取合法连续逻辑日志的一段'
         自身._断言打开('read')#已关闭拒绝
         if not isinstance(偏移,int) or isinstance(偏移,bool) or 偏移<0:#偏移非法
@@ -52,34 +52,34 @@ class jsonl会话句柄:#JSONL 会话句柄
         预热=自身._状态.get('primed')#预热
         if 预热 is not None:#有预热
             if 自身.access=='write':#写句柄
-                结果=自身._读预热(预热,偏移,长度)#切片
+                结果=自身._读取预热(预热,偏移,长度)#切片
             else:#读句柄
                 当代路径=自身._存储.解析当代日志(自身.id,信号)#解析当代
                 if 当代路径 is None:#尚无当代
-                    结果=自身._读预热(预热,偏移,长度)#仍用预热
+                    结果=自身._读取预热(预热,偏移,长度)#仍用预热
                 else:#当代已发布
                     自身._状态['primed']=None#丢弃预热
-                    结果=自身._读当代(当代路径,偏移,长度,信号)#读当代
+                    结果=自身._读取当代(当代路径,偏移,长度,信号)#读当代
         elif 自身.access=='write' and not 自身._状态['materialized']:#未物化写
             结果={'eventState':'detached','events':[]}#空
         else:#从存储读
             当代路径=自身._存储.解析当代日志(自身.id,信号)#解析
             if 当代路径 is not None:#有当代
-                结果=自身._读当代(当代路径,偏移,长度,信号)#读
+                结果=自身._读取当代(当代路径,偏移,长度,信号)#读
             elif 自身._存储.有挂起会话(自身.id):#挂起
                 结果={'eventState':'detached','events':[]}#空
             else:#未找到
                 raise 会话持久化未找到错误(自身.id)#未找到
         return 结果#返回
 
-    def _读预热(自身,源,偏移,长度):#读预热
+    def _读取预热(自身,源,偏移,长度):#读预热
         '从本句柄保留的已准备历史前缀读取'
         自身._已观察长度=max(自身._已观察长度,len(源['events']))#观察
         return {'eventState':源['eventState'],'events':源['events'][偏移:偏移+长度]}#切片
 
-    def _读当代(自身,路径,偏移,长度,信号=None):#读当代
+    def _读取当代(自身,路径,偏移,长度,信号=None):#读当代
         '读当代物理代并强制单调视图'
-        源=自身._存储.读已存日志(路径,自身.id,信号)#读
+        源=自身._存储.读取已存日志(路径,自身.id,信号)#读
         if len(源['events'])<自身._已观察长度:#缩短
             raise RuntimeError(f'session "{自身.id}": stored log shrank below a previously observed prefix ({len(源["events"])} < {自身._已观察长度})')#错误
         自身._已观察长度=len(源['events'])#更新

@@ -5,7 +5,7 @@ from ...基础设施.js特性 import PromiseEX as 期约#创建、对账与进�
 from ...依赖.工具 import 聚合错误#聚合错误
 from ...子智能体.子智能体 import 折叠子智能体描述符#描述符折叠
 from .异常 import 团队错误,错误文案#领域错误
-from .持久化 import 读持久会话#持久读取
+from .持久化 import 读取持久会话#持久读取
 from .会话消息 import 消息已接受#消息接受
 from .类型 import 团队标识#TeamId
 from .校验 import 必填文本#必填文本
@@ -217,7 +217,7 @@ class 团队名册:#成员表
 
     def 停止队友(自身,根,子标识列表):#停 teammate
         '经延续生命周期所有者拆除精确 teammate Activation。返回期约，排空超过拆除超时则拒绝'
-        return 自身._生命周期.有界等待(自身.ctx.subagents.排空子体(根,子标识列表))#有界拆选中的队友
+        return 自身._生命周期.有界等待(自身.ctx.subagents.排空可续运行子体(根,子标识列表))#有界拆选中的队友
 
     def _已准入创建(自身,调用方,请求):#已准入创建
         '执行在 Team 运行时拆除截止前已准入的一次创建'
@@ -339,7 +339,7 @@ class 团队名册:#成员表
                     'teammate "'+str(子标识)+'" initial prompt was not durably accepted',#文案
                     'TEAM_PROVISIONING_CONFLICT',#码
                 )#抛出
-            return 读持久会话(自身.ctx.sessionPersistence,子标识,信号).然后(判定落盘)#读持久
+            return 读取持久会话(自身.ctx.sessionPersistence,子标识,信号).然后(判定落盘)#读持久
         def 未完成则重来(已完成):#一轮等待结束
             '一轮结束仍未接受则重新检查，相当于上游的循环'
             if 已完成:#已接受
@@ -409,7 +409,7 @@ class 团队名册:#成员表
             '取消检查后写终态'
             若已中止则抛出(信号)#取消
             阶段,失败=判定#判定结果
-            return 自身._写供应终态(根,待对账,阶段,失败,信号)#写终态
+            return 自身._写入供应终态(根,待对账,阶段,失败,信号)#写终态
         for 成员 in 供应中:#逐成员
             def 对账一个(前一个结果,待对账=成员):#前一个成员对账完后
                 '取消检查后对账一个成员；创建中的成员跳过'
@@ -439,11 +439,11 @@ class 团队名册:#成员表
                 失败='persisted child Session does not match the provisioned continuation'#不匹配
             return 阶段,失败#结果
         def 读取失败(错误):#读或判定失败
-            '读持久会话或判定失败时按 failed 处理'
+            '读取持久会话或判定失败时按 failed 处理'
             return 'failed','child Session recovery failed: '+错误文案(错误)#读失败
-        return 读持久会话(自身.ctx.sessionPersistence,成员['id'],信号).然后(判定).捕获(读取失败)#读子
+        return 读取持久会话(自身.ctx.sessionPersistence,成员['id'],信号).然后(判定).捕获(读取失败)#读子
 
-    def _写供应终态(自身,根,成员,阶段,失败,信号):#写供应终态
+    def _写入供应终态(自身,根,成员,阶段,失败,信号):#写供应终态
         '若仍为 provisioning 则写终态边。返回期约'
         def 操作():#事务
             '条件写终态'

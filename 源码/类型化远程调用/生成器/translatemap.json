@@ -5,5 +5,9 @@
     "model":"模型",
     "renderer":"渲染器",
     "tsdown-plugin":"tsdown插件",
-    "workspace":"工作区"
+    "workspace":"工作区",
+    "artifact-files":"制品文件",
+    "build-output-guard":"构建输出守卫",
+    "tool-schema":"工具模式",
+    "worker":"工作线程"
 }

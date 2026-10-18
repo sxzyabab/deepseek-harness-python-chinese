@@ -1,123 +1,133 @@
-from ..约定.回合过程 import 回合过程独立种类#独立种类
+from ..约定.聊天可见性 import 是可见聊天节点
+from ..约定.组树 import 在该层或更外
 
-__all__=['同过程呈现','推导过程呈现','聊天回合过程投影器']#仅中文公开名
+__all__=['聊天回合过程投影']
 
-def 节点回合(节点):#从节点取轮次
-    'turn/step 位置'
-    if 节点 is None:#无
-        return None#无
-    位置=节点['location'] if 'location' in 节点 else None#位置
-    if 位置 is None:#无
-        return None#无
-    种=位置['kind'] if 'kind' in 位置 else None#种
-    if 种 in ('turn','step'):
-        回合位=位置['turn'] if 'turn' in 位置 else None#回合位
-        return 回合位['turn'] if 回合位 is not None and 'turn' in 回合位 else None#轮次
-    return None#无
 
-def 同过程呈现(左,右):#呈现相等判定
-    '双侧字段与规格引用'
-    if 左 is 右:#同引用
-        return True#同
-    if 左 is None or 右 is None:#单侧
-        return False#异
-    return (#字段
-        左['spec'] is 右['spec']#规格
-        and 左['turn']==右['turn']#轮次
-        and 左['turnClosed']==右['turnClosed']#已关
-        and 左['hasExternalProcess']==右['hasExternalProcess']#外部
-        and 左['compactAnswer']==右['compactAnswer']#紧凑
-    )#结束
+def 节点回合(节点):
+    '节点落到的回合'
+    if not isinstance(节点,dict):
+        return None
+    位置=节点.get('location')
+    if isinstance(位置,dict) and 位置.get('kind') in ('turn','step'):
+        回合=位置.get('turn') if isinstance(位置.get('turn'),dict) else {}
+        return 回合.get('turn')
+    return None
 
-def 推导过程呈现(回合,位置索引,节点表):#推导一轮过程呈现
-    '无过程控件则缺席。位置与仓为本包可变对象'
-    键列表=位置索引.getTurn(回合)#轮内键
-    控件=None#过程控件
-    for 键 in 键列表:#找
-        节=节点表.get(键)#节点
-        if 节 is not None and 节['kind']=='turn-process':#控件
-            控件=节
+
+def 呈现相同(左,右):
+    '两份过程呈现是不是同一份布局事实'
+    if 左 is 右:
+        return True
+    if not isinstance(左,dict) or not isinstance(右,dict):
+        return False
+    return (
+        左.get('spec') is 右.get('spec')
+        and 左.get('turn')==右.get('turn')
+        and 左.get('turnStarted')==右.get('turnStarted')
+        and 左.get('turnClosed')==右.get('turnClosed')
+        and 左.get('hasExternalProcess')==右.get('hasExternalProcess')
+        and 左.get('hasInterleavedInput')==右.get('hasInterleavedInput')
+        and 左.get('compactAnswer')==右.get('compactAnswer')
+    )
+
+
+def 推导呈现(回合,位置索引,节点存储):
+    '从这一回合已加载的节点推出过程布局'
+    键表=位置索引.getTurn(回合)
+    控制=None
+    for 键 in 键表:
+        节点=节点存储.get(键)
+        if isinstance(节点,dict) and 节点.get('kind')=='turn-process':
+            控制=节点
             break
-    if 控件 is None:#无
-        return None#缺席
-    规格=控件['data']#规格
-    位置=控件['location']#位置
-    种=位置['kind'] if 'kind' in 位置 else None#种
-    if 种 not in ('turn','step'):#无轮
-        return None#缺
-    控件锚=规格['controlAnchorSeq'] if 'controlAnchorSeq' in 规格 else 0#控件锚
-    开场人=None#开场人工锚
-    for 键 in 键列表:#扫开场
-        节=节点表.get(键)#节点
-        if 节 is None:#无
-            continue#下
-        节种=节['kind']#种
-        锚=节['anchorSeq'] if 'anchorSeq' in 节 else 0#锚
-        if 节种 in ('user','steering') and 锚<控件锚:#开场
-            开场人=锚 if 开场人 is None else min(开场人,锚)#最早
-    有外部=False#外部过程
-    紧凑=True#紧凑正文
-    过程起=规格['processStartSeq'] if 'processStartSeq' in 规格 else 0#过程起
-    正文锚=规格['answerAnchorSeq'] if 'answerAnchorSeq' in 规格 else None#正文锚
-    正文步=规格['answerStep'] if 'answerStep' in 规格 else None#正文步
-    for 键 in 键列表:#扫成员
-        节=节点表.get(键)#节点
-        if 节 is None or 节['kind']=='turn-process':#跳控件
-            continue#下
-        节种=节['kind']#种
-        锚=节['anchorSeq'] if 'anchorSeq' in 节 else 0#锚
-        if 节种 in ('user','steering') and (开场人 is None or 锚>开场人) and (正文锚 is None or 锚<正文锚):#过程区人工
-            紧凑=False#不紧凑
-        if 节种 in 回合过程独立种类 or 锚<过程起 or (正文锚 is not None and 锚>=正文锚):#范围外
-            continue#跳
-        数据=节['data'] if 'data' in 节 else None#数据
-        步=数据['step'] if 数据 is not None and 'step' in 数据 else None#步
-        if 节种!='assistant-step' or 正文步 is None or 步!=正文步:#非正文步
-            有外部=True#外部
-    回合位=位置['turn'] if 'turn' in 位置 else None#回合位
-    态=回合位['status'] if 回合位 is not None and 'status' in 回合位 else None#状态
-    return {#呈现
-        'turn':回合,#轮次
-        'spec':规格,#规格
-        'turnClosed':态=='closed',#已关
-        'hasExternalProcess':有外部,#外部
-        'compactAnswer':紧凑,#紧凑
-    }#结束
+    if not isinstance(控制,dict):
+        return None
+    规格=控制.get('data') if isinstance(控制.get('data'),dict) else {}
+    位置=控制.get('location') if isinstance(控制.get('location'),dict) else {}
+    if 位置.get('kind') not in ('turn','step'):
+        return None
+    回合体=位置.get('turn') if isinstance(位置.get('turn'),dict) else {}
+    开头人锚=None
+    起点=回合体.get('start') if isinstance(回合体.get('start'),dict) else None
+    起序号=起点.get('seq') if isinstance(起点,dict) else None
+    for 键 in 键表:
+        节点=节点存储.get(键)
+        if not isinstance(节点,dict) or not 在该层或更外(节点,'input'):
+            continue
+        if 规格.get('controlAnchorSeq')==起序号 or 节点.get('anchorSeq')<规格.get('controlAnchorSeq'):
+            锚=节点.get('anchorSeq')
+            开头人锚=锚 if 开头人锚 is None or 锚>开头人锚 else 开头人锚
+    有外部过程=False
+    有插入输入=False
+    紧凑回答=True
+    for 键 in 键表:
+        节点=节点存储.get(键)
+        if not isinstance(节点,dict) or not 是可见聊天节点(节点) or 节点.get('kind')=='turn-process':
+            continue
+        if 在该层或更外(节点,'input') and (开头人锚 is None or 节点.get('anchorSeq')>开头人锚):
+            有插入输入=True
+            if 规格.get('answerAnchorSeq') is None or 节点.get('anchorSeq')<规格.get('answerAnchorSeq'):
+                紧凑回答=False
+        if 在该层或更外(节点,'turn') or 节点.get('anchorSeq')<规格.get('processStartSeq') or (规格.get('answerAnchorSeq') is not None and 节点.get('anchorSeq')>=规格.get('answerAnchorSeq')):
+            continue
+        数据=节点.get('data') if isinstance(节点.get('data'),dict) else {}
+        if 节点.get('kind')!='assistant-step' or 规格.get('answerStep') is None or 数据.get('step')!=规格.get('answerStep'):
+            有外部过程=True
+    return {
+        'turn':回合,
+        'spec':规格,
+        'turnStarted':回合体.get('start') is not None,
+        'turnClosed':回合体.get('status')=='closed',
+        'hasExternalProcess':有外部过程,
+        'hasInterleavedInput':有插入输入,
+        'compactAnswer':紧凑回答,
+    }
 
-class 聊天回合过程投影器:#过程呈现投影器
-    '按轮次物化的可变投影'
 
-    def __init__(自身):#构造
-        '空表'
-        自身.呈现表={}#按轮
+class 聊天回合过程投影:
+    '按回合保留的过程布局。节点变化后只重算受影响的回合'
+    def __init__(自身):
+        '开始时没有任何回合'
+        自身.呈现={}
 
-    def get(自身,节点):#按节点取呈现
-        '缺席则 None'
-        回合=节点回合(节点)#轮次
-        return None if 回合 is None else 自身.呈现表.get(回合)#查
+    def get(自身,节点):
+        '读这个节点所属回合的过程呈现'
+        回合=节点回合(节点)
+        if 回合 is None:
+            return None
+        return 自身.呈现.get(回合)
 
-    def set(自身,回合,呈现):#写入一轮
-        '变则 True'
-        旧=自身.呈现表.get(回合)#旧
-        if 同过程呈现(旧,呈现):#同
-            return False#未变
-        if 呈现 is None:#删
-            自身.呈现表.pop(回合,None)#删
-        else:#写
-            自身.呈现表[回合]=呈现#写
-        return True#变
-
-    def replace(自身,顺序,位置索引,节点表):#全量替换
-        '返回变更轮次集'
-        轮集=set()#可见轮
-        for 键 in 顺序:#扫
-            节=节点表.get(键)#节点
-            回合=节点回合(节)#轮
+    def replace(自身,顺序,位置索引,节点存储):
+        '按当前可见顺序整表替换，返回呈现变了的回合'
+        回合集=set()
+        for 键 in 顺序:
+            回合=节点回合(节点存储.get(键))
             if 回合 is not None:
-                轮集.add(回合)#记
-        变更=set()#变更
-        for 回合 in set(list(自身.呈现表.keys())+list(轮集)):#并集
-            下一=推导过程呈现(回合,位置索引,节点表) if 回合 in 轮集 else None#推导
-            if 自身.set(回合,下一):#变
-                变更.add(回合)#记
-        return 变更#返回
+                回合集.add(回合)
+        变化=set()
+        for 回合 in set(list(自身.呈现.keys())+list(回合集)):
+            下一=推导呈现(回合,位置索引,节点存储) if 回合 in 回合集 else None
+            if 自身.设置(回合,下一):
+                变化.add(回合)
+        return 变化
+
+    def update(自身,回合集,位置索引,节点存储):
+        '只重算给出的回合'
+        变化=set()
+        for 回合 in 回合集:
+            if 自身.设置(回合,推导呈现(回合,位置索引,节点存储)):
+                变化.add(回合)
+        return 变化
+
+    def 设置(自身,回合,下一):
+        '相同呈现不替换引用'
+        当前=自身.呈现.get(回合)
+        if 呈现相同(当前,下一):
+            return False
+        if 下一 is None:
+            if 回合 in 自身.呈现:
+                del 自身.呈现[回合]
+        else:
+            自身.呈现[回合]=下一
+        return True

@@ -11,33 +11,33 @@ class 上传偏好:
         自身.状态=创建快照存储({'busy':False,'notice':None,'sequence':0})
 
     def 设置启用(自身,启用):
-        '持久化开关；拒绝或传输失败时仍显示已接受的值'
+        '持久化开关。拒绝或传输失败时仍显示已接受的值。'
         if 自身.状态.getSnapshot()['busy']:
             return
-        def 开始(草稿):
+        def 开始(状态):
             '标忙并清掉旧提示'
-            草稿['busy']=True
-            草稿['notice']=None
+            状态['busy']=True
+            状态['notice']=None
         自身.状态.update(开始)
         已接受=False
         try:
-            结果=自身.表单.set('enabled',启用)
-            if hasattr(结果,'等待'):
-                结果=结果.等待()
-            已接受=bool(结果)
+            已接受=自身.表单.set('enabled',启用).等待()
         except Exception as 写入错误:
-            '拒绝或传输失败只进提示；写入错误的原文可能含路径，不往界面送'
+            '壳层提示报告失败写入，表单仍保留已接受的值'
             已接受=写入错误 is None
-        def 结束(草稿):
-            '记下保存结果'
-            草稿['busy']=False
-            草稿['notice']='saved' if 已接受 else 'failed'
-            草稿['sequence']+=1
+        def 结束(状态):
+            '记下保存结果并抬高序号'
+            状态['busy']=False
+            if 已接受:
+                状态['notice']='saved'
+            else:
+                状态['notice']='failed'
+            状态['sequence']+=1
         自身.状态.update(结束)
 
     def 关掉提示(自身):
         '清掉正在显示的写入提示'
-        def 清(草稿):
+        def 清掉(状态):
             '去掉提示'
-            草稿['notice']=None
-        自身.状态.update(清)
+            状态['notice']=None
+        自身.状态.update(清掉)

@@ -13,5 +13,7 @@
     "document":"文档",
     "zoom":"缩放",
     "markdown":"标记文本",
-    "text":"文本"
+    "text":"文本",
+    "TextPreview.module":"文本预览.module",
+    "LoadingIndicator.module":"加载指示器.module"
 }

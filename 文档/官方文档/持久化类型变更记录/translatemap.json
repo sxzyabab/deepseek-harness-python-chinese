@@ -27,5 +27,9 @@
     "2026-10-05-working-directory-attribution":"2026-10-05-工作目录归属",
     "2026-10-05-working-directory-attribution.schema":"2026-10-05-工作目录归属.schema",
     "2026-10-07-title-reasoning-effort":"2026-10-07-标题推理强度",
-    "2026-10-07-title-reasoning-effort.schema":"2026-10-07-标题推理强度.schema"
+    "2026-10-07-title-reasoning-effort.schema":"2026-10-07-标题推理强度.schema",
+    "2026-09-30-job-session-lifecycle":"2026-09-30-任务会话生命周期",
+    "2026-09-30-job-session-lifecycle.schema":"2026-09-30-任务会话生命周期.schema",
+    "2026-10-13-user-rpc-principal":"2026-10-13-用户rpc主体",
+    "2026-10-13-user-rpc-principal.schema":"2026-10-13-用户rpc主体.schema"
 }

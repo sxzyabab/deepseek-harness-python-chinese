@@ -1,30 +1,15 @@
 def 失败说明(错误):
-    '失败句去掉绝对路径，其余原文保留'
-    if isinstance(错误,BaseException) and len(错误.args)>0:
-        原文=str(错误.args[0])
-    else:
-        原文=str(错误)
-    留下=[]
-    for 词 in 原文.split():
-        去引=词.strip('\'"()[]{}<>')
-        统一=去引.replace('\\','/')
-        if 统一.startswith('/') or 统一.startswith('~'):
-            continue
-        if len(统一)>2 and 统一[0].isalpha() and 统一[1]==':' and 统一[2]=='/':
-            continue
-        留下.append(词)
-    说明=' '.join(留下).strip()
-    if 说明!='':
-        return 说明
+    '把失败收成诊断句。异常用消息，其余用字符串'
     if isinstance(错误,BaseException):
-        return type(错误).__name__
-    return '失败'
+        if len(错误.args)>0 and isinstance(错误.args[0],str) and 错误.args[0]!='':
+            return 错误.args[0]
+        return str(错误)
+    return str(错误)
 
-__all__=[#仅中文公开名
-    '检查器错误','Client源远程错误','Client运行时远程错误','检查器查询远程错误',
-    '客户端源目录错误','客户端运行时执行错误','宿主cdp桥不可用错误',
-    '运行时调用帧','运行时栈跟踪','运行时异常详情','宿主cdp桥原因',
-]#公开面结束
+__all__=[
+    '失败说明','检查器错误','Client源远程错误','Client运行时远程错误','检查器查询远程错误',
+    '客户端源目录错误','客户端运行时执行错误','宿主cdp桥不可用错误','宿主cdp桥原因',
+]
 
 class 检查器错误(Exception):#检查器错误基类
     '检查器包内错误基类'
@@ -77,32 +62,3 @@ class 宿主cdp桥不可用错误(Exception):#Host CDP桥不可用
     def __init__(自身,操作):#构造
         '保存操作名'
         super().__init__(f'inspector protocol: {操作} cannot use the Host source bridge; {宿主cdp桥原因}')#消息
-
-class 运行时调用帧:#调用帧
-    'Runtime 异常栈中的一个源位置'
-    def __init__(自身,functionName,url,lineNumber,columnNumber,scriptKey=None):#构造
-        '保存调用帧字段'
-        自身.functionName=functionName#函数名
-        自身.scriptKey=scriptKey#脚本键
-        自身.url=url#源URL
-        自身.lineNumber=lineNumber#行号
-        自身.columnNumber=columnNumber#列号
-
-class 运行时栈跟踪:#栈跟踪
-    '与 Debugger 脚本 id 无关的 JavaScript 栈信息'
-    def __init__(自身,callFrames,description=None,parent=None):#构造
-        '保存栈跟踪字段'
-        自身.description=description#描述
-        自身.callFrames=tuple(callFrames)#调用帧
-        自身.parent=parent#父栈
-
-class 运行时异常详情:#异常详情
-    '执行一条 Runtime 命令时产生的 JavaScript 异常'
-    def __init__(自身,text,lineNumber,columnNumber,url=None,stackTrace=None,exception=None):#构造
-        '保存异常详情字段'
-        自身.text=text#异常文本
-        自身.lineNumber=lineNumber#行号
-        自身.columnNumber=columnNumber#列号
-        自身.url=url#源URL
-        自身.stackTrace=stackTrace#栈跟踪
-        自身.exception=exception#异常对象

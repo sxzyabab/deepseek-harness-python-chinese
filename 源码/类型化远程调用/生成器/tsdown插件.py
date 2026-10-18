@@ -4,7 +4,7 @@ from .异常 import Typert代码输出错误
 
 __all__=[
     'typert插件','输出制品',
-    '有Typert导出','读清单',
+    '有Typert导出','读取清单',
     '包根','工作区根',
 ]
 
@@ -30,7 +30,7 @@ def typert插件(插件选项=None):
         生成器=工作区Typert生成器(根,{'检查诊断':False})
         包列表=[]
         for 候选 in 生成器.discover(面列表):
-            清单=读清单(os.path.join(根,候选['root']))
+            清单=读取清单(os.path.join(根,候选['root']))
             if 有Typert导出(清单['exports'] if 'exports' in 清单 else None):
                 包列表.append(候选['package'])
         if len(包列表)==0:
@@ -54,7 +54,7 @@ def typert插件(插件选项=None):
         包目录=包根(目录,根)
         if 包目录 is None:
             return
-        清单=读清单(包目录)
+        清单=读取清单(包目录)
         if 'name' not in 清单 or 清单['name'] is None or not 有Typert导出(清单['exports'] if 'exports' in 清单 else None):
             return
         制品列表=按根制品.get(根)
@@ -105,7 +105,7 @@ def 写文本(路径,正文):
     finally:
         文件.close()
 
-def 读清单(包目录):
+def 读取清单(包目录):
     '解析 package.json 为字典。读不到时说明里不带路径'
     try:
         文件=open(os.path.join(包目录,'package.json'),'r',encoding='utf-8')

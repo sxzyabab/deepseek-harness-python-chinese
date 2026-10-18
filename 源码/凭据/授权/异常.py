@@ -1,4 +1,4 @@
-from ...模型后端.llm.异常 import 装备错误 as 框架错误#Harness 风格错误
+from ...模型后端.llm.异常 import harness错误 as 框架错误#Harness 风格错误
 
 class 授权错误(框架错误):
     '授权失败的结构化错误'

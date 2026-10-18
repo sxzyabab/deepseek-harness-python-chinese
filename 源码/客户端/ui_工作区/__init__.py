@@ -1,11 +1,10 @@
-from . import (
-    客户端,
-    异常,
-)
-__all__=['应用']
+from . import 客户端
+from . import 异常
+
+__all__=['应用','客户端','异常']
 
 def 应用():
-    '宿主面无行为，只占 Loader 行'
+    '宿主面无行为，只给装载器一行。浏览器呈现走客户端'
     return
 
 apply=应用

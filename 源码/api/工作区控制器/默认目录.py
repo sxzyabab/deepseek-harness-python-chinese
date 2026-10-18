@@ -1,63 +1,28 @@
-'解析宿主账户文档目录，供首次使用工作区创建'
-import os,sys,re
-from pathlib import PurePosixPath,PureWindowsPath
-from ...工具.原生命令 import 运行原生命令,已中止
-from .异常 import 文档目录错误,去掉敏感文案#本包异常
+'校验宿主文档目录。不相对当前工作目录解析'
+import sys#平台
+import ntpath as 窗口路径#win32 路径
+import posixpath as 正斜杠路径#posix 路径
 
-__all__=['校验文档目录','默认工作区目录','默认工作区目录名']
+__all__=['校验文档目录']
 
-默认工作区目录名='default-workspace'#首次使用目录名，不随界面语言改变
-
-换行尾=re.compile(r'[\r\n]+\Z',re.ASCII)
-
-def 若已中止则抛出(信号):
-    '信号已置位则抛出'
-    if 已中止(信号):
-        raise 文档目录错误('Documents directory lookup was aborted')
 
 def 校验文档目录(目录,平台=None):
-    '校验已配置或系统返回的文档路径，不相对 cwd 解析'
-    if 平台 is None:
-        平台=sys.platform
-    路径=PureWindowsPath if 平台=='win32' else PurePosixPath
-    解析=路径(目录)
-    根=str(解析.anchor)
-    if not 解析.is_absolute() or (平台=='win32' and (根=='\\' or 根=='/')):
-        说明=去掉敏感文案("Documents directory must be fully qualified: '"+str(目录)+"'")
-        if 说明=='':
-            说明='Documents directory must be fully qualified'
-        raise 文档目录错误(说明)
-    return str(解析)
-
-def 默认工作区目录(文档目录,信号,内部=None):
-    '解析首次使用目录，不创建文件。目录名固定，内部可替换平台与命令运行器'
-    if 内部 is None:
-        内部={}
-    平台=内部['platform'] if 'platform' in 内部 else sys.platform
-    路径=PureWindowsPath if 平台=='win32' else PurePosixPath
-    若已中止则抛出(信号)
-    目录=文档目录
-    if 目录 is None:
-        运行=内部['run'] if 'run' in 内部 else 运行原生命令
-        if 平台=='darwin':
-            结果=运行('osascript',[
-                '-e','POSIX path of (path to documents folder from user domain without folder creation)',
-            ],信号)
-        elif 平台=='win32':
-            结果=运行('powershell.exe',[
-                '-NoLogo','-NoProfile','-NonInteractive','-Command',
-                '[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); '
-                +'[Environment]::GetFolderPath([Environment+SpecialFolder]::MyDocuments, '
-                +'[Environment+SpecialFolderOption]::DoNotVerify)',
-            ],信号)
-        elif 平台=='linux':
-            结果=运行('xdg-user-dir',['DOCUMENTS'],信号)
-        else:
-            raise 文档目录错误('system Documents directory is unavailable on '+平台)
-        目录=换行尾.sub('',结果['stdout'])
-        主目录=内部['home'] if 'home' in 内部 else os.path.expanduser('~')
-        if 目录=='' or (平台=='linux' and 校验文档目录(目录,平台)==校验文档目录(主目录,平台)):
-            raise 文档目录错误('system Documents directory is unavailable')
-    目录=校验文档目录(目录,平台)
-    若已中止则抛出(信号)
-    return str(路径(目录)/'deepseek-harness'/默认工作区目录名)
+    '目录必须是完全限定路径。win32 上只有盘符或 UNC 根算数，单斜杠根不算'
+    if 平台 is None:#未指定
+        平台=sys.platform#本机
+    路径模块=窗口路径 if 平台=='win32' else 正斜杠路径#按平台
+    if 平台=='win32':#分开盘符根和单斜杠根
+        驱动,尾=路径模块.splitdrive(目录)#驱动与其余
+        if 驱动.startswith('\\\\'):#UNC
+            根=驱动 if 驱动.endswith('\\') else 驱动+'\\'#服务器共享根
+        elif 驱动!='' and len(尾)>0 and (尾[0]=='\\' or 尾[0]=='/'):#盘符绝对路径
+            根=驱动+尾[0]#如 C:\
+        elif len(尾)>0 and (尾[0]=='\\' or 尾[0]=='/'):#没有盘符的根
+            根=尾[0]#\ 或 /
+        else:#相对
+            根=''#没有根
+    else:#posix
+        根='/' if 目录.startswith('/') else ''#绝对根
+    if (not 路径模块.isabs(目录)) or (平台=='win32' and (根=='\\' or 根=='/')):#未完全限定
+        raise RuntimeError("Documents directory must be fully qualified: '"+目录+"'")#拒绝
+    return 路径模块.normpath(目录)#规范化

@@ -1,13 +1,13 @@
 '包管理器操作后的已装配置依赖及其组合包激活'
 import os#路径
-from .配置档 import 读配置清单,解析组合包目录,写配置清单#清单读写与组合包目录
+from .配置档 import 读取配置清单,解析组合包目录,写配置清单#清单读写与组合包目录
 
-__all__=['读配置插件','写配置组合包','对账配置插件']#仅中文公开名
+__all__=['读取配置插件','写配置组合包','对账配置插件']#仅中文公开名
 
 def 可选清单(二进制名,包目录):
     '读清单；失败当缺失'
     try:#读
-        return 读配置清单(二进制名,包目录)#清单
+        return 读取配置清单(二进制名,包目录)#清单
     except Exception:#读失败
         return None#缺失
 
@@ -20,10 +20,10 @@ def 组合包清单(位置,名):
         return None#普通包
     return 可选清单(位置['binName'],包目录)#清单
 
-def 读配置插件(位置):
+def 读取配置插件(位置):
     """读已装版本与组合包声明。
     位置为 dict"""
-    清单=读配置清单(位置['binName'],位置['profileDir'])#配置清单
+    清单=读取配置清单(位置['binName'],位置['profileDir'])#配置清单
     组合包=((清单.get('dsh') or {}).get('profile') or {}).get('bundles') or []#活动组合包
     依赖表=[]#依赖行
     for 名,规格 in (清单.get('dependencies') or {}).items():#逐依赖
@@ -48,7 +48,7 @@ def 写配置组合包(配置目录,清单,组合包列表):
 def 对账配置插件(选项):
     """成功包管理器操作后对账已装组合包声明。
     选项为 dict"""
-    之后=读配置插件(选项)#操作后
+    之后=读取配置插件(选项)#操作后
     前名=set(依赖['name'] for 依赖 in 选项['before']['dependencies'])#操作前名
     后名=set(依赖['name'] for 依赖 in 之后['dependencies'])#操作后名
     组合包名=set(依赖['name'] for 依赖 in 之后['dependencies'] if 依赖['bundle'])#组合包名

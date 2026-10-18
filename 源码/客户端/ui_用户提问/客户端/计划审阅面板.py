@@ -1,160 +1,222 @@
-from nicegui import ui as 界面
-from ..异常 import 提问错误,页面失败文案#提问回执失败与页面失败句
+'计划待审卡片。正文留在侧栏，这里只做决定'
+import os
+from ...ui_对话.异常 import 注入模块样式文件,模块节点,标样式模块#样式模块
+from ...ui_基础界面组件.按钮 import 按钮#决定按钮
+from ...ui_基础界面组件.状态点 import 状态点#等待或进行中
+from ...ui_基础界面组件.icons import 图标编辑16#要求修改
+from ...ui_基础界面组件.markdown.纯文本 import 抽取Markdown纯文本#标题和摘要
 
-__all__=['计划审阅面板','样式表']#仅中文公开名
+__all__=['计划审阅面板']
 
-样式表='''#对齐 PlanReviewPanel.module.css。类名加前缀，避免盖到提问卡
-.plan-review{display:flex;justify-content:center;padding:6px calc(var(--dsh-composer-side-clearance) + 16px) 10px}
-.plan-review-card{display:flex;overflow:hidden;flex-direction:column;width:100%;max-width:var(--dsh-chat-content-width);max-height:min(60vh,520px);border:1px solid var(--dsw-alias-state-warn-secondary);border-radius:20px;background:var(--dsw-specific-input-major);box-shadow:var(--dsw-shadow-lv2);color:var(--dsw-alias-label-primary);--dsh-scrollbar-thumb:var(--dsw-alias-scrollbar-bg-l2);--dsh-scrollbar-thumb-hover:var(--dsw-alias-scrollbar-hover-l2)}
-.plan-review-card,.plan-review-card *{box-sizing:border-box}
-.plan-review-strip{display:flex;align-items:center;flex-shrink:0;gap:8px;padding:10px 16px;background:var(--dsw-alias-state-warn-tertiary);color:var(--dsw-alias-state-warn-primary);font-size:13px;line-height:18px}
-.plan-review-dot{width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-state-warn-primary)}
-.plan-review-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 16px 4px;font-size:14px;line-height:22px}
-.plan-review-footer{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;padding:8px 16px 12px}
-.plan-review-feedback{min-height:16px;color:var(--dsw-alias-state-error-primary);font-size:11px;line-height:16px}
-.plan-review-actions{display:flex;align-items:center;flex-shrink:0;gap:8px}
-.plan-review-discuss{gap:6px;color:var(--dsw-alias-label-secondary)}
-.plan-review-discuss:hover:not(:disabled){color:var(--dsw-alias-label-primary)}
-@media (max-width:720px){.plan-review-card{border-radius:16px}.plan-review-body{padding:10px 12px 4px}.plan-review-footer{align-items:flex-end;padding:8px 12px 10px}}
-'''#样式表结束
-界面.add_css(样式表,shared=True)
+样式路径=os.path.join(os.path.dirname(__file__),'计划审阅面板.module.css')#本目录样式
+样式模块='PlanReviewPanel'#与样式表对应的模块名
 
-def 提示标题(说明):#可选 tooltip
-    '选项描述有内容时返回 title 映射，否则空映射'
-    if 说明 is None:#无描述
-        return {}#不带 title
-    return {'title':说明}#带上 tooltip
 
-class 计划审阅面板:#计划审阅决策卡
-    '把计划审阅渲染成决策卡；宿主 resolved 帧落地前二次点击不得重发'
-    def __init__(自身,待答,审阅,翻译,渲染槽=None):#域面、收窄审阅、文案席与动作槽
-        '记下提问域面、收窄后的审阅与翻译函数。父撰写器调用渲染，构造时不画'
-        自身.待答=待答#提问域面
-        自身.审阅=审阅#计划审阅
-        自身.翻译=翻译#locale 翻译
-        自身.渲染槽=渲染槽#计划动作槽
-        自身.忙碌=False#一次性闩
-        自身.错误=None#失败文案
-        自身.画面=None#可反复清空的容器
-        自身.画面失败=None
+def 设类(节点,*类名):
+    '挂上官方类名，让模块样式生效'
+    节点.className=' '.join(类名)#类名保持原文
+    return 标样式模块(节点,样式模块)#模块属性
 
-    def 结算(自身,发送):#带闩的发送
-        '置忙碌、清错误；发送失败则重开闩并展示原因。answer/cancel 已在域面内等待'
-        自身.忙碌=True#闩上
-        自身.错误=None#清错误
-        try:#投递
-            发送()#域面已阻塞至回执
-        except 提问错误 as 原因:#投递失败
-            自身.忙碌=False#重开闩
-            自身.错误=页面失败文案(原因)#展示原因，不带路径、用户名或环境变量
 
-    def 裁决(自身,标签):#用选项标签作答
-        '以提问者提供的选项标签回答该审阅'
-        标识=自身.审阅['id']#问题 id
-        def 发送():#投递单选
-            '把批准或拒绝标签编成答案'
-            自身.待答.answer({'answers':[{'id':标识,'selected':[标签]}]})#投递单选答案
-        自身.结算(发送)#带闩发送
+class 计划审阅面板:
+    '一次计划决定。同一条请求复用忙态和错误'
+    实例表={}#请求键到面板
 
-    def 讨论(自身):#取消等待回到聊天
-        '以取消拒绝等待，让撰写器归位'
-        def 发送():#投递取消
-            '关闭本次提问请求'
-            自身.待答.cancel()#投递取消
-        自身.结算(发送)#带闩发送
+    def __new__(类,属性=None):
+        '槽位调用时交出卡片节点'
+        return 类.呈现(属性)#卡片
 
-    def 摘要(自身,计划):#标题与首段
-        '取第一行作标题，其后第一段作说明'
-        行列表=[]#非空行
-        for 行 in str(计划).splitlines():#逐行
-            文=行.strip()#去空白
-            if 文.startswith('#'):#标题标记
-                文=文.lstrip('#').strip()#去标记
-            if 文!='':#有内容
-                行列表.append(文)#收下
-        if len(行列表)==0:#空计划
-            return {'title':'','description':''}#空
-        标题=行列表[0]#首行
-        说明=''#首段
-        if len(行列表)>1 and 行列表[1]!=标题:#次行且不重复
-            说明=行列表[1]#说明
-        return {'title':标题,'description':说明}#摘要
+    @classmethod
+    def 呈现(类,属性):
+        '根还在页面上就更新，卸下之后重新画'
+        待=属性['matched']#这一条提问
+        键=待.key#请求键
+        已有=类.实例表[键] if 键 in 类.实例表 else None#已有
+        if 已有 is not None and 已有.根 is not None and 已有.根.parentNode is not None:#还挂着
+            已有.属性=属性#换属性
+            return 已有.渲染()#更新
+        已有=object.__new__(类)#新面板
+        类.实例表[键]=已有#记住
+        已有.建立(属性)#初始化
+        return 已有.渲染()#画出
 
-    def 渲染(自身):#决策卡
-        '画出状态点、摘要、动作槽和决策按钮'
-        拒绝=自身.审阅['decline'] if 'decline' in 自身.审阅 else None#可选拒绝选项
-        批准=自身.审阅['approve']#批准选项
-        摘要=自身.摘要(自身.审阅['plan'])#摘要
-        旧=getattr(自身,'画面',None)#已有容器
-        if 旧 is not None:
-            try:
-                旧.clear()
-            except Exception as 错误:#父级清掉容器后，把失败留在页面上
-                自身.画面=None
-                自身.画面失败=页面失败文案(错误)
-        if 自身.画面 is None:#新建
-            自身.画面=界面.column().classes('plan-review')#根
-        自身.画面.clear()#再清一次
-        def 讨论():
-            '回到聊天后重画'
-            自身.处理点击('discuss')#讨论
-            自身.渲染()#重画
-        def 拒绝本题():
-            '拒绝计划后重画'
-            自身.处理点击('decline')#拒绝
-            自身.渲染()#重画
-        def 批准本题():
-            '批准计划后重画'
-            自身.处理点击('approve')#批准
-            自身.渲染()#重画
-        with 自身.画面:#根
-            if isinstance(自身.画面失败,str) and 自身.画面失败!='':
-                界面.label(自身.画面失败)
-            with 界面.column().classes('plan-review-card'):
-                with 界面.row().classes('plan-review-strip'):#条
-                    if 自身.忙碌 is True:#进行中
-                        界面.spinner(size='sm')#进行中圆点
-                    else:#待审
-                        界面.html('<span class="plan-review-dot"></span>',sanitize=False)#警告圆点
-                    界面.label(自身.翻译('plan.header'))#标题
-                    if 自身.渲染槽 is not None:#动作槽自己在构造里画，这里不再调用渲染
-                        自身.渲染槽('conversation.plan-review.actions',{'review':自身.审阅,'requestKey':自身.待答.key})
-                with 界面.column().classes('plan-review-body'):
-                    if 摘要['title']!='':#摘要标题
-                        界面.label(摘要['title'])#标题
-                    if 摘要['description']!='':#摘要说明
-                        界面.label(摘要['description'])#说明
-                    界面.markdown(自身.审阅['plan'])#计划正文
-                with 界面.row().classes('plan-review-footer'):
-                    if isinstance(自身.错误,str) and 自身.错误!='':#错误
-                        界面.label(自身.错误).classes('plan-review-feedback')#错误
-                    with 界面.row().classes('plan-review-actions'):
-                        讨论钮=界面.button(自身.翻译('plan.discuss'), on_click=讨论).classes('plan-review-discuss')#要求修改
-                        if 自身.忙碌 is True:#忙碌
-                            讨论钮.disable()#禁
-                        if 拒绝 is not None:#有拒绝
-                            拒钮=界面.button(自身.翻译('plan.decline'), on_click=拒绝本题)#拒绝
-                            说明=拒绝['description'] if 'description' in 拒绝 else None#说明
-                            if isinstance(说明,str) and 说明!='':
-                                拒钮.tooltip(说明)#提示
-                            if 自身.忙碌 is True:#忙碌
-                                拒钮.disable()#禁
-                        准钮=界面.button(自身.翻译('plan.approve'), on_click=批准本题)#批准
-                        批准说明=批准['description'] if 'description' in 批准 else None#说明
-                        if isinstance(批准说明,str) and 批准说明!='':
-                            准钮.tooltip(批准说明)#提示
-                        if 自身.忙碌 is True:#忙碌
-                            准钮.disable()#禁
+    def 建立(自身,属性):
+        '先记下请求，节点等渲染时再造'
+        自身.属性=属性#槽位属性
+        自身.忙=False#正在送出
+        自身.错误=None#失败句
+        自身.根=None#外层
+        自身.点=None#状态点
+        自身.点态=None#当前点态
 
-    def 处理点击(自身,动作名):#按动作名分发
-        '把结构树上的 onClick 名分发到裁决或讨论'
-        if 动作名=='discuss':#去聊天
-            自身.讨论()#取消
-            return#已处理
-        if 动作名=='decline':#拒绝
-            拒绝=自身.审阅['decline'] if 'decline' in 自身.审阅 else None#拒绝选项
-            if 拒绝 is not None:#仍有拒绝
-                自身.裁决(拒绝['label'])#用拒绝标签作答
-            return#已处理
-        if 动作名=='approve':#批准
-            自身.裁决(自身.审阅['approve']['label'])#用批准标签作答
+    def 审阅(自身):
+        '撰写器已经收窄好的计划'
+        if 'review' in 自身.属性 and 自身.属性['review'] is not None:#直接带来
+            return 自身.属性['review']#审阅
+        return None#没有
+
+    def 渲染(自身):
+        '第一次造卡片。之后只改摘要、忙态、错误和动作槽'
+        窗口=自身.属性['window']#浏览器窗口
+        文档=窗口.document#文档
+        待=自身.属性['matched']#提问
+        审阅=自身.审阅()#计划
+        if 自身.根 is None:#第一次
+            根=模块节点(文档,'div',样式模块,'frame')#外层
+            根.setAttribute('data-plan-review-key',待.key)#请求键
+            卡=模块节点(文档,'section',样式模块,'card')#卡片
+            卡.setAttribute('aria-label',审阅['question'])#无障碍名
+            条=模块节点(文档,'div',样式模块,'strip')#色条
+            自身.点=状态点({'window':窗口,'state':'warning'})#未作答
+            自身.点态='warning'#当前
+            条.appendChild(自身.点.渲染())#点
+            条.appendChild(文档.createTextNode('计划待审'))#标题
+            动作位=模块节点(文档,'div',样式模块,'previewActions')#侧栏动作
+            条.appendChild(动作位)#动作
+            卡.appendChild(条)#色条
+            摘要=模块节点(文档,'div',样式模块,'summary')#摘要
+            题=模块节点(文档,'h3',样式模块,'title')#标题
+            说明=模块节点(文档,'p',样式模块,'description')#说明
+            摘要.appendChild(题)#标题
+            摘要.appendChild(说明)#说明
+            卡.appendChild(摘要)#摘要
+            脚=模块节点(文档,'div',样式模块,'footer')#页脚
+            反馈=模块节点(文档,'div',样式模块,'feedback')#错误
+            反馈.setAttribute('role','status')#状态
+            行=模块节点(文档,'div',样式模块,'actions')#按钮
+            改=按钮({#要求修改
+                'window':窗口,
+                'variant':'outline',
+                'className':'discuss',
+                'disabled':False,
+                'onClick':自身.点修改,
+                'children':'要求修改',
+            })
+            改钮=改.渲染()#按钮
+            标样式模块(改钮,样式模块)#讨论样式
+            图=图标编辑16({'window':窗口,'size':14})#铅笔
+            改钮.insertBefore(图,改钮.firstChild)#图标在前
+            行.appendChild(改钮)#修改
+            同意=按钮({#同意执行
+                'window':窗口,
+                'variant':'primary',
+                'disabled':False,
+                'onClick':自身.点同意,
+                'children':'同意执行',
+            })
+            同意钮=同意.渲染()#按钮
+            说明文=审阅['approve'].get('description')#选项说明
+            if isinstance(说明文,str):#有说明才给提示
+                同意钮.title=说明文#悬停说明
+            行.appendChild(同意钮)#同意
+            脚.appendChild(反馈)#错误
+            脚.appendChild(行)#按钮
+            卡.appendChild(脚)#页脚
+            根.appendChild(卡)#卡片
+            注入模块样式文件(文档,'计划审阅面板样式',样式路径,样式模块)#样式
+            自身.根=根#留下
+            自身.卡=卡#留下
+            自身.条=条#留下
+            自身.动作位=动作位#留下
+            自身.题=题#留下
+            自身.说明=说明#留下
+            自身.反馈=反馈#留下
+            自身.改钮=改钮#留下
+            自身.同意钮=同意钮#留下
+        标题=抽取Markdown纯文本(审阅['plan'],{'mode':'first-line'})#首行
+        段落=抽取Markdown纯文本(审阅['plan'],{'mode':'first-paragraph'})#首段
+        if 段落==标题:#和标题相同就不重复
+            段落=''#不显示
+        自身.题.textContent=标题#标题
+        自身.说明.textContent=段落#说明
+        if 段落=='':#没有说明
+            自身.说明.style.display='none'#藏起
+        else:#有说明
+            自身.说明.style.display=''#显示
+        自身.反馈.textContent='' if 自身.错误 is None else 自身.错误#错误
+        自身.卡.setAttribute('aria-busy','true' if 自身.忙 else 'false')#忙态
+        自身.改钮.disabled=自身.忙#修改
+        自身.同意钮.disabled=自身.忙#同意
+        态='ongoing' if 自身.忙 else 'warning'#点的状态
+        if 自身.点态!=态:#需要换点
+            自身.点态=态#记下
+            自身.点.更新({'window':窗口,'state':态})#换状态
+            新点=自身.点.渲染()#新点
+            自身.条.insertBefore(新点,自身.条.firstChild)#放回条首
+        while 自身.动作位.firstChild is not None:#清掉旧动作
+            自身.动作位.removeChild(自身.动作位.firstChild)#摘掉
+        槽=自身.属性['renderSlot']('conversation.plan-review.actions',{#计划动作
+            'review':审阅,#这份计划
+            'requestKey':待.key,#请求键
+            'window':窗口,#子界面造节点
+        })
+        节点=槽#可能是节点或包装
+        见过=[]#防止自己套自己
+        while 节点 is not None and 节点 not in 见过:#往下找节点
+            见过.append(节点)#记过
+            if hasattr(节点,'tagName'):#已经是节点
+                break#停
+            根=getattr(节点,'根',None)#组件根
+            if 根 is not None and hasattr(根,'tagName'):#有根
+                节点=根#用根
+                break
+            if isinstance(节点,dict):#包装
+                下一项=None#往下
+                for 键名 in ('content','body','elected','tree'):#常见包装
+                    if 键名 in 节点 and 节点[键名] is not None:#有
+                        下一项=节点[键名]#往下
+                        break
+                节点=下一项#继续
+                continue
+            节点=None#不是能挂的
+            break
+        if 节点 is not None and hasattr(节点,'tagName'):#能挂
+            自身.动作位.appendChild(节点)#放进色条
+        if 'parent' in 自身.属性 and 自身.根.parentNode is not 自身.属性['parent']:#指定了父节点
+            自身.属性['parent'].appendChild(自身.根)#挂上
+        return 自身.根#节点
+
+    def 结算(自身,送出,远程=False):
+        '先禁用。远程成功后再收起面板。失败则恢复并显示原因'
+        自身.忙=True#先锁
+        自身.错误=None#清掉旧错误
+        自身.渲染()#写到页面
+        try:#送出
+            送出()#作答或收起
+        except Exception as 原因:#失败
+            自身.忙=False#恢复
+            自身.错误=str(原因)#原因原样
+            自身.渲染()#写回
+            return
+        if not 远程:#瀑布成功就保持禁用
+            return
+        自身.忙=False#远程已经收下
+        自身.渲染()#恢复按钮，准备收起
+        try:#收起面板
+            自身.属性['matched'].收起()#离开座位
+        except Exception:#面板没关上
+            自身.错误='回答已发送；面板未能关闭。'#中文表原文
+            自身.渲染()#留下这句
+
+    def 决定(自身,标签):
+        '把这个选项当作整份答案送出'
+        待=自身.属性['matched']#提问
+        审阅=自身.审阅()#计划
+        远程=待.getSnapshot()['channel']=='rpc'#已经继续
+        def 送出():
+            '送出这一条选择'
+            待.作答({'answers':[{'id':审阅['id'],'selected':[标签]}]})#答案
+        自身.结算(送出,远程)#送出
+
+    def 点修改(自身,_事件=None):
+        '收起审阅，回到输入框改计划'
+        待=自身.属性['matched']#提问
+        def 送出():
+            '只收起，不送答案'
+            待.收起()#收起
+        自身.结算(送出)#收起
+
+    def 点同意(自身,_事件=None):
+        '同意执行'
+        审阅=自身.审阅()#计划
+        自身.决定(审阅['approve']['label'])#同意标签

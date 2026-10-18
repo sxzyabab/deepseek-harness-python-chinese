@@ -17,7 +17,7 @@ class 子智能体列举外部子体(TypedDict):#没有本地子会话的外部�
     mode:Literal['external']#外部
     label:NotRequired[str]#可选标签
 
-class 子智能体列举可续跑子体(TypedDict):#列举结果的可续跑子体臂
+class 子智能体列举可续运行子体(TypedDict):#列举结果的可续运行子体臂
     kind:Literal['child']#子体条目
     id:str#耐久子会话 id
     activity:Literal['running','inactive']#目录观察时是否驻留
@@ -30,7 +30,7 @@ class 子智能体列举诊断(TypedDict):#列举结果的诊断臂
     id:str#候选的会话 id
     reason:Literal['corrupt','unsupported','unavailable']#候选没有 child 行的原因
 
-子智能体列举条目=子智能体列举一次性子体|子智能体列举外部子体|子智能体列举可续跑子体|子智能体列举诊断#listDescendants 结果一条
+子智能体列举条目=子智能体列举一次性子体|子智能体列举外部子体|子智能体列举可续运行子体|子智能体列举诊断#listDescendants 结果一条
 
 class 子智能体后代列举外部(子智能体列举外部子体):#后代列举的外部执行
     parentId:str#本候选在枚举树中的耐久直接父
@@ -40,7 +40,7 @@ class 子智能体后代列举一次性(子智能体列举一次性子体):#后�
     parentId:str#本候选在枚举树中的耐久直接父
     depth:int#相对所请求根的边距
 
-class 子智能体后代列举可续跑(子智能体列举可续跑子体):#后代列举的可续跑子体
+class 子智能体后代列举可续运行(子智能体列举可续运行子体):#后代列举的可续运行子体
     parentId:str#本候选在枚举树中的耐久直接父
     depth:int#相对所请求根的边距
 
@@ -48,7 +48,7 @@ class 子智能体后代列举诊断(子智能体列举诊断):#后代列举的�
     parentId:str#本候选在枚举树中的耐久直接父
     depth:int#相对所请求根的边距
 
-子智能体后代列举条目=子智能体后代列举一次性|子智能体后代列举外部|子智能体后代列举可续跑|子智能体后代列举诊断#listDescendants 结果一条
+子智能体后代列举条目=子智能体后代列举一次性|子智能体后代列举外部|子智能体后代列举可续运行|子智能体后代列举诊断#listDescendants 结果一条
 
 def 已中止(信号):
     '信号是否已中止。无信号视为未中止'
@@ -63,7 +63,7 @@ def 断言列举未取消(信号):
     if 已中止(信号):#已取消
         raise 子智能体错误('subagent listing was cancelled','CANCELLED')#稳定取消失败
 
-def _目录值(观察):
+def _名录值(观察):
     '从一次会话观察取出 subagentCatalog'
     投影=观察.projections#投影块
     if not isinstance(投影,dict):#没有投影
@@ -84,7 +84,7 @@ def 列举子体(上下文,父会话标识,信号=None):
     选项={} if 信号 is None else {'signal':信号}#取消
     观察=查询.observeSession(父会话标识,选项)#点观察
     try:#用完即关
-        条目=_目录值(观察)#目录
+        条目=_名录值(观察)#目录
         if 条目 is None:#没登记投影
             raise 子智能体错误(
                 'listing subagents requires the registered subagentCatalog projection',

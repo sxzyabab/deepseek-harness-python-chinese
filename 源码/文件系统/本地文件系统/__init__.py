@@ -145,17 +145,17 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
             return None#缺失
         return {'version':信息['version'],'type':信息['type'],'size':信息['size']}#返回路径级元数据
 
-    def 读文本(自身,目标,信号=None):#读取整个文本文件
+    def 读取文本(自身,目标,信号=None):#读取整个文本文件
         '读取整个文本文件'
-        return 文件读写.读整文件文本({'displayPath':目标['displayPath'],'targetKey':目标['targetKey']},信号)#委托文件读写
+        return 文件读写.读取整文件文本({'displayPath':目标['displayPath'],'targetKey':目标['targetKey']},信号)#委托文件读写
 
     def 流文本(自身,目标,信号=None):#流式读取文本
         '流式读取文本'
         return 文件读写.流整文件文本({'displayPath':目标['displayPath'],'targetKey':目标['targetKey']},信号)#委托文件读写
 
-    def 读字节(自身,目标,信号,最大字节):#按字节上限读取原始内容
+    def 读取字节(自身,目标,信号,最大字节):#按字节上限读取原始内容
         '按字节上限读取原始内容'
-        return 文件读写.读整文件字节({'displayPath':目标['displayPath'],'targetKey':目标['targetKey']},信号,最大字节,自身.内部)#委托并传入测试钩子
+        return 文件读写.读取整文件字节({'displayPath':目标['displayPath'],'targetKey':目标['targetKey']},信号,最大字节,自身.内部)#委托并传入测试钩子
 
     def 列目录(自身,目标,信号=None):#列举目录直接子项
         '列举目录直接子项'
@@ -190,7 +190,7 @@ class 本地文件系统(fs.文件系统):#本地文件系统后端
             elif 种类=='createIfAbsent' and 已有 is not None:#要创建但已经存在
                 raise fs.文件系统错误(f'cannot overwrite existing "{展示路径}" without reading it first','FS_NOT_OBSERVED')#未经观察不得覆盖
             可diff=已有 is not None and utf8字节数(内容)<自身.配置.diffBasisMaxBytes#值得抓 diff 基准
-            之前=文件读写.为diff读文本(目标键,自身.配置.diffBasisMaxBytes,信号) if 可diff else None#尽力读取旧文本或 None
+            之前=文件读写.为diff读取文本(目标键,自身.配置.diffBasisMaxBytes,信号) if 可diff else None#尽力读取旧文本或 None
             文件读写.原子写文件(目标键,内容,已有['mode'] if 已有 is not None else None,信号,自身.内部,{'displayPath':展示路径} if 种类=='createIfAbsent' else None)#原子发布
             之后=文件读写.探测(目标键)#写入后再探测版本
             return {#组装写入结果

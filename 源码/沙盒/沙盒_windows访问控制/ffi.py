@@ -437,7 +437,7 @@ def 错误文本(接口,win32码):#系统消息
         return ''#空
     return 缓冲.value.strip()#去掉尾空白
 
-def 取临时路径(接口):#MAX_PATH临时目录
+def 获取临时路径(接口):#MAX_PATH临时目录
     '经 GetTempPathW 读进程临时目录'
     容量=abi.最大路径+1#字符容量
     缓冲=ctypes.create_unicode_buffer(容量)#宽字符+NUL

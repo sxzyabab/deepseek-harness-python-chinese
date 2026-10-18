@@ -1,5 +1,6 @@
 {
     "LanguageRow":"语言行",
+    "LanguageRow.module":"语言行.module",
     "settings-store":"设置存储",
     "bootstrap":"引导启动"
 }

@@ -1,256 +1,219 @@
-import importlib.resources as 包资源
-from nicegui import ui as 界面
-from ..异常 import 页面失败文案
-from .终端图标 import 终端引导图标
+from ...模块.客户端.通告 import 取握手窗口
+import os
+import threading
+from ...ui_对话.异常 import 注入模块样式文件,模块节点,标样式模块
+from ...ui_基础界面组件.按钮 import 按钮
+from ...ui_基础界面组件.菜单 import 菜单
+from .终端图标 import 终端作品
 
 __all__=['终端引导']
 
-def _读样式():
-    '读同目录引导样式。打不开时只报样式读不到，不含路径'
-    try:
-        return 包资源.files(__package__).joinpath('终端引导.module.css').read_text(encoding='utf-8')
-    except OSError:
-        raise OSError('样式读不到') from None
-
-样式表=_读样式()
-界面.add_css(样式表,shared=True)
-
-def _引号(文本):
-    '放进属性时转掉引号和尖括号'
-    return str(文本).replace('&','&amp;').replace('"','&quot;').replace('<','&lt;')
-
-def _键齐(属性):
-    '文案、标题和页签都在才画'
-    return isinstance(属性,dict) and 't' in 属性 and 'title' in 属性 and 'useTabInfo' in 属性
+样式路径=os.path.join(os.path.dirname(__file__),'终端引导.module.css')
+样式模块='TerminalGuide'
 
 class 终端引导:
     '卡片启动记住的壳，菜单另选壳'
-    def __init__(自身,属性):
-        '记下 props。槽位只调用构造，键齐了就画'
+    def __init__(自身,属性=None):
+        '记下份额并画出'
         自身.属性=属性 if isinstance(属性,dict) else {}
         自身.打开=False
         自身.尝试=0
         自身.菜单={'phase':'loading'}
-        自身.已读=False
+        自身.载过=None
+        自身.寿命=None
         自身.根=None
-        自身.菜单控件=None
-        自身.失败=None
-        if _键齐(自身.属性):
-            自身.渲染()
+        自身.渲染()
 
     def 更新(自身,属性):
-        '刷新合成 props'
+        '换上一份份额'
         自身.属性=属性 if isinstance(属性,dict) else {}
 
-    def 切菜单(自身):
-        '打开时重置为 loading，并重画'
-        if 自身.打开:
-            自身.打开=False
-        else:
-            自身.菜单={'phase':'loading'}
-            自身.已读=False
-            自身.打开=True
-        自身.渲染()
-
-    def 关菜单(自身):
-        '关上菜单并重画'
-        自身.打开=False
-        自身.渲染()
-
-    def 选壳(自身,路径):
-        '失败则重试；否则记住并打开标签'
-        if 自身.菜单.get('phase')=='failed':
-            自身.菜单={'phase':'loading'}
-            自身.已读=False
-            自身.尝试+=1
-            自身.渲染()
+    def 确保加载(自身):
+        '菜单打开时读取壳列表。关上或重试会中止上一次'
+        if 自身.打开 is not True:
+            if 自身.寿命 is not None:
+                自身.寿命.set()
+                自身.寿命=None
+            自身.载过=None
             return
+        标记=(自身.尝试,id(自身.属性.get('loadShells')))
+        if 自身.载过==标记:
+            return
+        自身.载过=标记
+        if 自身.寿命 is not None:
+            自身.寿命.set()
+        自身.寿命=threading.Event()
+        这次=自身.寿命
         try:
-            自身.属性['selectShell'](路径)
-            标签=自身.属性['useTabInfo']()['tab']
-            标签['actions'].openTab('terminal',{'replaceTab':True,'params':{'shellPath':路径}})
-        except Exception as 错:
-            自身.失败=页面失败文案(错)
-            自身.渲染()
+            结果=自身.属性['loadShells'](这次)
+        except Exception as 错误:
+            if 这次.is_set():
+                return
+            自身.菜单={'phase':'failed','message':str(错误)}
             return
-        自身.失败=None
-        自身.打开=False
-        自身.渲染()
-
-    def 开终端(自身):
-        '替换当前页签为终端。失败留在卡片上，说明不含绝对路径'
-        try:
-            标签=自身.属性['useTabInfo']()['tab']
-            标签['actions'].openTab('terminal',{'replaceTab':True})
-        except Exception as 错:
-            自身.失败=页面失败文案(错)
-            自身.渲染()
+        if 这次.is_set():
             return
-        自身.失败=None
-
-    def 菜单项(自身):
-        '按阶段投影项'
-        翻译=自身.属性['t']
-        阶段=自身.菜单.get('phase')
-        if 阶段=='ready':
-            项表=[]
-            选择=自身.菜单.get('choices') if isinstance(自身.菜单.get('choices'),dict) else {}
-            壳表=选择.get('shells') if isinstance(选择.get('shells'),list) else []
-            for 壳 in 壳表:
-                if isinstance(壳,dict) and isinstance(壳.get('path'),str):
-                    名=壳.get('name') if isinstance(壳.get('name'),str) else 壳['path']
-                    项表.append({'id':壳['path'],'label':名})
-            return 项表
-        if 阶段=='loading':
-            return [{'id':'loading','label':翻译('shellLoading'),'disabled':True}]
-        说明=自身.菜单.get('message') if isinstance(自身.菜单.get('message'),str) else ''
-        return [
-            {'id':'error','label':翻译('failed',{'message':说明}),'disabled':True},
-            {'id':'retry','label':翻译('retry')},
-        ]
-
-    def 读壳(自身):
-        '菜单打开时读取宿主壳列表。失败记成菜单说明，不含绝对路径'
-        if 自身.打开 is not True or 自身.已读 or 'loadShells' not in 自身.属性:
-            return
-        自身.已读=True
-        try:
-            结果=自身.属性['loadShells'](None)
-        except Exception as 错:
-            自身.菜单={'phase':'failed','message':页面失败文案(错)}
-            return
-        if isinstance(结果,dict) and isinstance(结果.get('shells'),list):
-            自身.菜单={'phase':'ready','choices':结果}
-            return
-        自身.菜单={'phase':'failed','message':''}
-
-    def _腾出(自身):
-        '清空仍挂着的根。父级已拆掉时丢掉根，并返回要显示的失败句'
-        旧=自身.根
-        if 旧 is None:
-            return None
-        try:
-            旧.clear()
-        except Exception as 错:
-            自身.根=None
-            return 页面失败文案(错)
-        return None
+        自身.菜单={'phase':'ready','choices':结果}
 
     def 渲染(自身):
-        '主按钮打开终端，菜单另选壳'
-        if not _键齐(自身.属性):
-            return
-        自身.读壳()
-        清除失败=自身._腾出()
+        '主按钮打开终端，标题旁是壳菜单'
+        自身.确保加载()
         属性=自身.属性
-        翻译=属性['t']
-        标题=属性['title'] if isinstance(属性['title'],str) else ''
-        说明=属性['description'] if 'description' in 属性 and isinstance(属性['description'],str) else None
-        种类=属性['kind'] if 'kind' in 属性 and isinstance(属性['kind'],str) else ''
-        尺寸=22 if 说明 is None else 26
+        if isinstance(属性,dict) and 属性.get('window') is not None:
+            窗=属性['window']
+        else:
+            窗=取握手窗口()
+        文档=窗.document
+        注入模块样式文件(文档,'终端引导样式',样式路径,样式模块)
         if 自身.根 is None:
-            自身.根=界面.element('div').classes('dsh-term-guide')
-        if 种类!='' and all(字.isalnum() or 字 in '-_' for 字 in 种类):
-            自身.根.props('data-sidebar-right-guide-entry='+种类)
-        项表=自身.菜单项()
-        if len(项表)==0:
-            项表=[{'id':'empty','label':翻译('shellEmpty'),'disabled':True}]
-        with 自身.根:
-            if isinstance(清除失败,str) and 清除失败!='':
-                界面.label(清除失败)
-            if isinstance(自身.失败,str) and 自身.失败!='':
-                界面.label(自身.失败)
-            无障碍=标题 if 说明 is None or 说明=='' else 标题+' '+说明
-            界面.button('', on_click=自身.开终端).props('flat aria-label="'+_引号(无障碍)+'"').classes('dsh-term-guide-main')
-            with 界面.element('span').classes('dsh-term-guide-icon'):
-                终端引导图标({'size':尺寸}).渲染()
-            with 界面.column().classes('dsh-term-guide-text'):
-                with 界面.row().classes('dsh-term-guide-title-row'):
-                    界面.label(标题).classes('dsh-term-guide-title')
-                    with 界面.element('div').classes('dsh-term-guide-menu'):
-                        触发=界面.button(icon='expand_more', on_click=自身.切菜单).props('flat dense round aria-label="'+_引号(翻译('shell'))+'"').classes('dsh-term-guide-trigger')
-                        with 触发:
-                            菜单=界面.menu()
-                            自身.菜单控件=菜单
-                            with 菜单:
-                                for 项 in 项表:
-                                    _画菜单项(自身,项)
-                        if 自身.打开:
-                            _打开菜单(菜单)
-                if 说明 is not None and 说明!='':
-                    界面.label(说明).classes('dsh-term-guide-desc')
-            快捷=_快捷文(属性)
-            if 快捷!='':
-                界面.label(快捷).classes('dsh-term-guide-shortcut')
+            自身.根=模块节点(文档,'div',样式模块,'entry')
+        else:
+            while 自身.根.firstChild is not None:
+                自身.根.firstChild.remove()
+        标题=属性['title'] if isinstance(属性.get('title'),str) else ''
+        说明=属性['description'] if isinstance(属性.get('description'),str) else None
+        种类=属性['kind'] if 'kind' in 属性 else ''
+        自身.根.setAttribute('data-sidebar-right-guide-entry',str(种类))
+        尺寸=22 if 说明 is None else 26
+        无障碍=标题 if 说明 is None else 标题+' '+说明
+
+        def 挑快捷(条目表):
+            '新建终端这条快捷键'
+            for 条 in 条目表:
+                if 条['id']=='terminal.new':
+                    return 条
+            return None
+
+        快捷=属性['useShortcuts'](挑快捷)
+        签=属性['useTabInfo']()['tab']
+
+        def 开终端():
+            '替换当前页签为终端'
+            签['actions']['openTab']('terminal',{'replaceTab':True})
+
+        主=按钮({
+            'window':窗,
+            'variant':'ghost',
+            'className':'main',
+            'onClick':开终端,
+        }).渲染()
+        标样式模块(主,样式模块)
+        主.setAttribute('aria-label',无障碍)
+        if 快捷 is not None and isinstance(快捷.get('aria'),str) and 快捷['aria']!='':
+            主.setAttribute('aria-keyshortcuts',快捷['aria'])
+        自身.根.appendChild(主)
+        标=模块节点(文档,'span',样式模块,'icon')
+        标.setAttribute('aria-hidden','true')
+        标.appendChild(终端作品(窗,尺寸,None))
+        自身.根.appendChild(标)
+        文=模块节点(文档,'span',样式模块,'text')
+        题行=模块节点(文档,'span',样式模块,'titleRow')
+        题=模块节点(文档,'span',样式模块,'title')
+        题.setAttribute('aria-hidden','true')
+        题.textContent=标题
+        题行.appendChild(题)
+        阶段=自身.菜单.get('phase')
+        选中=None
+        if 阶段=='ready' and isinstance(自身.菜单.get('choices'),dict):
+            选择=自身.菜单['choices']
+            壳表=选择['shells'] if isinstance(选择.get('shells'),list) else []
+            项=[]
+            for 壳 in 壳表:
+                项.append({'id':壳['path'],'label':壳['name']})
+            选中=选择.get('selectedShell')
+        elif 阶段=='loading':
+            项=[{'id':'loading','label':'正在读取 Shell…','disabled':True}]
+        else:
+            消息=自身.菜单['message'] if isinstance(自身.菜单.get('message'),str) else ''
+            项=[
+                {'id':'error','label':'终端错误：'+消息,'disabled':True},
+                {'id':'retry','label':'重试'},
+            ]
+        if len(项)==0:
+            项=[{'id':'empty','label':'没有可用的 Shell','disabled':True}]
+
+        def 切换():
+            '打开时先回到读取中'
+            自身.菜单={'phase':'loading'}
+            自身.打开=自身.打开 is not True
+            自身.渲染()
+
+        def 关上():
+            '关上菜单'
+            自身.打开=False
+            自身.渲染()
+
+        def 选中路径(路径):
+            '失败则重试。否则记住壳并打开终端'
+            if 自身.菜单.get('phase')=='failed':
+                自身.菜单={'phase':'loading'}
+                自身.尝试=自身.尝试+1
+                自身.载过=None
+                自身.渲染()
+                return
+            属性['selectShell'](路径)
+            自身.打开=False
+            签['actions']['openTab']('terminal',{'replaceTab':True,'params':{'shellPath':路径}})
+            自身.渲染()
+
+        触发=按钮({
+            'window':窗,
+            'variant':'ghost',
+            'size':'sm',
+            'className':'trigger',
+            'onClick':切换,
+        }).渲染()
+        标样式模块(触发,样式模块)
+        触发.setAttribute('aria-label','选择 Shell')
+        触发.setAttribute('aria-haspopup','menu')
+        触发.setAttribute('aria-expanded','true' if 自身.打开 else 'false')
+        箭头=文档.createElementNS('http://www.w3.org/2000/svg','svg')
+        箭头.setAttribute('width','16')
+        箭头.setAttribute('height','16')
+        箭头.setAttribute('viewBox','0 0 16 16')
+        箭头.setAttribute('fill','none')
+        箭头.setAttribute('stroke-width','1')
+        箭头.setAttribute('aria-hidden','true')
+        折=文档.createElementNS('http://www.w3.org/2000/svg','path')
+        折.setAttribute('d','M4 6L7.29289 9.29289C7.68342 9.68342 8.31658 9.68342 8.70711 9.29289L12 6')
+        折.setAttribute('stroke','currentColor')
+        箭头.appendChild(折)
+        触发.appendChild(箭头)
+        层=菜单({
+            'window':窗,
+            'open':自身.打开,
+            'align':'end',
+            'className':'menu',
+            'items':项,
+            'selectedId':选中,
+            'onClose':关上,
+            'onSelect':选中路径,
+            'anchor':触发,
+        }).渲染()
+        标样式模块(层,样式模块)
+        题行.appendChild(层)
+        文.appendChild(题行)
+        if 说明 is not None:
+            述=模块节点(文档,'span',样式模块,'description')
+            述.setAttribute('aria-hidden','true')
+            述.textContent=说明
+            文.appendChild(述)
+        自身.根.appendChild(文)
+        if 快捷 is not None and isinstance(快捷.get('keys'),(list,tuple)) and len(快捷['keys'])>0:
+            捷=模块节点(文档,'span',样式模块,'shortcut')
+            for 键 in 快捷['keys']:
+                帽=文档.createElement('kbd')
+                帽.setAttribute('class','separator' if 键=='+' else 'key')
+                帽.textContent=str(键)
+                捷.appendChild(帽)
+            自身.根.appendChild(捷)
+        父=属性.get('parent')
+        if 父 is not None and getattr(自身.根,'parentNode',None) is None:
+            父.appendChild(自身.根)
+        return 自身
 
     def __call__(自身,属性=None):
         '有新属性先更新，再画出'
         if 属性 is not None:
             自身.更新(属性)
         return 自身.渲染()
-
-def _打开菜单(菜单):
-    '展开壳菜单。有 open 就调用，否则把值写成打开。失败留一句说明'
-    try:
-        打开=getattr(菜单,'open',None)
-        if callable(打开):
-            打开()
-            return
-        设值=getattr(菜单,'set_value',None)
-        if callable(设值):
-            设值(True)
-    except Exception as 错:
-        界面.label(页面失败文案(错))
-
-def _画菜单项(引导,项):
-    '一行壳名。禁用项不可点；重试项重新读取'
-    标识=项.get('id')
-    文=项.get('label') if isinstance(项.get('label'),str) else ''
-    禁=项.get('disabled') is True
-    def 点(路径=标识,禁用=禁):
-        '记住所选壳并打开；失败项则重读'
-        if 禁用:
-            return
-        if 路径=='retry':
-            引导.已读=False
-            引导.菜单={'phase':'loading'}
-            引导.尝试+=1
-            引导.渲染()
-            return
-        引导.选壳(路径)
-    钮=界面.menu_item(文, on_click=点)
-    if 禁:
-        钮.disable()
-
-def _快捷文(属性):
-    '有 useShortcuts 时取出新建终端的按键文案'
-    取=属性.get('useShortcuts') if isinstance(属性,dict) else None
-    if not callable(取):
-        return ''
-    def 挑(条目表):
-        '找 terminal.new'
-        if isinstance(条目表,dict):
-            内=条目表.get('catalog')
-            条目表=内 if isinstance(内,list) else []
-        if not isinstance(条目表,(list,tuple)):
-            return None
-        for 条 in 条目表:
-            if isinstance(条,dict) and 条.get('id')=='terminal.new':
-                return 条
-        return None
-    try:
-        条=取(挑)
-    except Exception as 错:
-        return 页面失败文案(错)
-    if not isinstance(条,dict):
-        return ''
-    键表=条.get('keys')
-    if not isinstance(键表,(list,tuple)) or len(键表)==0:
-        return ''
-    段=[]
-    for 键 in 键表:
-        if isinstance(键,str) and 键!='':
-            段.append(键)
-        elif isinstance(键,dict) and isinstance(键.get('label'),str) and 键['label']!='':
-            段.append(键['label'])
-    return ' '.join(段)

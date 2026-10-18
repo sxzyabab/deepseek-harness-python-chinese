@@ -7,7 +7,7 @@ from ...内核.工具 import 定义工具#导入工具定义辅助
 __all__=[#仅中文公开名；Cordis 英文槽不入表
     '名称','依赖','配置','拉尔夫元数据','拉尔夫脚本',
     '解析配置','解析轮数上限','要求全新提供方','是否记录','归一化文本','归一化列表',
-    '读报告','读运行结果','停止原因错误','约束结果','渲染结果','渲染轮次失败',
+    '读取报告','读取运行结果','停止原因错误','约束结果','渲染结果','渲染轮次失败',
     '呈现调用','呈现结果','错误','应用',
 ]#公开面结束
 
@@ -191,7 +191,7 @@ def 归一化列表(值):#判断是否为归一化字符串数组
     '判断是否为归一化字符串数组'
     return isinstance(值,list) and all(归一化文本(项) for 项 in 值)#每项都是归一化文本
 
-def 读报告(值,期望状态,最大字节):#跨提供方边界防御性解码固定脚本的报告
+def 读取报告(值,期望状态,最大字节):#跨提供方边界防御性解码固定脚本的报告
     """把未知值校成单轮报告。
     值是 dict。
     上限按 UTF-8 字节
@@ -224,7 +224,7 @@ def 读报告(值,期望状态,最大字节):#跨提供方边界防御性解码�
         raise 错误('Ralph workflow returned an oversized handoff ('+str(字节数)+' > '+str(最大字节)+')')#交接过大
     return 报告#返回已校验报告
 
-def 读运行结果(值,轮数上限,交接上限):#防御性解码固定脚本的终态值
+def 读取运行结果(值,轮数上限,交接上限):#防御性解码固定脚本的终态值
     """把未知值校成终态结果。
     值是 dict
     """
@@ -242,17 +242,17 @@ def 读运行结果(值,轮数上限,交接上限):#防御性解码固定脚本�
     if 状态=='complete':#工作线程报告完成
         if 键集!='report,roundsStarted,status':#字段集必须恰好这些
             raise 错误('Ralph workflow returned a malformed terminal result')#终态形态失败
-        return {'status':'complete','roundsStarted':已启动,'report':读报告(值['report'],'complete',交接上限)}#解码完成报告
+        return {'status':'complete','roundsStarted':已启动,'report':读取报告(值['report'],'complete',交接上限)}#解码完成报告
     if 状态=='blocked':#工作线程报告阻塞
         if 键集!='report,roundsStarted,status':#字段集必须恰好这些
             raise 错误('Ralph workflow returned a malformed terminal result')#终态形态失败
-        return {'status':'blocked','roundsStarted':已启动,'report':读报告(值['report'],'blocked',交接上限)}#解码阻塞报告
+        return {'status':'blocked','roundsStarted':已启动,'report':读取报告(值['report'],'blocked',交接上限)}#解码阻塞报告
     if 状态=='budget-limited':#打到轮数上限
         if 键集!='report,roundsStarted,status':#字段集必须恰好这些
             raise 错误('Ralph workflow returned a malformed terminal result')#终态形态失败
         if 已启动!=轮数上限:#未打满上限却报预算耗尽
             raise 错误('Ralph workflow returned budget-limited before the round limit')#预算终态与轮数不符
-        return {'status':'budget-limited','roundsStarted':已启动,'report':读报告(值['report'],'continue',交接上限)}#解码继续态交接
+        return {'status':'budget-limited','roundsStarted':已启动,'report':读取报告(值['report'],'continue',交接上限)}#解码继续态交接
     if 状态=='round-failed':#某轮子运行失败
         if 键集!='lastReport,roundsStarted,status':#字段集必须恰好这些
             raise 错误('Ralph workflow returned a malformed terminal result')#终态形态失败
@@ -266,7 +266,7 @@ def 读运行结果(值,轮数上限,交接上限):#防御性解码固定脚本�
         return {#后续轮失败并带上上一份交接
             'status':'round-failed',#失败标签
             'roundsStarted':已启动,#失败轮次
-            'lastReport':读报告(上一份,'continue',交接上限),#解码上一份继续态交接
+            'lastReport':读取报告(上一份,'continue',交接上限),#解码上一份继续态交接
         }#结束失败结果
     raise 错误('Ralph workflow returned an unknown terminal status')#未知状态
 
@@ -413,7 +413,7 @@ def 应用(上下文,配置值=None):#登记固定 Ralph 工具及其显式询�
                 错误文案=停止原因错误(已结算)#非干净结束
                 if 错误文案 is not None:#有停止原因错误
                     raise 错误(错误文案)#抛出停止原因
-                终态=读运行结果(已结算['value'],轮数上限,已解析['maxHandoffChars'])#解码终态值
+                终态=读取运行结果(已结算['value'],轮数上限,已解析['maxHandoffChars'])#解码终态值
                 if 终态['status']=='round-failed':#轮次失败
                     raise 错误(渲染轮次失败(终态,已解析['maxResultChars']))#轮次失败报成工具错误
                 盒['值']={'runId':运行.id,'agentsStarted':已结算['agentsStarted'],'result':终态}#成功结果

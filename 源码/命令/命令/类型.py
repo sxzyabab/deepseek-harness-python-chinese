@@ -83,7 +83,7 @@ class 增量读取(TypedDict):#一次增量 readOutput 读取
     stderrSpillPath:NotRequired[str]#完整 stderr 溢出文件
 
 后台进程字段=('status','exitCode','signal','done','sandbox','observed')#后台进程句柄数据键（载荷键字面量）
-class 后台进程:#外壳执行器.执行 返回的执行句柄协议
+class 后台进程:#命令解释器执行器.执行 返回的执行句柄协议
     '唯一访问路径；缓冲输出在退出后仍可读'
     status=None#生命周期（进程状态）
     exitCode=None#结束后的退出码（None = 被信号杀死 / 仍在运行）

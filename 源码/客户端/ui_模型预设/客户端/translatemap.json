@@ -3,6 +3,8 @@
     "locales":"文案",
     "presentation":"呈现",
     "PermissionRow":"权限行",
+    "PermissionRow.module":"权限行.module",
     "PermissionSelect":"权限选择",
+    "PermissionSelect.module":"权限选择.module",
     "settings-store":"设置仓库"
 }

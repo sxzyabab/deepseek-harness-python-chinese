@@ -3,11 +3,11 @@ import os
 import socket
 from ...依赖.schemastery import 数字字段,布尔字段
 from ...类型化远程调用.协议 import 远程服务,远程 as _远程
-from .目录 import 构建模型目录
+from .模型名录 import 构建模型名录
 from .模型选择投影 import 安装模型选择投影
 from .文件引用 import 会话文件引用
 from .媒体引用 import 会话媒体引用
-from .技能目录 import 会话技能目录
+from .技能名录 import 会话技能名录
 from . import (
     已归档会话闸门,
     命令,
@@ -25,13 +25,13 @@ from ...模型后端.llm.异常 import 错误链#日志里的原因链
 from .远程错误与并发 import 已中止#中止查询
 from .异常 import 远程错误,失败说明#本包异常
 
-__all__=['包名','名称','依赖','应用','默认','配置','会话控制器','构建模型目录','会话文件引用','会话媒体引用','会话技能目录']
+__all__=['包名','名称','依赖','应用','默认','配置','会话控制器','构建模型名录','会话文件引用','会话媒体引用','会话技能名录','客户端']
 
 包名='@deepseek-ai/dsh-api-session-controller'
 名称='session-controller'
 依赖=[
     'agentDefaultModel','agents','attachments','fileUploads','fs','llm','sessions',
-    'sessionProjections','sessionQuery','typert','workspaceRegistry',
+    'sessionProjections','sessionQuery','typert','workspaceRegistry','remoteAccess',
 ]
 
 配置={#部署策略
@@ -92,11 +92,11 @@ class 会话控制器(远程服务):
         上下文.副作用(lambda:上下文.fileUploads.登记智能体解析器(文件上传解析),'session-controller: file-upload Agent resolver')#文件上传
         上下文.启动插件(会话文件引用)#子插件
         上下文.启动插件(会话媒体引用)#子插件
-        上下文.启动插件(会话技能目录)#子插件
+        上下文.启动插件(会话技能名录)#子插件
         上下文.启动插件(已归档会话闸门)#已归档闸门
         def 会话创建(会话):
             '创建'
-            上下文.广播('api-session/added',自身._列表.摘要(会话))
+            上下文.广播('api-session/added',自身._列表.构建会话摘要(会话))
         def 会话销毁(会话):
             '销毁'
             上下文.广播('api-session/removed',会话.id)#销毁
@@ -173,12 +173,17 @@ class 会话控制器(远程服务):
     @_远程('list')
     def list(自身,_请求,信号):
         '冷安全列出可见会话'
-        return {'items':自身._列表.列表(信号)}#列表
+        项列表=自身._列表.读取会话列表(信号)#冷列表
+        return {'items':[项 for 项 in 项列表 if 自身.ctx.remoteAccess.是否允许({'kind':'session','id':项['sessionId']})]}#非所有者只留允许的会话
 
     @_远程('search')
     def search(自身,请求,信号):
         '搜索消息内容。请求为 dict'
-        return 自身._列表.搜索(请求['query'],信号)#搜索
+        结果=自身._列表.搜索消息(请求['query'],信号)#搜索
+        if isinstance(结果,dict) and 'items' in 结果:#有命中列表
+            结果=dict(结果)#拷贝
+            结果['items']=[项 for 项 in 结果['items'] if 自身.ctx.remoteAccess.是否允许({'kind':'session','id':项['sessionId']})]#滤掉不允许的
+        return 结果#hasMore 仍是过滤前的上界
 
     @_远程('create')
     def create(自身,请求):
@@ -193,7 +198,7 @@ class 会话控制器(远程服务):
     @_远程
     def modelCatalog(自身):
         '描述当前可路由模型'
-        return 构建模型目录(自身.ctx)#目录
+        return 构建模型名录(自身.ctx)#目录
 
     @_远程
     def canOpenWorkspacePath(自身):
@@ -300,10 +305,79 @@ class 会话控制器(远程服务):
         '跟随会话事件流'
         yield from 自身._历史.follow(请求,信号)#流
 
-    @_远程('control')
+    @_远程('projections')
+    def projections(自身,请求,信号):
+        '读精确投影。待迁移时只返回缓存提示，缺席为 None'
+        会话标识=请求.get('sessionId') if isinstance(请求,dict) else ''#身份
+        if 会话标识 is None or len(str(会话标识))==0:#空
+            raise 远程错误('gateway/bad-request','sessionId must not be empty',{})#拒绝
+        try:
+            if 已中止(信号):#取消
+                raise 远程错误('gateway/cancelled','Session projection read was cancelled',{})#取消
+            活=自身._活投影(会话标识)#已附着
+            if 活 is not None:#有
+                return 活#即时
+            持久=自身.ctx.获取服务('sessionPersistence')#持久化
+            存储=持久.观察(会话标识,{'signal':信号}) if 持久 is not None else None#轻量观察
+            if 已中止(信号):#取消
+                raise 远程错误('gateway/cancelled','Session projection read was cancelled',{})#取消
+            附着=自身._活投影(会话标识)#观察期间附着
+            if 附着 is not None:#有
+                return 附着#即时
+            if 存储 is None:#没有
+                return None#缺席
+            if isinstance(存储,dict) and 存储.get('formatStatus')=='migration-required':#待迁移
+                缓存=自身.ctx.获取服务('sessionProjectionCache')#缓存
+                头=存储.get('header')#头
+                已缓存=缓存.缓存快照(头) if 缓存 is not None and isinstance(头,dict) else None#提示
+                值=已缓存['values'] if isinstance(已缓存,dict) and 'values' in 已缓存 else {}#值
+                return {'kind':'migration-required','values':dict(值)}#提示
+            观测=自身.ctx.sessionQuery.observeSession(会话标识,{'signal':信号})#冷读
+            try:
+                投影=观测.projections if hasattr(观测,'projections') else None#投影
+                if 投影 is None:#缺
+                    raise 远程错误('session/projections-unavailable','Session projections are unavailable',{})#拒绝
+                值=投影['values'] if isinstance(投影,dict) else 投影.values#值
+                序号=投影['asOfSeq'] if isinstance(投影,dict) else 投影.asOfSeq#水位
+                return {'kind':'sequenced','asOfSeq':序号,'values':值}#精确
+            finally:
+                if hasattr(观测,'close'):#释放观察
+                    观测.close()#关
+        except 远程错误:
+            raise#原样
+        except Exception as 错误:
+            码=getattr(错误,'code',None)#查询码
+            if 码=='SESSION_QUERY_SESSION_NOT_FOUND':#没有
+                return 自身._活投影(会话标识)#可能刚附着
+            if 已中止(信号) or 码=='SESSION_QUERY_ABORTED':#取消
+                raise 远程错误('gateway/cancelled','Session projection read was cancelled',{},原因=错误)#取消
+            raise 远程错误('gateway/internal','Session projection read failed',{},原因=错误)#内部
+
+    def _活投影(自身,会话标识):
+        '已附着会话的当前投影切面'
+        会话=自身.ctx.sessions.get(会话标识)#附着
+        if 会话 is None:#无
+            return None#无
+        快照=自身.ctx.sessionProjections.快照(会话)#切面
+        return {'kind':'sequenced','asOfSeq':快照['asOfSeq'],'values':快照['values']}#有序号
+
+    @_远程({'mode':'stream'})
     def control(自身,信号):
-        '流式会话控制基线与增量'
-        yield from 自身._控制.control(信号)#流
+        '流式会话控制基线与增量。基线和投影帧都按会话准入过滤'
+        for 帧 in 自身._控制.control(信号):#逐帧
+            if 帧['type']=='baseline':#基线
+                投影={}#准入后的投影
+                for 会话标识,块 in 帧['value'].get('projections',{}).items():#逐会话
+                    if 自身.ctx.remoteAccess.是否允许({'kind':'session','id':会话标识}):#允许
+                        投影[会话标识]=块#留下
+                值=dict(帧['value'])#拷
+                值['projections']=投影#换上
+                yield {'type':'baseline','value':值}#基线
+            elif 帧['type']=='projection':#增量
+                if 自身.ctx.remoteAccess.是否允许({'kind':'session','id':帧['sessionId']}):#允许
+                    yield 帧#留下
+            else:#封闭
+                raise RuntimeError('unknown control frame')#未知
 
 def 应用(上下文,配置值=None):
     '挂载 Session Remote 拥有者'

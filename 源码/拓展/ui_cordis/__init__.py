@@ -2,13 +2,11 @@ from . import (
     客户端,
     异常,
 )
-__all__=['名称','应用']
 
-名称='client-ui-cordis'
+__all__=['应用','客户端','异常']
 
 def 应用():
-    '空 apply，仅占 Loader 行'
+    '宿主面无行为，只给装载器一行。浏览器呈现走客户端'
     return
 
-name=名称
 apply=应用

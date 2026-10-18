@@ -1,50 +1,50 @@
-'快捷键速查插件；命令与入口共享一份已声明 store。只画可见列表和录入，不改命令执行体。'
-from types import SimpleNamespace as 简易命名空间
+'快捷键速查插件。命令和入口共用一份已声明的存储'
+from ...模块.客户端.通告 import 取握手窗口
 from ...ui_基础界面组件.模态层 import 关栈顶模态
-from .存储 import 创建快捷键存储,快捷键存储面
-from .参考 import 快捷键速查,快捷键设置行
-from .文案 import 命名空间,中文,英文
-from .固定 import 固定命令
-from . import (
-    反馈,
-    图标,
-    编辑器,
-)
+from ...存储 import 声明存储
+from . import 文案
+from . import 反馈
+from . import 图标
+from . import 编辑器
+from . import 参考
 
-__all__=['依赖','应用','命名空间','中文','英文','创建快捷键存储','固定命令','快捷键速查','快捷键设置行']
+__all__=['文案','反馈','图标','编辑器','参考','依赖','应用']
 
 依赖=['shortcuts','locale','slots']
 
-def 页面文档():
-    '当前页面文档。没有则 None。'
-    try:
-        return document
-    except NameError:
-        pass
-    窗口=globals().get('window')
-    if isinstance(窗口,dict):
-        return 窗口.get('document')
-    if 窗口 is None:
-        return None
-    return getattr(窗口,'document',None)
-
-def 关闭顶层模态(文档=None):
-    '对齐 closeTopModal：关掉最前登记模态的 onClose'
-    目标=页面文档() if 文档 is None else 文档
-    if 目标 is None:
-        return
-    关栈顶模态(目标)
-
-def 应用(上下文):
-    '注册速查命令、设置行与单实例 shell 浮层'
+def 应用(上下文,配置=None):
+    '登记速查命令、设置行，以及唯一的壳层浮层'
     def 登记词典():
-        '登记 shortcuts 词典'
-        return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})
+        '登记中英文案表。页面上的字不走英文表'
+        return 上下文.locale.register('shortcuts',{'zh':文案.中文,'en':文案.英文})
     上下文.副作用(登记词典,'shortcuts: dictionaries')
-    翻译=上下文.locale.bind(命名空间)
-    句柄=创建快捷键存储()
-    实例=快捷键存储面(句柄.create())
-    存储=简易命名空间(spec=句柄.spec,create=lambda *_位置,_关键字=None:实例)
+    def 初值():
+        '关着、空查询、焦点代数 0'
+        return {'open':False,'query':'','focusRequest':0}
+    def 打开(草稿):
+        '打开，并把焦点代数加一'
+        草稿['open']=True
+        草稿['focusRequest']=草稿['focusRequest']+1
+    def 关闭(草稿):
+        '关掉，并清空查询'
+        草稿['open']=False
+        草稿['query']=''
+    def 搜索(草稿,查询):
+        '写入查询'
+        草稿['query']=查询
+    句柄=声明存储({
+        'init':初值,
+        'actions':{
+            'open':打开,
+            'close':关闭,
+            'search':搜索,
+        },
+    })
+    实例=句柄.create()
+    def 总是这一份(作用域键=None):
+        '设置行和浮层共用这一份可见性'
+        return 实例
+    句柄.create=总是这一份
     def 编辑(*位置参数):
         '转发 shortcuts.edit'
         return 上下文.shortcuts.edit(*位置参数)
@@ -54,13 +54,49 @@ def 应用(上下文):
     def 描述绑定(绑定):
         '转发 shortcuts.describeBinding'
         return 上下文.shortcuts.describeBinding(绑定)
-    for 命令 in 固定命令(翻译):
+    固定表=[
+        {
+            'id':'move',
+            'keys':['↑','↓'],
+            'bindings':[
+                {'code':'ArrowUp','modifiers':[]},
+                {'code':'ArrowDown','modifiers':[]},
+            ],
+            'group':'menus',
+            'label':'移动菜单选择',
+        },
+        {
+            'id':'select',
+            'keys':['Enter'],
+            'bindings':[{'code':'Enter','modifiers':[]}],
+            'group':'menus',
+            'label':'选择菜单项',
+        },
+        {
+            'id':'dismiss',
+            'keys':['Esc'],
+            'bindings':[{'code':'Escape','modifiers':[]}],
+            'group':'menus',
+            'label':'关闭菜单或顶层弹窗',
+        },
+    ]
+    for 行 in 固定表:
+        def 标签(文=行['label']):
+            '固定动作的展示名'
+            return 文
+        命令={
+            'id':'fixed.'+行['id'],
+            'keys':行['keys'],
+            'bindings':行['bindings'],
+            'group':行['group'],
+            'label':标签,
+        }
         def 登记固定(项=命令):
             '登记一条固定命令'
             return 上下文.shortcuts.registerFixed(项)
         上下文.副作用(登记固定,'shortcuts: '+命令['id'])
     def 注入面():
-        '平台、运行时与目录钩'
+        '平台、运行时，以及目录钩子'
         return {
             'platform':上下文.shortcuts.platform,
             'runtime':上下文.shortcuts.runtime,
@@ -74,36 +110,36 @@ def 应用(上下文):
             },
         }
     def 挂设置行():
-        '通用设置项'
+        '通用设置里的快捷键行'
         return 上下文.slots.register({
             'name':'settings.general.item',
             'id':'shortcuts',
             'order':16,
-            'locale':命名空间,
-            'store':存储,
+            'locale':'shortcuts',
+            'store':句柄,
             'inject':注入面,
-        },快捷键设置行)
+        },参考.快捷键设置行)
     上下文.slots.inject('settings.general.item',挂设置行)
     def 挂浮层():
-        '速查命令 + shell.overlay'
+        '登记打开速查的命令，以及壳层浮层'
         def 解析(面):
-            '开或关速查'
-            模态=面['modal'] if isinstance(面,dict) else 面.modal
+            '被别的模态挡住就放过。开着就关，否则打开'
+            模态=面['modal']
             if 模态 is not None and 模态!='settings' and 模态!='shortcuts':
                 return {'status':'blocked','reason':'modal'}
             def 跑():
-                'toggle'
+                '开着速查就关最前的模态，否则打开'
                 if 模态=='shortcuts':
-                    关闭顶层模态()
+                    关栈顶模态(取握手窗口().document)
                 else:
                     实例.actions['open']()
             return {'status':'handled','run':跑}
-        def 标签():
-            '命令标签'
-            return 翻译('open')
+        def 命令名():
+            '命令面板上的名字'
+            return '快捷键速查'
         卸命令=上下文.shortcuts.register({
             'id':'shortcuts.open',
-            'label':标签,
+            'label':命令名,
             'aliases':['shortcuts','keyboard shortcuts'],
             'defaults':{
                 'desktop:macos':{'code':'Slash','modifiers':['primary']},
@@ -120,12 +156,12 @@ def 应用(上下文):
         卸槽=上下文.slots.register({
             'name':'shell.overlay',
             'id':'shortcuts',
-            'locale':命名空间,
-            'store':存储,
+            'locale':'shortcuts',
+            'store':句柄,
             'inject':注入面,
-        },快捷键速查)
+        },参考.快捷键速查)
         def 拆():
-            '卸命令与槽'
+            '卸掉命令和浮层'
             卸命令()
             卸槽()
         return 拆

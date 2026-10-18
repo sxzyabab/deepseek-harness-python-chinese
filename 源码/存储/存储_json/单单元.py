@@ -26,7 +26,7 @@ class 单单元:#single 布局实现
     def putRecord(自身,表,键,值):#写入记录
         '写入记录并原子发布'
         自身._断言打开()#已关拒绝
-        记录=自身._取表(表)#表记录
+        记录=自身._获取表(表)#表记录
         曾有键=键 in 记录#写入前是否有键
         先前=记录[键] if 曾有键 else None#先前值
         记录[键]=值#先改内存
@@ -42,7 +42,7 @@ class 单单元:#single 布局实现
     def deleteRecord(自身,表,键):#删除记录
         '删除记录并原子发布'
         自身._断言打开()#已关拒绝
-        记录=自身._取表(表)#表记录
+        记录=自身._获取表(表)#表记录
         if 键 not in 记录:#缺失键
             return#幂等
         先前=记录[键]#先前值
@@ -78,7 +78,7 @@ class 单单元:#single 布局实现
         if 自身._已关:#已关
             raise 存储错误('closed',"unit '"+自身._描述符.name+"' is closed")#拒绝
 
-    def _取表(自身,表):#取声明表
+    def _获取表(自身,表):#取声明表
         '取声明表'
         if 表 not in 自身._状态.tables:#未声明
             raise 存储错误('malformed-medium',"unit '"+自身._描述符.name+"' does not declare table '"+表+"'")#调用方错误

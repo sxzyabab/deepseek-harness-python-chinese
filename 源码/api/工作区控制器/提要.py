@@ -1,187 +1,193 @@
-'重连安全的工作区基线与增量生产者'
-import threading#关注者等待
+'重连安全的工作区基线与增量。replace 帧只由访问过滤发出，提要本身不产它'
+import threading#关注者唤醒
 from ...工具.双端队列 import 双端队列#帧缓冲
-from .远程错误与中止 import 已中止#中止
-from .异常 import 远程错误#本包异常
+from ...工作区.工作区 import 工作区标识#品牌化 id
+from ...工作区.工作区.规格 import 工作区记录,工作区域状态#域记录与全局状态
+from ..网关.流协议 import 已中止,若中止则抛 as 若已中止则抛出#寿命
 
-__all__=['工作区视图','工作区提要']#仅中文公开名
+__all__=['工作区视图','工作区提要']
+
 
 def 工作区视图(工作区):
-    '把注册表实体投影为 Remote 值。工作区为本包对象'
-    会话列表=工作区.sessionIds if 工作区.sessionIds is not None else []#会话 id 列表
-    return {#分离投影
-        'workspaceId':工作区.id,#id
-        'path':工作区.path,#路径
+    '把注册表实体投影成远程值。工作区是注册表实体'
+    return {
+        'workspaceId':工作区.id,#登记 id
+        'path':工作区.path,#宿主目录
         'title':工作区.title,#标题
-        'sessionIds':list(会话列表),#会话 id 列表
-        'createdAt':工作区.createdAt,#创建时间
-        'updatedAt':工作区.updatedAt,#更新时间
-    }#投影结束
+        'sessionIds':list(工作区.sessionIds),#账本副本
+        'createdAt':工作区.createdAt,#创建时刻
+        'updatedAt':工作区.updatedAt,#最近变更
+    }#投影
 
-def 变更工作区视图(工作区标识,值,工作区记录解析):
-    '把域记录解析为工作区视图。值为线协议 dict'
-    记录=工作区记录解析(值)#解析记录，记录为 dict
-    会话列表=记录['sessionIds'] if 'sessionIds' in 记录 and 记录['sessionIds'] is not None else []#会话
-    return {#视图
-        'workspaceId':工作区标识,#id
-        'path':记录['path'],#路径
-        'title':记录['title'],#标题
-        'sessionIds':list(会话列表),#会话
-        'createdAt':记录['createdAt'],#创建
-        'updatedAt':记录['updatedAt'],#更新
-    }#结束
 
 def 字符串列相同(左,右):
-    '两列字符串是否逐项相同'
-    if len(左)!=len(右):#长度
+    '两列字符串是否同长且逐项相同'
+    if len(左)!=len(右):#长度不同
         return False#不同
-    return all(左[i]==右[i] for i in range(len(左)))#逐项
+    下标=0#游标
+    while 下标<len(左):#逐项
+        if 左[下标]!=右[下标]:#某一项不同
+            return False#不同
+        下标+=1#下一项
+    return True#相同
 
-class _关注者:
-    '缓冲 follow 帧直到关闭'
+
+class 工作区关注者:
+    '一代 follow 的帧缓冲。推入或关闭会唤醒正在读的一方'
+
     def __init__(自身):
         '建立空缓冲'
-        自身._帧=双端队列()#帧队列
-        自身._事件=threading.Event()#等待事件
-        自身._已关闭=False#是否关闭
+        自身.帧=双端队列()#待读帧
+        自身.锁=threading.Lock()#域写入线程和 follow 读取线程共用这一圈缓冲
+        自身.唤醒=threading.Event()#有帧或已关闭
+        自身.已关闭=False#本代结束
 
-    def 推(自身,帧):
-        '缓冲一帧并唤醒读取方'
-        if 自身._已关闭:#已关
-            return#忽略
-        自身._帧.尾推(帧)#入队
-        自身._事件.set()#唤醒
+    def 推入(自身,帧):
+        '缓冲一帧并唤醒读取。已关闭的代不再接收'
+        with 自身.锁:#改缓冲
+            if 自身.已关闭:#已结束
+                return#丢掉
+            自身.帧.尾推(帧)#入队
+        自身.唤醒.set()#唤醒
 
-    def 关(自身):
-        '结束本代'
-        if 自身._已关闭:#已关
-            return#跳过
-        自身._已关闭=True#标记
-        自身._事件.set()#唤醒
+    def 关闭(自身):
+        '结束本代并唤醒读取'
+        with 自身.锁:#改标记
+            if 自身.已关闭:#已经结束
+                return#空
+            自身.已关闭=True#标记
+        自身.唤醒.set()#唤醒
 
-    def 读(自身,信号):
-        '在信号未中止前产出缓冲帧'
-        while (not 自身._已关闭) and (not 已中止(信号)):#仍活跃
-            帧=自身._帧.头弹()#取帧
+    def 读取(自身,信号):
+        '在信号未中止且本代未关闭时产出缓冲帧。信号是中止信号'
+        while True:#直到关闭或中止
+            with 自身.锁:#取一帧
+                if 自身.已关闭 or 已中止(信号):#本代结束
+                    return#停
+                帧=自身.帧.头弹()#可能为空
             if 帧 is not None:#有帧
-                yield 帧#产出
-                continue#继续
-            if 自身._已关闭 or 已中止(信号):#结束
-                break#退出
-            自身._事件.clear()#清事件
-            if 自身._帧.大小>0 or 自身._已关闭 or 已中止(信号):#竞态
-                continue#重试
-            自身._事件.wait(0.05)#短等待
-        while 自身._帧.大小>0 and (not 已中止(信号)):#排空
-            帧=自身._帧.头弹()#取帧
-            if 帧 is not None:#有帧
-                yield 帧#产出
+                yield 帧#交出
+                continue#再取
+            自身.等待(信号)#等下一帧或中止
+
+    def 等待(自身,信号):
+        '阻塞到有帧、本代关闭或信号中止。中止最多一个轮询间隔后看见'
+        while True:#直到条件成立
+            with 自身.锁:#看当前
+                if 已中止(信号) or 自身.已关闭 or 自身.帧.大小>0:#可以返回
+                    break#停
+            自身.唤醒.wait(0.05)#等推入或关闭
+        自身.唤醒.clear()#这一轮已看过
+
 
 class 工作区提要:
-    '拥有工作区域观察与全部活跃 follow 代'
+    '观察工作区域，并向全部打开的 follow 代发布增量'
 
-    def __init__(自身,上下文,工作区记录解析,工作区域状态解析,工作区标识函数):
-        '从注册表基线开始观察 domain/changed'
-        自身._上下文=上下文#Cordis 上下文
-        自身._关注者集合=set()#活跃关注者
-        自身._工作区记录解析=工作区记录解析#记录解析
-        自身._工作区域状态解析=工作区域状态解析#域状态解析
-        自身._工作区标识=工作区标识函数#品牌化 id
-        基线=上下文.workspaceRegistry.list()#当前列表
-        自身._已知标识=set(str(项.id) for 项 in 基线)#已知 id
-        自身._顺序=[str(项.id) for 项 in 基线]#顺序
-        归档=上下文.workspaceRegistry.archivedSessionIds#归档
-        自身._归档=[str(项) for 项 in (归档 if 归档 is not None else [])]#归档
-        钉住=getattr(上下文.workspaceRegistry,'pinnedSessionIds',None)#钉住
-        自身._钉住=[str(项) for 项 in (钉住 if 钉住 is not None else [])]#钉住
+    def __init__(自身,上下文):
+        '从注册表当前基线开始听 domain/changed'
+        自身.ctx=上下文#宿主上下文
+        基线=上下文.workspaceRegistry.list()#当前工作区
+        自身.已知标识=set(str(工作区.id) for 工作区 in 基线)#见过的 id
+        自身.顺序=[str(工作区.id) for 工作区 in 基线]#显示顺序
+        自身.归档=[str(标识) for 标识 in 上下文.workspaceRegistry.archivedSessionIds]#归档集
+        自身.钉住=[str(标识) for 标识 in 上下文.workspaceRegistry.pinnedSessionIds]#钉住集
+        自身.关注者集合=set()#打开的代
+
         def 域变更(变更):
-            '订阅域变更'
-            自身._变更(变更)#委托
-        def 拆除提要():
-            '登记拆除'
-            自身._拆除()#委托
-        上下文.监听('domain/changed',域变更)#订阅域变更
-        上下文.副作用(拆除提要,'workspace-controller.feed')#登记拆除
+            '把域变更译成 follow 增量'
+            自身.变更(变更)#翻译
 
-    def _拆除(自身):
-        '关闭并清空全部 follow 代'
-        for 关注者 in list(自身._关注者集合):#逐个
-            关注者.关()#关闭
-        自身._关注者集合.clear()#清空
+        上下文.监听('domain/changed',域变更)#订阅
 
-    def 基线(自身):
-        '同步读完整基线'
-        归档=自身._上下文.workspaceRegistry.archivedSessionIds#归档
-        钉住=getattr(自身._上下文.workspaceRegistry,'pinnedSessionIds',None)#钉住
-        return {#基线
-            'items':[工作区视图(项) for 项 in 自身._上下文.workspaceRegistry.list()],#工作区
-            'archivedSessionIds':list(归档 if 归档 is not None else []),#归档
-            'pinnedSessionIds':list(钉住 if 钉住 is not None else []),#钉住
-        }#结束
+        def 登记拆除():
+            '卸载时关闭全部代'
+
+            def 清理():
+                '关闭并清空'
+                for 关注者 in list(自身.关注者集合):#每一代
+                    关注者.关闭()#结束
+                自身.关注者集合.clear()#清空
+
+            return 清理#拆除器
+
+        上下文.副作用(登记拆除,'workspace-controller.feed')#寿命
+
+    def 读取基线(自身):
+        '同步读完整投影：工作区、归档会话、钉住会话'
+        return {
+            'items':[工作区视图(工作区) for 工作区 in 自身.ctx.workspaceRegistry.list()],#工作区
+            'archivedSessionIds':list(自身.ctx.workspaceRegistry.archivedSessionIds),#归档
+            'pinnedSessionIds':list(自身.ctx.workspaceRegistry.pinnedSessionIds),#钉住
+        }#基线
 
     def follow(自身,信号):
-        '先产出基线，再产出有序增量'
-        if 已中止(信号):#已取消
-            return#空生成器
-        关注者=_关注者()#新代
-        自身._关注者集合.add(关注者)#登记
-        try:
-            yield {'type':'baseline','value':自身.基线()}#基线帧
-            yield from 关注者.读(信号)#增量帧
-        finally:
-            自身._关注者集合.discard(关注者)#移除
-            关注者.关()#关闭
+        '先产出一份完整基线，再产出有序增量。信号取消本代'
+        若已中止则抛出(信号)#已取消则拒绝
+        关注者=工作区关注者()#本代
+        自身.关注者集合.add(关注者)#登记
+        try:#读完或失败都摘掉
+            yield {'type':'baseline','value':自身.读取基线()}#开口基线
+            yield from 关注者.读取(信号)#后续增量
+        finally:#本代结束
+            自身.关注者集合.discard(关注者)#摘掉
+            关注者.关闭()#不再接收
 
-    def _发布(自身,帧):
-        '广播一帧增量'
-        for 关注者 in 自身._关注者集合:#逐个
-            关注者.推(帧)#推送
+    def 发布(自身,帧):
+        '把一帧增量交给当前每一代'
+        for 关注者 in list(自身.关注者集合):#快照
+            关注者.推入(帧)#缓冲
 
-    def _变更(自身,变更):
-        '把域变更翻译成 follow 增量。变更为 dict'
-        if 变更['domain']!='workspace':#非工作区域
+    def 变更(自身,变更):
+        '把一条 domain/changed 译成增量。变更是域事件 dict'
+        if 变更['domain']!='workspace':#不是本域
             return#忽略
-        表=变更['table']#表名
-        if 表=='':#全局状态行
-            if 变更['operation']!='put':#只处理 put
-                return#跳过
-            状态=自身._工作区域状态解析(变更['value'])#解析状态，状态为 dict
-            标识列=状态['workspaceIds'] if 'workspaceIds' in 状态 and 状态['workspaceIds'] is not None else []#顺序
-            下一顺序=[str(标识) for 标识 in 标识列]#顺序
-            顺序变了=not 字符串列相同(自身._顺序,下一顺序)#是否变序
-            for 标识 in 标识列:#新 id
-                键=str(标识)#字符串键
-                if 键 in 自身._已知标识:#已知
-                    continue#跳过
-                工作区=自身._上下文.workspaceRegistry.get(标识)#取实体
-                if 工作区 is None:#缺失
-                    raise 远程错误('gateway/internal','committed Workspace registry references missing Workspace "'+键+'"',{})#不一致
-                自身._已知标识.add(键)#记下
-                自身._发布({'type':'upsert','workspace':工作区视图(工作区)})#upsert
-            自身._顺序=下一顺序#更新顺序
-            if 顺序变了:#顺序变更
-                自身._发布({'type':'order','workspaceIds':list(标识列)})#order
-            归档列=状态['archivedSessionIds'] if 'archivedSessionIds' in 状态 and 状态['archivedSessionIds'] is not None else []#归档
-            下一归档=[str(项) for 项 in 归档列]#归档
-            if not 字符串列相同(自身._归档,下一归档):#归档变更
-                自身._归档=下一归档#更新
-                自身._发布({'type':'archived','archivedSessionIds':list(归档列)})#archived
-            钉住列=状态['pinnedSessionIds'] if 'pinnedSessionIds' in 状态 and 状态['pinnedSessionIds'] is not None else []#钉住
-            下一钉住=[str(项) for 项 in 钉住列]#钉住
-            if not 字符串列相同(自身._钉住,下一钉住):#钉住变更
-                自身._钉住=下一钉住#更新
-                自身._发布({'type':'pinned','pinnedSessionIds':list(钉住列)})#pinned
-            return#全局处理完
-        if 表!='workspaces':#其它表
-            return#忽略
-        操作=变更['operation']#操作
-        键=变更['key']#键
-        if 操作=='deleted':#删除
-            if 键 not in 自身._已知标识:#未知
+        if 变更['table']=='':#全局状态
+            if 变更['operation']!='put':#不是写入
                 return#忽略
-            自身._已知标识.discard(键)#移除
-            自身._发布({'type':'remove','workspaceId':自身._工作区标识(键)})#remove
-            return
-        if 键 not in 自身._已知标识:#未知 upsert
+            状态=工作区域状态(变更['value'])#校验后的全局状态
+            下一顺序=[str(标识) for 标识 in 状态['workspaceIds']]#新顺序
+            顺序变了=not 字符串列相同(自身.顺序,下一顺序)#顺序是否变
+            for 标识 in 状态['workspaceIds']:#新出现的工作区
+                if str(标识) in 自身.已知标识:#已经见过
+                    continue#下一个
+                工作区=自身.ctx.workspaceRegistry.get(标识)#实体
+                if 工作区 is None:#顺序指向缺失记录
+                    raise RuntimeError('committed Workspace registry references missing Workspace "'+str(标识)+'"')#拒绝
+                自身.已知标识.add(str(标识))#记下
+                自身.发布({'type':'upsert','workspace':工作区视图(工作区)})#新增
+            自身.顺序=下一顺序#换顺序
+            if 顺序变了:#顺序变了
+                自身.发布({'type':'order','workspaceIds':list(状态['workspaceIds'])})#顺序帧
+            下一归档=[str(标识) for 标识 in 状态['archivedSessionIds']]#新归档
+            if not 字符串列相同(自身.归档,下一归档):#归档变了
+                自身.归档=下一归档#记下
+                自身.发布({'type':'archived','archivedSessionIds':list(状态['archivedSessionIds'])})#归档帧
+            下一钉住=[str(标识) for 标识 in 状态['pinnedSessionIds']]#新钉住
+            if not 字符串列相同(自身.钉住,下一钉住):#钉住变了
+                自身.钉住=下一钉住#记下
+                自身.发布({'type':'pinned','pinnedSessionIds':list(状态['pinnedSessionIds'])})#钉住帧
+            return#全局处理完
+        if 变更['table']!='workspaces':#不是工作区表
             return#忽略
-        自身._发布({'type':'upsert','workspace':变更工作区视图(键,变更['value'],自身._工作区记录解析)})#upsert
+        if 变更['operation']=='deleted':#删除
+            键=str(变更['key'])#记录键
+            if 键 not in 自身.已知标识:#没交付过
+                return#忽略
+            自身.已知标识.remove(键)#忘掉
+            自身.发布({'type':'remove','workspaceId':工作区标识(变更['key'])})#移除
+            return#删除处理完
+        if str(变更['key']) not in 自身.已知标识:#还没进入顺序
+            return#忽略
+        记录=工作区记录(变更['value'])#校验记录
+        标识=工作区标识(变更['key'])#品牌化
+        自身.发布({
+            'type':'upsert',
+            'workspace':{
+                'workspaceId':标识,#id
+                'path':记录['path'],#目录
+                'title':记录['title'],#标题
+                'sessionIds':list(记录['sessionIds']),#账本
+                'createdAt':记录['createdAt'],#创建
+                'updatedAt':记录['updatedAt'],#变更
+            },
+        })#更新

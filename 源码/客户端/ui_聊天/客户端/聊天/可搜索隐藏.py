@@ -1,52 +1,69 @@
-from nicegui import ui as 界面
-from ...异常 import 页面失败文案
+__all__=['可搜索隐藏','可搜索隐藏席']
 
-__all__=['可搜索隐藏']#仅中文公开名
 
-class 可搜索隐藏:#可搜索隐藏席位
-    '稳定子树根的隐藏态与揭示回调'
+class 可搜索隐藏席:
+    '不卸掉子树，只切换可搜索的 hidden。有过渡时先动画再提交属性'
+    def __init__(自身,隐藏,揭示,过渡=None):
+        '记下目标和可选的折叠过渡'
+        自身.隐藏=隐藏
+        自身.揭示=揭示
+        自身.过渡=过渡
+        自身.元素=None
+        自身.已听=False
 
-    def __init__(自身,隐藏,揭示):#构造
-        '记下隐藏与揭示'
-        自身.隐藏=隐藏#是否隐藏
-        自身.揭示=揭示#揭示回调
-        自身.属性=None#当前 hidden 属性
-        自身.根=None#列
+    def 准备(自身,隐藏,揭示):
+        '同一次渲染里更新目标和揭示回调'
+        自身.隐藏=隐藏
+        自身.揭示=揭示
 
-    def 同步(自身,焦点在子树内=False):#布局期同步
-        '隐藏时焦点仍在子树内则先揭示'
-        if 自身.隐藏 and 焦点在子树内:#焦点占用
-            自身.揭示()#揭示
-            return {'hidden':None,'reason':'focus'}#跳过设属性
-        if 自身.隐藏:#可查找隐藏
-            自身.属性='until-found'#设
-        else:#清除
-            自身.属性=None
-        return {'hidden':自身.属性}#状态
+    def 绑(自身,元素):
+        '挂到稳定根上，并听浏览器查找的 beforematch'
+        if 元素 is None:
+            return None
+        if 自身.元素 is not 元素:
+            自身.已听=False
+            自身.元素=元素
+        if not 自身.已听:
+            def 匹配前(事件=None):
+                '查找命中隐藏内容时展开'
+                自身.揭示()
+            元素.addEventListener('beforematch',匹配前)
+            自身.已听=True
+        自身.应用()
+        return 元素
 
-    def 渲染(自身):#界面
-        '画出可隐藏列。调用方接着往列里放子组件。'
-        失败=None
-        if 自身.根 is not None and getattr(自身.根,'parent_slot',None) is not None:
-            try:
-                自身.根.clear()
-            except Exception as 错误:
-                自身.根=None
-                失败=页面失败文案(错误)
-        if 自身.根 is None:
-            自身.根=界面.column().classes('可搜索隐藏')
-        if isinstance(失败,str) and 失败!='':
-            with 自身.根:
-                界面.label(失败)
-        if 自身.隐藏 is True:
-            自身.根.set_visibility(False)
+    def 应用(自身):
+        '焦点还在里面就先揭示。否则提交 until-found 或拿掉 hidden'
+        元素=自身.元素
+        if 元素 is None:
             return
-        自身.根.set_visibility(True)
+        文档=getattr(元素,'ownerDocument',None)
+        活动=getattr(文档,'activeElement',None) if 文档 is not None else None
+        if 自身.隐藏 and 活动 is not None and 元素.contains(活动):
+            自身.揭示()
+            return
 
-    def __call__(自身,隐藏=None,揭示=None):#调用形
-        '对齐钩子刷新'
-        if 隐藏 is not None:
-            自身.隐藏=隐藏#刷
-        if 揭示 is not None:
-            自身.揭示=揭示#刷
-        自身.渲染()#画
+        def 提交():
+            '最终可见性。隐藏用 until-found，方便页内查找'
+            if 自身.隐藏:
+                元素.setAttribute('hidden','until-found')
+            else:
+                元素.removeAttribute('hidden')
+
+        if 自身.过渡 is None:
+            提交()
+        else:
+            自身.过渡(元素,自身.隐藏,提交)
+
+    def 渲染(自身):
+        '旧席位：有 window 时造根，再套用隐藏'
+        if 自身.元素 is None and getattr(自身,'window',None) is not None:
+            自身.元素=自身.window.document.createElement('div')
+        自身.根=自身.元素
+        自身.应用()
+        return 自身.根
+
+
+def 可搜索隐藏(隐藏,揭示,过渡=None):
+    '造一份可搜索隐藏席'
+    return 可搜索隐藏席(隐藏,揭示,过渡)

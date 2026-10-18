@@ -1,91 +1,96 @@
-from .后缀 import 文档文件名,匹配后缀长度,归一后缀#文件名与后缀
-from ...异常 import 文档预览错误#本包异常
+'按文件后缀登记预览实现。正文组件走带键的文档槽'
+from .后缀 import 文档文件名,规范化后缀,匹配后缀长度
 
-__all__=['文档预览错误','匹配文档预览','二进制文档路径','文档预览注册表']
+__all__=['匹配文档预览','二进制文档路径','文档预览注册表']
 
 def 匹配文档预览(定义列表,路径):
-    """在不查阅可变服务状态的情况下为观察到的定义快照排序。
-
-    定义列表为 dict 列表；返回匹配实现，外部档优先，随后最长后缀
-    """
-    名=文档文件名(路径)#文件名
-    候选=[]#候选
-    for 序,定义 in enumerate(定义列表):#登记序
-        档=0 if 定义.get('priority')=='builtin' else 1#档位秩
-        长度=匹配后缀长度(名,定义.get('extensions',[]))#最长后缀
-        if 长度>0:#有匹配
-            候选.append({'definition':定义,'order':序,'rank':档,'length':长度})#挂上
-    候选.sort(key=lambda 项:(-项['rank'],-项['length'],项['order']))#排序
-    return [项['definition'] for 项 in 候选]#定义列表
-
+    '外部实现优先，然后更长的后缀，然后登记顺序'
+    名=文档文件名(路径)
+    候选=[]
+    序号=0
+    for 定义 in 定义列表:
+        长度=匹配后缀长度(名,定义['extensions'])
+        if 长度<=0:
+            序号=序号+1
+            continue
+        档=0 if 定义.get('priority')=='builtin' else 1
+        候选.append({'definition':定义,'order':序号,'rank':档,'length':长度})
+        序号=序号+1
+    def 次序(项):
+        '外部档优先，其次更长后缀，其次更早登记'
+        return (-项['rank'],-项['length'],项['order'])
+    候选.sort(key=次序)
+    结果=[]
+    for 项 in 候选:
+        结果.append(项['definition'])
+    return 结果
 
 def 二进制文档路径(定义列表,路径):
-    '是否有已登记实现把该文件名后缀声明为二进制'
-    名=文档文件名(路径)#文件名
-    for 定义 in 定义列表:#各实现
-        if 匹配后缀长度(名,定义.get('binaryExtensions',[]))>0:#命中二进制后缀
-            return True#是
-    return False#否
-
+    '有没有实现把这个文件名的后缀声明成二进制'
+    名=文档文件名(路径)
+    for 定义 in 定义列表:
+        二进制=定义['binaryExtensions'] if 'binaryExtensions' in 定义 and 定义['binaryExtensions'] is not None else []
+        if 匹配后缀长度(名,二进制)>0:
+            return True
+    return False
 
 class 文档预览注册表:
-    '全部存活实现的可观察注册表，含较低优先级备选'
-
+    '当前还活着的全部实现，含优先级较低的备选'
     def __init__(自身):
-        '空注册表'
-        自身._已登记={}#id → 定义
-        自身._监听器=set()#监听器
-        自身._快照=()#快照
+        '空登记'
+        自身.已登记={}
+        自身.监听=set()
+        自身.快照=[]
 
-    def getSnapshot(自身):
-        '读取当前登记'
-        return 自身._快照#快照
+    def 取快照(自身):
+        '登记变化前保持同一份列表'
+        return 自身.快照
 
-    def subscribe(自身,监听器):
-        '观察登记变更；返回拆除器'
-        自身._监听器.add(监听器)#挂上
-
+    def 订阅(自身,监听):
+        '观察登记变化。返回拆除器'
+        自身.监听.add(监听)
         def 拆除():
-            '卸下监听器'
-            自身._监听器.discard(监听器)#卸
+            '卸下这个观察者'
+            自身.监听.discard(监听)
+        return 拆除
 
-        return 拆除#拆除器
-
-    取快照=getSnapshot
-    订阅=subscribe
-
-    def 注册(自身,定义):
-        '与匹配的带键槽组件分开登记元数据；返回幂等拆除器'
-        标识=定义['id']#实现名
-        if 标识 in 自身._已登记:#重复
-            raise 文档预览错误('documentPreviews: duplicate implementation "'+标识+'"')
-        已声明=set()#已声明后缀
-        for 后缀 in 定义.get('extensions',[]):#各后缀
-            已声明.add(归一后缀(后缀))#归一
-        for 扩展名 in 定义.get('binaryExtensions',[]):#二进制后缀
-            if 归一后缀(扩展名) not in 已声明:#表外
-                raise 文档预览错误('documentPreviews: "'+标识+'" declares binary suffix "'+扩展名+'" outside its extensions')
-        自身._已登记[标识]=定义#挂上
-        自身._发布()#发布
-        存活=[True]#可变旗
-
+    def 登记(自身,定义):
+        '登记元数据。重复的实现名，或 binaryExtensions 不在 extensions 里，都抛错'
+        if 定义['id'] in 自身.已登记:
+            raise ValueError('documentPreviews: duplicate implementation "'+定义['id']+'"')
+        已声明=set()
+        for 扩展 in 定义['extensions']:
+            已声明.add(规范化后缀(扩展))
+        二进制=定义['binaryExtensions'] if 'binaryExtensions' in 定义 and 定义['binaryExtensions'] is not None else []
+        for 扩展 in 二进制:
+            if 规范化后缀(扩展) not in 已声明:
+                raise ValueError('documentPreviews: "'+定义['id']+'" declares binary suffix "'+扩展+'" outside its extensions')
+        自身.已登记[定义['id']]=定义
+        自身.发布()
+        活动={'值':True}
         def 拆除():
-            '幂等卸下'
-            if not 存活[0]:#已拆
-                return#停
-            存活[0]=False#标记
-            if 标识 in 自身._已登记:#仍在
-                del 自身._已登记[标识]#卸
-            自身._发布()#发布
-
-        return 拆除#拆除器
+            '再调一次没有事'
+            if 活动['值'] is False:
+                return
+            活动['值']=False
+            del 自身.已登记[定义['id']]
+            自身.发布()
+        return 拆除
 
     def 候选(自身,路径):
-        '按自动选择顺序列出每个匹配实现'
-        return 匹配文档预览(自身._快照,路径)#匹配
+        '按自动选择的顺序列出全部匹配实现'
+        return 匹配文档预览(自身.快照,路径)
 
-    def _发布(自身):
-        '刷新快照并通知'
-        自身._快照=tuple(自身._已登记.values())#新快照
-        for 监听器 in list(自身._监听器):#通知
-            监听器()#回调
+    def 发布(自身):
+        '换成新快照并通知。一个监听失败不挡住其余'
+        自身.快照=list(自身.已登记.values())
+        for 监听 in list(自身.监听):
+            try:
+                监听()
+            except Exception as 错误:
+                print('[document-previews] registry subscriber failed:',错误)
+
+文档预览注册表.getSnapshot=文档预览注册表.取快照
+文档预览注册表.subscribe=文档预览注册表.订阅
+文档预览注册表.register=文档预览注册表.登记
+文档预览注册表.candidates=文档预览注册表.候选

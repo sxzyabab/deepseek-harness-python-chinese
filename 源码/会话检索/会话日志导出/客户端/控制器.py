@@ -1,131 +1,119 @@
-'会话 Header 按钮与 /export 共享的浏览器下载状态'
-from ..路由列表 import 会话日志导出路由#导出路由
-from ..归档 import 会话日志zip文件名#ZIP 文件名
+'会话页眉按钮和 /export 共用的浏览器下载状态'
+from ....客户端.模块.客户端.通告 import 取握手窗口
+import re#文件名净化
+import urllib.parse#查询串
+from ....客户端.存储 import 创建快照存储#对话框状态
+from ....客户端.连接.rpc import 同步等待#把页面期约收成同步结果
+from ..路由列表 import 会话日志导出路由#文档相对路径
 
-def 错误消息(错误):#错误消息
-    '把未知失败收成字符串。说明去掉绝对路径'
-    if isinstance(错误,BaseException):
-        if len(错误.args)>0 and isinstance(错误.args[0],str):
-            文本=错误.args[0]
-        else:
-            文本=str(错误)
-    else:
-        文本=str(错误)
-    留下=[]
-    for 词 in 文本.split():
-        统一=词.strip('\'"').replace('\\','/')
-        if 统一.startswith('/') or 统一.startswith('~/'):
-            continue
-        if len(统一)>2 and 统一[0].isalpha() and 统一[1]==':' and 统一[2]=='/':
-            continue
-        留下.append(词)
-    说明=' '.join(留下).strip()
-    if 说明=='':
-        return 'Export failed'
-    return 说明
 
-class 下载状态仓:#钩子源
-    'getSnapshot / subscribe / update。必须是带方法的对象，不能是同名键的字典'
-    def __init__(自身):
-        '每个控制器一份空的按会话表'
-        自身._状态={'bySession':{}}#状态
-        自身._监听=set()#订阅
+def 会话日志zip文件名(会话标识):
+    '把未信任的会话标识收成宿主下载端点使用的文件名'
+    段=re.sub(r'[^A-Za-z0-9_-]','_',str(会话标识))#一个安全段
+    return 'dsh-session-'+段+'.zip'#固定前缀
 
-    def getSnapshot(自身):#读
-        '当前按会话状态'
-        return 自身._状态#状态
 
-    def subscribe(自身,监听):#订阅
-        '状态变化时调用；返回退订'
-        自身._监听.add(监听)#登记
-        def 退订():#退订
-            '去掉这一个监听'
-            自身._监听.discard(监听)#删
-        return 退订#拆除
+def 下载网址(网址,文件名):
+    '把宿主下载路由交给浏览器下载管理器，由文档自己的基址解析'
+    锚=取握手窗口().document.createElement('a')#临时锚点
+    锚.href=网址#文档相对地址
+    锚.download=文件名#下载名
+    锚.click()#交给下载管理器
 
-    def update(自身,变更):#写入
-        '变换当前状态并通知'
-        变更(自身._状态)#就地
-        for 监听 in list(自身._监听):#扇出
-            监听()#回调
 
-class 会话日志下载控制器:#下载控制器
-    '每个会话至多一个在途浏览器下载，并发布对话框状态'
-    def __init__(自身,请求器=None,保存=None):
-        '记下 HTTP 载体与保存操作'
-        自身.store=下载状态仓()#钩子源对象
-        自身._活跃={}#会话→中止旗
-        自身._已拆除=False#拆除
-        自身._请求器=请求器#HTTP
-        自身._保存=保存#保存
+def 读取(对象,键):
+    '字典用键，页面对象用同名属性'
+    if isinstance(对象,dict):#映射
+        return 对象.get(键)#键
+    return getattr(对象,键)#属性
 
-    def download(自身,会话标识):#下载
-        '下载一棵会话树；同一会话的并发手势共享一次操作'
-        if 会话标识 in 自身._活跃:#已在途
-            return#共享
-        if 自身._已拆除:#已拆除
+
+def 默认请求(输入,初始化):
+    '这个网页引擎不再通过浏览器请求宿主'
+    raise RuntimeError('这个网页引擎不再通过浏览器请求宿主 '+str(输入))
+
+
+class 会话日志下载控制器:
+    '每个会话至多一个在途下载，并向对话框发布状态'
+    def __init__(自身,请求器=默认请求,保存=下载网址):
+        '记下 HTTP 载体和保存操作'
+        自身.store=创建快照存储({'bySession':{}})#按会话的对话框状态
+        自身._活跃={}#会话到中止控制器
+        自身._已拆除=False#插件已拆
+        自身._请求器=请求器#HEAD
+        自身._保存=保存#真正开始下载
+
+    def download(自身,会话标识):
+        '下载一棵会话树。同一会话的并发手势共享这一次，拆掉之后的请求忽略'
+        if 会话标识 in 自身._活跃:#已经在跑
+            return#共享这一次
+        if 自身._已拆除:#插件已拆
             return#忽略
-        中止={'aborted':False}#中止旗
-        自身._活跃[会话标识]=中止#登记
-        try:#运行
-            自身._运行(会话标识,中止)#运行
-        finally:#清理
-            自身._活跃.pop(会话标识,None)#摘掉
+        中止=取握手窗口().AbortController()#这一次的取消
+        自身._活跃[会话标识]={'abort':中止}#登记
+        try:#结束就摘掉
+            自身._运行(会话标识,中止.signal)#HEAD 然后保存
+        finally:#无论成败
+            自身._活跃.pop(会话标识,None)#不再占着
 
-    def dismiss(自身,会话标识):#关闭对话框
-        '关闭对话框，不取消在途下载'
-        当前=自身.store.getSnapshot()['bySession'].get(str(会话标识))#条目
-        if 当前 is None or 当前.get('open') is not True:#未开
+    def dismiss(自身,会话标识):
+        '关掉这一会话的对话框，不取消已经交给浏览器的下载'
+        当前=自身.store.getSnapshot()['bySession'].get(str(会话标识))#这一条
+        if 当前 is None or 当前.get('open') is not True:#没开
             return#无事
-        自身._发布(会话标识,{**当前,'open':False})#关闭
+        下一=dict(当前)#拷贝
+        下一['open']=False#关上
+        自身._发布(会话标识,下一)#仍保留状态
 
-    def dispose(自身):#拆除
-        '中止活跃请求'
-        自身._已拆除=True#标记
-        for 操作 in list(自身._活跃.values()):#逐个
-            操作['aborted']=True#中止
+    def dispose(自身):
+        '中止还在飞的请求'
+        自身._已拆除=True#之后的下载忽略
+        for 操作 in list(自身._活跃.values()):#当前在途
+            操作['abort'].abort()#中止这一次
 
-    def _运行(自身,会话标识,中止):#一次下载
-        'HEAD 探测后交给保存'
-        自身._发布(会话标识,{'open':True,'status':'downloading','error':None})#进行中
-        try:#探测
-            if 中止['aborted']:#已中止
-                return#停
-            路由=f'{会话日志导出路由}?sessionId={会话标识}&includeDescendants=true'#查询
-            if 自身._请求器 is not None:#有载体
-                响应=自身._请求器(路由,{'method':'HEAD'})#HEAD
-                成功=响应.get('ok') if isinstance(响应,dict) else getattr(响应,'ok',True)#是否成功
-                状态=响应.get('status') if isinstance(响应,dict) else getattr(响应,'status',200)#状态
-                if 成功 is not True:#失败
-                    细节=''#响应正文
-                    if isinstance(响应,dict):#映射
-                        体=响应['body'] if 'body' in 响应 else 响应.get('text')#正文
-                    else:#对象
-                        体=getattr(响应,'text',None)#正文
-                    if isinstance(体,bytes):#字节
-                        体=体.decode('utf-8','replace')#文本
-                    if isinstance(体,str) and 体!='':#有字
-                        细节=' '+体#附上
-                    raise RuntimeError(错误消息(f'Export failed: HTTP {状态}{细节}'))#失败
-            if 自身._保存 is not None:#保存
-                自身._保存(路由,会话日志zip文件名(会话标识))#保存
-            表=自身.store.getSnapshot()['bySession']#按会话
-            已有=表[str(会话标识)] if str(会话标识) in 表 else {}#当前
-            打开=已有['open'] if 'open' in 已有 else True#仍开
-            自身._发布(会话标识,{'open':打开,'status':'success','error':None})#成功
-        except BaseException as 错误:
-            if 中止['aborted']:#已中止
-                return#停
-            表=自身.store.getSnapshot()['bySession']#按会话
-            已有=表[str(会话标识)] if str(会话标识) in 表 else {}#当前
-            打开=已有['open'] if 'open' in 已有 else True#仍开
-            自身._发布(会话标识,{'open':打开,'status':'error','error':错误消息(错误)})#失败
+    def _运行(自身,会话标识,信号):
+        '先 HEAD 探测，成功再把同一地址交给浏览器保存'
+        自身._发布(会话标识,{'open':True,'status':'downloading','error':None})#准备中
+        try:#探测或保存失败都进错误态
+            查询=urllib.parse.urlencode([('sessionId',str(会话标识)),('includeDescendants','true')])#含后代和附件
+            路由=会话日志导出路由+'?'+查询#文档相对
+            响应=同步等待(自身._请求器(路由,{'method':'HEAD','signal':信号}))#探测
+            if 读取(响应,'ok') is not True:#HTTP 失败
+                细节=''#正文
+                try:#读正文失败就当没有细节
+                    文本=同步等待(读取(响应,'text')())#响应正文
+                except Exception:#读不出来
+                    文本=''#空
+                if isinstance(文本,str) and 文本!='':#有字
+                    细节=' '+文本#附在状态后面
+                raise RuntimeError('Export failed: HTTP '+str(读取(响应,'status'))+细节)#失败句
+            自身._保存(路由,会话日志zip文件名(会话标识))#交给下载管理器
+            打开=自身._仍开着(会话标识)#关掉了就保持关
+            自身._发布(会话标识,{'open':打开,'status':'success','error':None})#已开始
+        except Exception as 错误:#探测失败或取消
+            if 信号.aborted:#拆掉或断开
+                return#不改成错误态
+            打开=自身._仍开着(会话标识)#关掉了就保持关
+            自身._发布(会话标识,{'open':打开,'status':'error','error':str(错误)})#失败
 
-    def _发布(自身,会话标识,条目):#发布
-        '写入按会话键控的对话框状态'
-        def 变更(状态):#替换该会话
-            '换掉这一条，保留其余会话'
-            状态['bySession']={**状态['bySession'],str(会话标识):条目}#新表
-        自身.store.update(变更)#通知
+    def _仍开着(自身,会话标识):
+        '对话框如果已经被关掉，成功或失败都不要再把它打开'
+        当前=自身.store.getSnapshot()['bySession'].get(str(会话标识))#这一条
+        if 当前 is None:#还没有条目
+            return True#保持打开
+        打开=当前.get('open')#当前开合
+        if 打开 is None:#空值按仍开
+            return True#仍开
+        return 打开#原值
 
-__all__=['会话日志下载控制器','下载状态仓','会话日志zip文件名']#公开面
+    def _发布(自身,会话标识,条目):
+        '写入这一会话的对话框状态'
+        def 变更(状态):
+            '换掉这一条，其余会话保留'
+            按会话=dict(状态['bySession'])#拷出
+            按会话[str(会话标识)]=条目#这一条
+            状态['bySession']=按会话#整表换上
+        自身.store.update(变更)#通知订阅
+
+
+__all__=['会话日志下载控制器','会话日志zip文件名','下载网址']

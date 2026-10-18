@@ -1,11 +1,11 @@
 '面向模型的目标工具在执行时的权限检查'
-from ...模型后端.llm.异常 import 装备错误#结构化工具策略失败
+from ...模型后端.llm.异常 import harness错误#结构化工具策略失败
 
 def 拒绝(消息,码='GOAL_TOOL_AUTHORITY_REQUIRED'):
     """抛出一次结构化工具策略失败。
     默认权限不足码
     """
-    raise 装备错误(消息,码)#交给工具层
+    raise harness错误(消息,码)#交给工具层
 
 def 打开回合(智能体):
     """从日志尾往前找打开回合边界，返回 start 与其后事件。

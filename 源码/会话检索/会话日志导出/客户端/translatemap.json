@@ -1,4 +1,7 @@
 {
-    "controller":"控制器",
-    "locales":"区域设置"
+    "controller": "控制器",
+    "locales": "区域设置",
+    "HeaderAction": "页眉动作",
+    "Dialog": "对话框",
+    "HeaderAction.module": "页眉动作.module"
 }

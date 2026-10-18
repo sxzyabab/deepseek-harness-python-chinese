@@ -35,7 +35,7 @@ class 会话历史控制器:
             if 流 is None:#新建
                 流=会话助手流累加器()#累加器
                 自身._助手流表[标识]=流#登记
-            流.接受(帧,下一序号前游标(会话.seq))#接受
+            流.接受帧(帧,下一序号前游标(会话.seq))#接受
         def 智能体拆除(*参数):
             '清理累加器；作用域派发为 (载体, 载荷)'
             载荷=参数[-1] if 参数 else None#末参
@@ -66,7 +66,7 @@ class 会话历史控制器:
         含末=请求['throughSeq']#含末
         含末游标=-1 if 含末==-1 else 含末#归一
         向前=请求['beforeSeq'] if 'beforeSeq' in 请求 else None#向前
-        源=自身._取源(请求['address'],信号,False)#观测
+        源=自身._获取源(请求['address'],信号,False)#观测
         try:
             if 已中止(信号):#取消
                 raise 远程错误('gateway/cancelled','session page was aborted',{})#取消
@@ -145,7 +145,7 @@ class 会话历史控制器:
         if 请求.get('assistantStream') is True:#需要助手流
             卸助手=自身._上下文.监听('agent/assistant-stream',助手流)#挂
         try:
-            源=自身._取源(地址,信号,True)#带投影观测
+            源=自身._获取源(地址,信号,True)#带投影观测
             try:
                 事件列表=list(源.events)#事件
                 if 已中止(信号):#取消
@@ -160,7 +160,7 @@ class 会话历史控制器:
                 助手基线=None#助手流基线
                 if 请求.get('assistantStream') is True:#需要
                     累加=自身._助手流表[目标] if 目标 in 自身._助手流表 else None#累加器
-                    助手基线=累加.快照() if 累加 is not None else {'revision':0}#基线
+                    助手基线=累加.读取快照() if 累加 is not None else {'revision':0}#基线
                 助手流序数切=助手流序数#切点
                 开场={
                     'type':'snapshot',
@@ -214,7 +214,7 @@ class 会话历史控制器:
             if 卸助手 is not None:#有助手流
                 卸助手()#卸
 
-    def _取源(自身,地址,信号,带投影):
+    def _获取源(自身,地址,信号,带投影):
         '按地址取观测'
         会话标识=地址标识(地址)#id
         投影模式='all' if 带投影 or 地址.get('kind')=='subagent' else 'none'#投影

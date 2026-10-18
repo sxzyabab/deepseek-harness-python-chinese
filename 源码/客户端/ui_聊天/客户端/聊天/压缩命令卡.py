@@ -1,46 +1,53 @@
-from .压缩项 import 压缩项#压缩项
-from .回退命令卡 import 回退命令卡#命令卡
-from .消息项 import 打开列
+from .压缩项 import 压缩项
+from .泛型命令卡 import 泛型命令卡
 
-__all__=['压缩命令卡']#仅中文公开名
+__all__=['压缩命令卡']
 
-from nicegui import ui as 界面
-
-def 恒等翻译(键,参数=None):
-    '无文案表时返回键本身'
-    return 键#键即文案
 
 class 压缩命令卡:
-    '命令卡叠压缩项'
+    '有检查点就画压缩标记，否则画通用命令卡'
     def __init__(自身,属性=None):
-        '记下合成 props'
-        自身.属性=属性 if 属性 is not None else {}#合成
-        自身.命令=回退命令卡()#命令
-        自身.压缩=压缩项()#压缩
-        自身.根=None#列
+        '记下命令和可选的压缩节点'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        if 'window' in 自身.属性:
+            自身.渲染()
 
     def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性 if 属性 is not None else {}#新
+        '刷新属性'
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
     def 渲染(自身):
-        '命令+压缩'
-        属性=自身.属性#props
-        节点=属性['node'] if 'node' in 属性 and 属性['node'] is not None else {}#节点
-        数据=节点['data'] if 'data' in 节点 and 节点['data'] is not None else 节点#数据
-        翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
-        命令=数据['command'] if 'command' in 数据 and 数据['command'] is not None else 数据#命令
-        压缩=数据['compaction'] if 'compaction' in 数据 else None#压缩
-        with 打开列(自身,'压缩命令卡'):
-            with 界面.column().classes('压缩命令'):
-                自身.命令.更新({'node':命令,'t':翻译})
-                自身.命令.渲染()
-            if 压缩 is not None:
-                自身.压缩.更新({'node':压缩,'title':翻译('message.compaction.commandTitle'),'t':翻译})
-                自身.压缩.渲染()
-
-    def __call__(自身,属性=None):
-        '对齐'
-        if 属性 is not None:
-            自身.更新(属性)#刷
-        自身.渲染()#画
+        '结构化检查点优先。还在跑时用压缩中的文案'
+        if 自身.根 is not None:
+            自身.根.remove()
+            自身.根=None
+        属性=自身.属性
+        翻译=属性.get('t')
+        if not callable(翻译):
+            def 翻译(键,参数=None):
+                '没有文案表时返回键'
+                return 键
+        压缩=属性.get('compaction')
+        if 压缩 is not None:
+            结局=属性.get('node') if isinstance(属性.get('node'),dict) else {}
+            结局文=None
+            if isinstance(结局.get('outcome'),dict):
+                结局文=结局['outcome'].get('text')
+            卡=压缩项({
+                'window':属性['window'],
+                'node':压缩,
+                'title':翻译('message.compaction.commandTitle'),
+                'fallbackSummary':结局文,
+                't':翻译,
+            })
+        else:
+            节点=属性.get('node') if isinstance(属性.get('node'),dict) else {}
+            卡属性={'window':属性['window'],'node':节点,'t':翻译}
+            if 节点.get('outcome') is None:
+                卡属性['runningSummary']=翻译('message.compaction.running')
+            卡=泛型命令卡(卡属性)
+        自身.根=卡.根
+        if 属性.get('parent') is not None and 自身.根 is not None:
+            属性['parent'].appendChild(自身.根)
+        return 自身.根

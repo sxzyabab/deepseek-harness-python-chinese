@@ -113,7 +113,7 @@ class 客户端运行时执行器:#Client Runtime执行器
 
     def 执行(自身,帧,信号=None,延迟对象提交=False):#执行
         '执行一次请求并保留其源、代数、会话与请求身份'
-        会话=自身.取会话(帧['sessionId'])#会话
+        会话=自身.获取会话(帧['sessionId'])#会话
         分配=会话.开始分配()#分配
         try:#执行体
             结果=会话.执行(帧['command'],分配,信号)#命令结果
@@ -167,7 +167,7 @@ class 客户端运行时执行器:#Client Runtime执行器
 
     def 控制台事件(自身,会话标识,类型,值列表,时间戳,栈=None):#Console事件
         '为特定 DevTools Runtime 会话序列化一次 Console 调用'
-        会话=自身.取会话(会话标识)#会话
+        会话=自身.获取会话(会话标识)#会话
         分配=会话.开始分配()#分配
         try:#序列化
             事件={'type':'console-api','event':{'type':类型,'arguments':会话.全部序列化(值列表,'console',分配),'timestamp':时间戳}}#事件
@@ -184,7 +184,7 @@ class 客户端运行时执行器:#Client Runtime执行器
 
     def 异常事件(自身,会话标识,错误,时间戳,栈=None):#异常事件
         '为 DevTools Runtime 会话序列化一次未捕获 Client 异常'
-        会话=自身.取会话(会话标识)#会话
+        会话=自身.获取会话(会话标识)#会话
         分配=会话.开始分配()#分配
         try:#序列化
             事件={'type':'exception','event':{'timestamp':时间戳,'details':会话.描述异常(错误,'console',栈,分配)}}#事件
@@ -204,7 +204,7 @@ class 客户端运行时执行器:#Client Runtime执行器
             会话.关闭()#关
         自身.会话表.clear()#清表
 
-    def 取会话(自身,会话标识):#取或建会话
+    def 获取会话(自身,会话标识):#取或建会话
         '取或建会话'
         if 会话标识 not in 自身.会话表:#新建
             自身.会话表[会话标识]=客户端运行时会话(自身.上限.maxObjectsPerSession,自身.上限.maxPropertiesPerResult,自身.解析脚本)#会话

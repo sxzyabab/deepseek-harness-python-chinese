@@ -142,7 +142,7 @@ class 工作流执行:#隔离进程内的一次脚本执行
         'agent(prompt, opts) 钩子'
         if type(原始提示) is not str or len(原始提示)==0:#必须非空串
             raise 工作流错误('agent() requires a non-empty prompt string','INVALID_ARGUMENT')#参数
-        选项=自身.读智能体选项(原始选项)#选项
+        选项=自身.读取智能体选项(原始选项)#选项
         if 自身._已启动>=自身._上限['maxTotalAgents']:#触顶
             raise 工作流错误(
                 'this run reached its total agent cap ('+str(自身._上限['maxTotalAgents'])+') — a runaway-loop backstop; raise the applicable maxTotalAgents limit if the scale is intentional',
@@ -221,7 +221,7 @@ class 工作流执行:#隔离进程内的一次脚本执行
         自身.取得槽().然后(占槽之后,槽失败)#占槽后启动
         return 结局#期约
 
-    def 读智能体选项(自身,原始选项):#物化并校验选项袋
+    def 读取智能体选项(自身,原始选项):#物化并校验选项袋
         '从领域物化并校验 agent() 选项袋'
         if 原始选项 is None:#缺省
             return {}#空

@@ -1,5 +1,9 @@
 {
     "types":"类型",
     "locales":"文案",
-    "store":"存储"
+    "store":"存储",
+    "ZoomControls":"控件",
+    "ZoomViewport":"视口",
+    "ZoomControls.module":"控件.module",
+    "ZoomViewport.module":"视口.module"
 }

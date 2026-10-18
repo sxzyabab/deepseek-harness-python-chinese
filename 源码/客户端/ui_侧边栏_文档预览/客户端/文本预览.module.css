@@ -1,6 +1,6 @@
-/* The pane body is a block scroller with a definite height, not a flex
-   container, so the preview takes that height outright: the header row stays
-   put and the file body below is the one scroller, however short the file. */
+/* The preview takes the pane's definite height outright, so the header stays
+   put while the body below owns the remaining height. A renderer may replace
+   the body's scrolling role with an inner scrollport. */
 .preview {
   display: flex;
   flex: 1 1 auto;
@@ -28,38 +28,8 @@
   border-bottom: 0.5px solid var(--dsw-alias-border-l3);
 }
 
-/* The path is never ellipsized. Its text sits at the left while it fits: the
-   auto margin takes the free space. Once it is wider than the box, the auto
-   margin is zero and `flex-end` holds the name at the right edge, so the
-   directories run off the left and the box clips them there, faded by the
-   mask while `data-textpreview-path-clipped` is set. The margin plus the row's
-   gap put the text 16px clear of the first control. */
 .path {
-  display: flex;
-  flex: 1 1 auto;
-  justify-content: flex-end;
-  min-width: 0;
   margin-right: 12px;
-  overflow: hidden;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.path[data-textpreview-path-clipped] {
-  mask-image: linear-gradient(to right, transparent, black 28px);
-}
-
-.pathText {
-  flex: none;
-  margin-right: auto;
-}
-
-.pathDirectory {
-  color: var(--dsw-alias-label-tertiary);
-}
-
-.pathName {
-  color: var(--dsw-alias-label-primary);
 }
 
 /* Announced, not applied: the reader keeps the text they are looking at. */
@@ -77,19 +47,12 @@
 }
 
 .body {
-  /* Lines are positioned against the scroller, so a line's offset is its scroll target. */
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  /* The files tree's inset and 2px scrollbar offset (ui-sidebar-files
-     FilesBody `.body`), so the two bodies start their text at one edge and
-     both bars sit 2px clear of the pane's edge. */
-  margin-right: 2px;
-  padding: 8px 0 8px 8px;
+  margin: 0;
+  padding: 0;
   overflow: auto;
-  scrollbar-gutter: stable;
-  /* The notice and retry surfaces in this sheet are elevated, so the file body's
-     scroller rebinds the thumb indirection in a complete pair. */
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   color: var(--dsw-alias-label-primary);
@@ -99,11 +62,18 @@
   white-space: pre;
 }
 
-/* The bar also stops 2px short of the body's ends, matching its 2px edge
-   offset (ui-sidebar-files FilesBody keeps the same rule). WebKit-only: the
-   Firefox path has no track to inset. */
 .body::-webkit-scrollbar-track {
   margin: 2px;
+}
+
+.body:has([data-code-preview]) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.body:has([data-pdf-preview]) {
+  background: var(--dsw-alias-bg-document-preview);
 }
 
 .wrap {
@@ -111,25 +81,19 @@
   word-break: break-word;
 }
 
-/* Sticky code banners meet the scrollport edge; prose owns its initial spacing. */
-.body:has([data-code-preview], [data-document-markdown]) {
-  padding: 0;
+.textDocument {
+  box-sizing: border-box;
+  min-width: 100%;
+  min-height: 100%;
+  padding: 8px;
 }
 
-/* The code renderer's banner sizes itself to this scroller's visible width
-   (100cqw in CodeBody.module.css); the container makes that width queryable. */
-.body:has([data-code-preview]) {
-  container-type: inline-size;
-}
-
-/* One page of lines; pages abut so the file reads as one. */
 .page {
   margin: 0;
   font: var(--dsw-font-markdown-code-block);
   white-space: inherit;
 }
 
-/* The files tree row's 10px side inset, so a line's text sits where a row's does. */
 .line {
   padding: 0 10px;
 }
@@ -138,10 +102,6 @@
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
-/* The failure with nothing read yet: the whole body, centred a little above
-   the middle (the spacer below). Fills the body's content box exactly (a
-   percentage height resolves against it), so the body does not scroll. The
-   body's monospace `pre` setting is undone here. */
 .empty {
   display: flex;
   flex-direction: column;
@@ -159,15 +119,11 @@
   white-space: normal;
 }
 
-/* The lift, as a share of the pane's height (a column flex basis resolves
-   against it): the centred column rises 6% of the pane, and a short pane
-   gives it up before the content clips. */
 .empty::after {
   content: '';
   flex: 0 1 12%;
 }
 
-/* The type's sheet keeps its shape but gives up its colour. */
 .emptyIcon {
   flex: none;
   opacity: 0.6;
@@ -178,8 +134,6 @@
   margin: 0;
 }
 
-/* A capsule holding the refresh glyph and the retry word. `flex: none` keeps
-   its height when the empty column runs out of room in a short panel. */
 .retry {
   display: inline-flex;
   flex: none;
@@ -192,7 +146,7 @@
   font-family: inherit;
   background: transparent;
   border: 0.5px solid var(--dsw-alias-border-l2);
-  border-radius: 16px;
+  border-radius: var(--dsw-radius-md);
   cursor: pointer;
 }
 
@@ -200,8 +154,6 @@
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
-/* The type's 16px sheet before the chip's text; the chip's title row centres
-   it on the text's line and spaces it. */
 .titleIcon {
   flex: none;
 }
@@ -222,7 +174,10 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 100%;
   padding: 12px 10px;
 }
 
@@ -234,7 +189,7 @@
   white-space: normal;
   background: var(--dsw-alias-bg-layer-2);
   border: 0.5px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
+  border-radius: var(--dsw-radius-sm);
   cursor: pointer;
 }
 
@@ -242,7 +197,6 @@
   background: var(--dsw-alias-bg-layer-3);
 }
 
-/* The next page, asked for where the loaded text ends. */
 .more {
   display: block;
   margin: 8px 10px;
@@ -253,7 +207,7 @@
   white-space: normal;
   background: var(--dsw-alias-bg-layer-2);
   border: 0.5px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
+  border-radius: var(--dsw-radius-sm);
   cursor: pointer;
 }
 
@@ -267,9 +221,6 @@
   cursor: default;
 }
 
-/* Controls in the header row, sized like the docking kit's own pane controls. */
-/* The same icon button as the Sidebar's strip controls above it: a 28px
-   circle around a 15px glyph. */
 .tool {
   display: inline-flex;
   flex: none;
@@ -282,7 +233,7 @@
   line-height: 1;
   background: transparent;
   border: none;
-  border-radius: 28px;
+  border-radius: var(--dsw-radius-sm);
   cursor: pointer;
 }
 
@@ -295,11 +246,19 @@
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-interactive-bg-hover);
 }
+
+.tool[data-textpreview-tool='auto-refresh'][aria-pressed='true'] {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
 .viewerTool {
+  flex: none;
   width: auto;
   max-width: 160px;
   padding: 0 6px;
   overflow: hidden;
+  color: var(--dsw-alias-label-secondary);
   font-size: 12px;
   white-space: nowrap;
   text-overflow: ellipsis;

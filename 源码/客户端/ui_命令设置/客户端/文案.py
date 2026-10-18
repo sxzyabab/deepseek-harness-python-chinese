@@ -1,6 +1,4 @@
-__all__=['命名空间','中文','英文','表单标签']
-
-命名空间='settings.shell'
+__all__=['中文','英文']
 
 英文={
     'title':'Shell',
@@ -35,13 +33,3 @@ __all__=['命名空间','中文','英文','表单标签']
     'saveFailed':'本部署没有接受这些值，已保留供你修改。',
     'invalidNumber':'请填数字；留空表示使用默认值。',
 }
-
-def 表单标签(翻译):
-    '把本页词典填进共享设置表单的框架文案'
-    return {
-        'unavailable':翻译('unavailable'),
-        'readOnly':翻译('readOnly'),
-        'saveFailed':翻译('saveFailed'),
-        'save':翻译('save'),
-        'saving':翻译('saving'),
-    }

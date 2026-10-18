@@ -1,6 +1,6 @@
 import builtins,threading#页面全局与启动回合锁
 from ....依赖.cordis.上下文 import 上下文 as 上下文类#Cordis 上下文
-from ....客户端.模块.条目生命周期 import 拆除条目纤程#条目纤程拆除
+from ....客户端.模块.客户端.条目生命周期 import 拆除条目纤程#条目纤程拆除
 from ....客户端.连接.客户端 import 安装连接#连接安装
 from ....客户端.web.启动客户端 import 启动客户端#生产客户端启动
 from ....客户端.web.挂载 import 挂载客户端#生产客户端挂载

@@ -1,4 +1,9 @@
 {
+    "applications":"应用列表",
+    "controller":"控制器",
+    "locales":"文案",
+    "OpenInAppAction":"在应用中打开动作",
+    "OpenTargetButton.module":"打开目标按钮.module",
     "file-applications":"文件应用",
     "open-path":"打开路径",
     "OpenTargetButton":"打开目标按钮",

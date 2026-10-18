@@ -1,755 +1,571 @@
-'通过 Cordis 服务与已注册提供方做在线 Typert Remote 分发'
-import inspect,re,threading#参数名、标识符与中止
-from ...基础设施.js特性 import PromiseEX as 期约#中文别名的期约
-from ...基础设施.通用工具 import 启动守护线程
-from ...依赖.cordis.服务 import 服务#服务基类
-from ...类型化远程调用.协议 import 远程方法列表,取远程错误,是否远程json值#Remote 标记与失败
-from uuid import uuid4 as 生成uuid4#事件关联标识
-from .流协议 import (
-    远程事件流端点,远程事件结果端点,
-    解析远程事件结果,投影远程事件请求,还原远程事件拒绝,
-    是否远程事件智能体标识,
-)
-from ...工具.双端队列 import 双端队列
-from .异常 import 网关错误,远程调用已取消,远程流载体错误,失败说明#本包异常
+'宿主上复用 Typert Remote 流的 WebSocket。上游 ws 没有中文包，握手和文本帧写在这里'
+import base64,hashlib,json,threading#握手、帧与心跳
+from ...工具.双端队列 import 双端队列#上行队列
+from ...类型化远程调用.协议 import 远程错误,取远程错误#协议失败与上行溢出
+from ...客户端.连接.rpc import 中止控制器#逻辑流取消
+from .流协议 import 解析远程流客户端报文#浏览器报文
 
-__all__=['网关错误','Typert网关服务','已中止','若已中止则抛出','中止信号','中止控制器']#仅中文公开名
+错过心跳上限=2#连续两次没有回应就拆套接字
+握手魔数='258EAFA5-E914-47DA-95CA-C5AB0DC85B11'#RFC6455
 
-标识符模式=re.compile(r'^[$A-Z_a-z][$A-Za-z0-9_]*\Z')#SRC 参数名，ASCII 标识符，行尾对齐 JS $
+def _编码帧(操作码,载荷):
+    '服务端帧不打掩码'
+    长度=len(载荷)#载荷长度
+    if 长度<126:#短
+        头=bytes([0x80|操作码,长度])#一头
+    elif 长度<65536:#中
+        头=bytes([0x80|操作码,126])+长度.to_bytes(2,'big')#二字节长度
+    else:#长
+        头=bytes([0x80|操作码,127])+长度.to_bytes(8,'big')#八字节长度
+    return 头+载荷#完整帧
 
-class 中止信号:
-    'threading.Event 取消通道。原因用异常对象承载'
-    def __init__(自身,已中止标志=False):
-        '创建一条取消通道'
-        自身._事件=threading.Event()#中止标志
-        自身._异常=None#中止时抛出的异常
-        if 已中止标志:#创建时已中止
-            自身._事件.set()#置位
-            自身._异常=远程调用已取消('','')#默认中止异常
+class 网页套接字:
+    '把网页服务器交出来的原始套接字说成一条 WebSocket'
+    def __init__(自身,请求,壳):
+        '先握手，读循环等监听挂上再开'
+        自身.请求=请求#HTTP 请求
+        自身.壳=壳#升级套接字壳
+        自身.readyState=0#连接中
+        自身.bufferedAmount=0#已完成的同步写不记缓冲
+        自身._监听={ }#事件到监听
+        自身._写锁=threading.Lock()#写帧串行
+        自身._读流=请求.rfile#缓冲输入
 
-    def 触发(自身,原因=None):
-        '标记中止'
-        if 自身._事件.is_set():#只触发一次
-            return#已触发
-        if isinstance(原因,BaseException):#原因已是异常
-            自身._异常=原因#用异常对象承载
-        elif 原因 is not None:#非异常原因
-            错=远程调用已取消('','')#包装
-            错.原因=原因#附加属性
-            自身._异常=错#记下
-        else:#无原因
-            自身._异常=远程调用已取消('','')#默认
-        自身._事件.set()#置位
+    def on(自身,事件,监听):
+        '登记监听'
+        自身._监听.setdefault(事件,[]).append(监听)#追加
 
-    @staticmethod
-    def 任一(信号列表):
-        '最先中止的那路胜出'
-        融合=中止控制器()#融合控制器
-        for 信号 in 信号列表:#先扫已中止
-            if 信号 is not None and 已中止(信号):#已中止
-                融合.中止(信号._异常)#立刻胜出
-                return 融合.信号#已中止的融合信号
-        def 转发中止(来源):
-            '等到来源置位后转发给融合控制器'
-            来源._事件.wait()#阻塞到中止
-            融合.中止(来源._异常)#转发异常
-        for 信号 in 信号列表:#每路一线程
-            if 信号 is None:#无信号
-                continue#跳过
-            启动守护线程(转发中止,信号)#转发线程
-        return 融合.信号#融合信号
+    def once(自身,事件,监听):
+        '只调用一次'
+        def 一次(*参数):
+            '摘掉自己再调用'
+            自身.off(事件,一次)#摘
+            监听(*参数)#调用
+        自身.on(事件,一次)#登记
 
-class 中止控制器:
-    '发出中止的控制器'
-    def __init__(自身):
-        '创建配套信号'
-        自身.信号=中止信号()#本控制器的信号
+    def off(自身,事件,监听):
+        '按身份摘掉'
+        表=自身._监听.get(事件)#这一类
+        if 表 is not None and 监听 in 表:#还在
+            表.remove(监听)#摘
 
-    def 中止(自身,原因=None):
-        '中止配套信号'
-        自身.信号.触发(原因)#触发一次
+    def _发出(自身,事件,*参数):
+        '同步通知当前监听'
+        for 监听 in list(自身._监听.get(事件,[])):#拷贝
+            监听(*参数)#调用
 
-def 已中止(信号):
-    '信号是否已中止。无信号视为未中止'
-    if 信号 is None:#无信号
-        return False#未中止
-    return 信号._事件.is_set()#Event 置位即中止
+    def 握手(自身):
+        '写出 101。读循环由开始读启动'
+        键=自身.请求.headers.get('sec-websocket-key')#客户端键
+        if not isinstance(键,str) or 键=='':#没有
+            raise RuntimeError('api gateway: missing Sec-WebSocket-Key')#不能升级
+        摘要=hashlib.sha1((键+握手魔数).encode('ascii')).digest()#接受摘要
+        接受=base64.b64encode(摘要).decode('ascii')#接受键
+        响应=(#101
+            'HTTP/1.1 101 Switching Protocols\r\n'
+            'Upgrade: websocket\r\n'
+            'Connection: Upgrade\r\n'
+            'Sec-WebSocket-Accept: '+接受+'\r\n\r\n'
+        )#响应结束
+        自身.请求._处理.wfile.write(响应.encode('ascii'))#写出
+        自身.请求._处理.wfile.flush()#发出
+        自身.readyState=1#已开
 
-def 若已中止则抛出(信号):
-    '已中止则抛出承载原因的异常'
-    if 信号 is None:#无信号
-        return#无信号
-    if not 信号._事件.is_set():#仍活着
-        return#仍活着
-    if 信号._异常 is not None:#有承载异常
-        raise 信号._异常#抛出
-    raise 远程调用已取消('','')#默认中止
+    def 开始读(自身):
+        '监听挂好之后再读，避免丢第一帧'
+        threading.Thread(target=自身._读循环,daemon=True).start()#读线程
 
-def 是否对象(值):
-    '非 None 对象或函数'
-    if 值 is None:#空
-        return False#不是
-    if isinstance(值,(str,bytes,bytearray,int,float,bool)):#标量
-        return False#不是
-    return True#对象或可调用
+    def send(自身,文本,回调=None):
+        '送一条文本帧。回调收到 None 表示写完'
+        数据=文本.encode('utf-8') if isinstance(文本,str) else 文本#字节
+        帧=_编码帧(1,数据)#文本帧
+        try:#写
+            with 自身._写锁:#串行
+                自身.bufferedAmount=len(帧)#写之前视为还在缓冲
+                自身.请求._处理.wfile.write(帧)#写
+                自身.请求._处理.wfile.flush()#发出
+                自身.bufferedAmount=0#写完
+            if 回调 is not None:#有回调
+                回调(None)#成功
+        except Exception as 错误:#写失败
+            自身.bufferedAmount=0#不再占
+            if 回调 is not None:#有回调
+                回调(错误)#失败
+            else:#没有回调
+                raise#交给调用方
 
-def 是否普通对象(值):
-    '数组不是普通对象；要求 dict'
-    return isinstance(值,dict)#普通 dict
+    def ping(自身):
+        '送 ping'
+        with 自身._写锁:#串行
+            自身.请求._处理.wfile.write(_编码帧(9,b''))#ping
+            自身.请求._处理.wfile.flush()#发出
 
-def 拼端点(命名空间,方法):
-    '返回 namespace/method'
-    return 命名空间+'/'+方法#端点
+    def close(自身,码=1000,原因=''):
+        '先送关闭帧再拆'
+        if 自身.readyState>=2:#已经在关
+            return#停
+        自身.readyState=2#关闭中
+        载荷=int(码).to_bytes(2,'big')+(原因.encode('utf-8') if isinstance(原因,str) else 原因)#关闭载荷
+        try:#对方可能已经没了
+            with 自身._写锁:#串行
+                自身.请求._处理.wfile.write(_编码帧(8,载荷))#关闭帧
+                自身.请求._处理.wfile.flush()#发出
+        except OSError:#写不出去
+            pass#接着拆
+        自身.terminate()#拆
 
-def 取原始(接收方):
-    'Python 无 Cordis 代理符号，接收方即原始对象'
-    return 接收方#原样
+    def terminate(自身):
+        '不再读写，发出 close'
+        if 自身.readyState==3:#已经关
+            return#停
+        自身.readyState=3#已关
+        try:#壳可能已经关
+            自身.壳.destroy()#关原始套接字
+        except Exception:#关失败
+            pass#仍然通知
+        自身._发出('close')#close
 
-class Typert网关服务(服务):
-    '用严格生成定义或保守 SRC 标记，对照当前 Cordis 服务与 Typert 提供方做解析'
-    inject=['typert']#框架槽：依赖 typert
+    def _写帧(自身,操作码,载荷):
+        '读循环里回 pong'
+        with 自身._写锁:#串行
+            自身.请求._处理.wfile.write(_编码帧(操作码,载荷))#写
+            自身.请求._处理.wfile.flush()#发出
 
-    def __init__(自身,上下文):
-        '向活动的 Typert 注册表登记网关'
-        super().__init__(上下文,'typertGateway')#以 typertGateway 名注册
-        自身.源声明=None#SRC 端点声明缓存
-        自身.远程事件登记=None#唯一转发事件源
-        自身.远程事件客户端={}#clientId → 客户端
-        自身.待决远程事件={}#eventId → 挂起瀑布
-        def 服务变更(*位置参数,**关键字参数):
-            '下次认领时重新收集'
-            自身.源声明=None#清空
-        上下文.监听('internal/service',服务变更)#监听
-        def 挂连接(连接上下文):
-            '拦截 /api 下的远程调用'
-            连接=连接上下文.connection#连接服务
-            def 认领(端点):
-                '是否认领该端点'
-                return 自身.认领端点(端点)#委托
-            def 分发(端点,载荷,信号):
-                '分发一次 RPC'
-                return 自身.分发RPC(端点,载荷,信号)#委托
-            连接.rpc.intercept('/api',认领,分发,{'authority':'trusted-host'})#仅受信宿主
-        上下文.依赖启动(['connection'],挂连接)#等 connection
+    def _读确切(自身,数量):
+        '读满指定字节'
+        块=b''#已读
+        while len(块)<数量:#还不够
+            片=自身._读流.read(数量-len(块))#再读
+            if not 片:#对端关了
+                raise EOFError('socket closed')#结束
+            块+=片#拼上
+        return 块#满
 
-    def 认领端点(自身,端点):
-        '两端非空；严格定义/曾见或 SRC 声明命中则认领'
-        if 端点==远程事件结果端点:#事件结果
-            return True#认领
-        段=端点.split('/')#拆
-        if len(段)!=2 or 段[0]=='' or 段[1]=='':#非法
-            return False#不认领
-        if 自身.ctx.typert.local.get(端点) is not None or 自身.ctx.typert.local.hasSeen(端点):#严格或曾见
-            return True#认领
-        if 自身.源声明 is None:#惰性收集
-            自身.源声明=自身.收集源声明()#收集
-        return 端点 in 自身.源声明#SRC 命中
+    def _读一帧(自身):
+        '读一帧并解开客户端掩码'
+        头=自身._读确切(2)#基本头
+        操作码=头[0] & 0x0f#操作码
+        终帧=(头[0] & 0x80)!=0#是否最后一帧
+        长度=头[1] & 0x7f#长度
+        有掩码=(头[1] & 0x80)!=0#客户端必须打掩码
+        if 长度==126:#两字节长度
+            长度=int.from_bytes(自身._读确切(2),'big')#长度
+        elif 长度==127:#八字节长度
+            长度=int.from_bytes(自身._读确切(8),'big')#长度
+        掩码=自身._读确切(4) if 有掩码 else None#掩码
+        载荷=自身._读确切(长度) if 长度 else b''#载荷
+        if 掩码 is not None:#解开
+            载荷=bytes(载荷[下标]^掩码[下标%4] for 下标 in range(len(载荷)))#逐字节
+        return 终帧,操作码,载荷#一帧
 
-    def 收集源声明(自身):
-        '遍历反射属性定义上的 typertRemote 绑定'
-        声明=set()#端点集合
-        反射=自身.ctx.反射#反射
-        属性表=反射.属性表 if hasattr(反射,'属性表') else (反射.props if hasattr(反射,'props') else {})#属性定义
-        项列表=属性表.items() if hasattr(属性表,'items') else []#迭代
-        for 服务键,定义 in 项列表:#遍历
-            种类=定义['type'] if isinstance(定义,dict) and 'type' in 定义 else getattr(定义,'type',None)#种类
-            if 种类!='service':#只看服务
-                continue#跳过
-            接收方=自身.ctx.获取服务(服务键)#活动接收方
-            if not 是否对象(接收方):#非对象
-                continue#跳过
-            原始=取原始(接收方)#原始对象
-            绑定=getattr(原始,'typertRemote',None)#绑定
-            if not isinstance(绑定,dict) or 'namespace' not in 绑定 or not isinstance(绑定['namespace'],str):#无效
-                continue#跳过
-            命名空间=绑定['namespace']#命名空间
-            for 候选 in 远程方法列表(原始):#枚举 Remote 方法
-                方法=候选['exportName'] if 'exportName' in 候选 and 候选['exportName'] is not None else 候选['method']#导出名或方法名
-                声明.add(拼端点(命名空间,方法))#加入
-        return 声明#集合
+    def _读循环(自身):
+        '读到关闭或出错'
+        缓冲=b''#分片
+        操作=None#数据操作码
+        try:#读
+            while 自身.readyState==1:#还开着
+                终帧,码,载荷=自身._读一帧()#一帧
+                if 码==8:#关闭
+                    自身.terminate()#拆
+                    return#停
+                if 码==9:#ping
+                    自身._写帧(10,载荷)#pong
+                    continue#下一帧
+                if 码==10:#pong
+                    自身._发出('pong')#活动
+                    continue#下一帧
+                if 码 in (1,2):#新的数据消息
+                    操作=码#记下
+                    缓冲=载荷#起
+                elif 码==0:#续片
+                    缓冲+=载荷#拼
+                else:#不认识
+                    continue#丢
+                if 终帧 and 操作 is not None:#消息齐了
+                    if 操作==1:#文本
+                        自身._发出('message',缓冲.decode('utf-8'),False)#文本
+                    else:#二进制
+                        自身._发出('message',缓冲,True)#二进制
+                    缓冲=b''#清空
+                    操作=None#清空
+        except Exception:#读失败
+            if 自身.readyState==1:#还以为开着
+                自身._发出('error')#出错
+                自身.terminate()#拆
 
-    def invoke(自身,请求):
-        '通过严格生成反射或 SRC 标记调用一个在线 Remote 方法。请求为 dict'
-        端点=拼端点(请求['namespace'],请求['method'])#拼端点
-        描述符=自身.解析描述符(请求['namespace'],请求['method'],端点)#解析
-        断言精确参数(请求['args'],描述符,端点)#校验 args
-        接收上下文=自身.解析接收上下文(描述符,请求['args'],端点)#接收方上下文
-        接收方=接收上下文.获取服务(描述符['service'])#活动服务
-        if not 是否对象(接收方):#不可用
-            raise 网关错误('service-unavailable',端点,'active Service '+repr(描述符['service'])+' is unavailable')#抛出
-        校验绑定(接收方,描述符['service'],描述符['namespace'],端点)#校验绑定
-        参数值=[]#业务参数
-        for 参数 in 描述符['parameters']:#逐个
-            参数值.append(自身.解析参数(参数,请求['args'],端点))#解析
-        if 'cancellation' in 描述符 and 描述符['cancellation'] is not None:#感知取消
-            参数值.append(请求['signal'] if 'signal' in 请求 and 请求['signal'] is not None else 中止信号())#补信号
-        实现=描述符['implementation'] if 'implementation' in 描述符 and 描述符['implementation'] is not None else 描述符['method']#实际方法名
-        方法=getattr(接收方,实现,None)#取实现
-        if not callable(方法):#不可调用
-            raise 网关错误('method-unavailable',端点,'active Service '+repr(描述符['service'])+' has no callable method '+repr(实现))#抛出
-        try:
-            结果=方法(*参数值)#同步调用
-        except BaseException as 错误:
-            信号=请求['signal'] if 'signal' in 请求 else None#取消信号
-            if 已中止(信号):#载体已取消
-                raise 远程调用已取消(端点,错误)#改标取消
-            raise#原样抛出
-        结果模式=描述符['result']['mode'] if 'mode' in 描述符['result'] else None#结果模式
-        if 结果 is None and 结果模式!='strict':#弱描述符的 void
-            return 结果#直接返回
-        return 解码(描述符['result'],结果,'result-invalid',端点,'result')#边界校验
+class 上行收件箱:
+    '一条逻辑流的有界上行队列。方法经 invocation.uplink() 来读'
+    def __init__(自身,最大字节,端点,违规时):
+        '违规时用远程失败中止逻辑流'
+        自身.最大字节=最大字节#上限
+        自身.端点=端点#失败里的端点
+        自身.违规时=违规时#中止回调
+        自身.队列=双端队列()#项
+        自身.字节=0#已缓冲字节
+        自身.已结束=False#客户端半关
+        自身.已关=False#读者不要了
+        自身.已取=False#只有一个读者
+        自身.失败=None#读到这里抛出
+        自身._条件=threading.Condition()#读者等待
 
-    def 分发RPC(自身,端点,载荷,信号):
-        '转到 invokeRpc'
-        return 自身.调用RPC(端点,载荷,信号)#委托
+    def __iter__(自身):
+        '只允许一个消费者'
+        if 自身.已取:#第二个
+            raise Exception('api gateway: Remote stream uplink inbox already has a consumer')#拒绝
+        自身.已取=True#占住
+        return 自身#自己就是迭代器
 
-    def 调用RPC(自身,端点,载荷,信号):
-        '成功带 value；失败折成信封'
-        try:
-            if 端点==远程事件结果端点:#事件结果
-                结果=解析远程事件结果载荷(载荷)#校验
-                客户端=自身.远程事件客户端.get(结果['clientId'])#代际
-                if 客户端 is None:#无代际
-                    raise 远程流载体错误('typert gateway: Remote event result identifies no active event stream')
-                自身.收取远程事件结果(客户端,结果)#结算
-                return {'ok':True,'value':None}#无业务值
-            段=端点.split('/')#拆端点
-            if len(段)!=2 or 段[0]=='' or 段[1]=='':#非法
-                raise 网关错误('invocation-unavailable',端点,'invalid Remote endpoint')#端点无效
-            命名空间,方法=段[0],段[1]#拆出
-            if (not 是否对象(载荷)) or (not 是否普通对象(载荷)) or list(载荷.keys())!=['args'] or (not 是否普通对象(载荷['args'])):#载荷形状
-                raise 网关错误('arguments-invalid',端点,'Remote payload must contain exactly one plain-object args field')#必须恰好 args
-            值=自身.invoke({'namespace':命名空间,'method':方法,'args':载荷['args'],'signal':信号})#分发
-            return {'ok':True,'value':值}#成功信封
-        except BaseException as 错误:
-            return RPC失败(错误)#折成失败
+    def __next__(自身):
+        '下一项。结束抛 StopIteration，失败抛原来的错误'
+        with 自身._条件:#互斥
+            while True:#直到有项、结束或失败
+                if 自身.已关:#读者已停
+                    raise StopIteration#结束
+                if 自身.队列.大小>0:#有项
+                    条目=自身.队列.头弹()#取出
+                    自身.字节-=条目['bytes']#减字节
+                    return 条目['value']#值
+                if 自身.失败 is not None:#失败
+                    raise 自身.失败#抛
+                if 自身.已结束:#半关且队列空
+                    raise StopIteration#结束
+                自身._条件.wait()#等下一次 push
 
-    def 解析描述符(自身,命名空间,方法,端点):
-        '有严格定义用之；曾见但已撤回禁止 SRC；否则 SRC'
-        严格=自身.ctx.typert.local.get(端点)#严格定义
-        if 严格 is not None:#有
-            return 严格#用之
-        if 自身.ctx.typert.local.hasSeen(端点):#曾见但撤回
-            raise 网关错误('definition-unavailable',端点,'its strict definition was withdrawn and SRC fallback is forbidden')#禁止 SRC
-        return 自身.解析源描述符(命名空间,方法,端点)#SRC
-
-    def 找到导出方法(自身,原始,方法):#按名找
-        '导出名优先，否则方法名。没有则 None'
-        for 候选 in 远程方法列表(原始):#找标记
-            导出名=候选['exportName'] if 'exportName' in 候选 and 候选['exportName'] is not None else 候选['method']#导出名或方法名
-            if 导出名==方法:#命中
-                return 候选#记下
-        return None#没有
-    def 解析源描述符(自身,命名空间,方法,端点):
-        '多个服务导出同一端点则歧义'
-        候选列表=[]#候选
-        反射=自身.ctx.反射#反射
-        属性表=反射.属性表 if hasattr(反射,'属性表') else (反射.props if hasattr(反射,'props') else {})#属性
-        项列表=属性表.items() if hasattr(属性表,'items') else []#迭代
-        for 服务键,定义 in 项列表:#遍历
-            种类=定义['type'] if isinstance(定义,dict) and 'type' in 定义 else getattr(定义,'type',None)#种类
-            if 种类!='service':#只看服务
-                continue#跳过
-            接收方=自身.ctx.获取服务(服务键)#接收方
-            if not 是否对象(接收方):#非对象
-                continue#跳过
-            原始=取原始(接收方)#原始
-            值=getattr(原始,'typertRemote',None)#绑定
-            if 值 is None:#无绑定
-                continue#跳过
-            绑定=读绑定(值,原始,服务键,端点)#校验
-            if 绑定['namespace']!=命名空间:#命名空间不匹配
-                continue#跳过
-            标记=自身.找到导出方法(原始,方法)#与外层循环同级
-            if 标记 is None:#没有
-                continue#跳过
-            候选列表.append(自身.源描述符(绑定,标记,方法,端点))#加入
-        if len(候选列表)==0:#无候选
-            raise 网关错误('invocation-unavailable',端点,'no active Remote method exports this endpoint')#不可用
-        if len(候选列表)>1:#歧义
-            服务名串=', '.join(sorted(候选['service'] for 候选 in 候选列表))#列出
-            raise 网关错误('ambiguous-endpoint',端点,'multiple active Services export this endpoint: '+服务名串)#歧义
-        return 候选列表[0]#唯一
-
-    def 源描述符(自身,绑定,标记,方法,端点):
-        '从签名读参数名，按 lookup 声明推导来源'
-        名列表=方法参数名(绑定['service'],标记['method'],端点)#参数名
-        信号下标=名列表.index('signal') if 'signal' in 名列表 else -1#signal 位置
-        if 信号下标>=0 and 信号下标!=len(名列表)-1:#不是最后一个
-            raise 网关错误('signature-invalid',端点,'SRC cancellation parameter signal must be the final parameter',{'field':'signal'})#非法
-        取消={'parameter':'signal'} if 信号下标>=0 else None#取消约定
-        业务名=名列表 if 取消 is None else 名列表[:-1]#去掉 signal
-        参数列表=[]#业务参数
-        线路集合=set()#已占用线字段
-        for 名 in 业务名:#逐个
-            匹配列表=[声明 for 声明 in 自身.ctx.typert.lookups.definitions() if 声明['parameter']==名]#按参数名
-            if len(匹配列表)>1:#多匹配
-                raise 网关错误('signature-invalid',端点,'parameter '+repr(名)+' matches multiple lookup providers',{'field':名})#非法
-            匹配=匹配列表[0] if len(匹配列表)==1 else None#至多一个
-            if 匹配 is None:#json
-                参数={'name':名,'wire':名,'source':'json','codec':{'mode':'src-json'}}#json 参数
-            else:#lookup
-                参数={'name':名,'wire':匹配['wire'],'source':'lookup','lookup':匹配['key'],'codec':{'mode':'src-json'}}#lookup
-            if 参数['wire'] in 线路集合:#冲突
-                raise 网关错误('signature-invalid',端点,'multiple parameters use wire field '+repr(参数['wire']),{'field':参数['wire']})#非法
-            线路集合.add(参数['wire'])#占用
-            参数列表.append(参数)#加入
-        接收方={'kind':'direct'}#默认直接
-        if 标记['invocation']['kind']=='context':#按上下文
-            提供方=自身.ctx.typert.contexts.getHost(标记['invocation']['context'])#宿主 Context
-            if 提供方 is None:#不可用
-                raise 网关错误('context-unavailable',端点,'Context provider '+repr(标记['invocation']['context'])+' is unavailable')#抛出
-            if 提供方['wire'] in 线路集合:#冲突
-                raise 网关错误('signature-invalid',端点,'Context identity conflicts with wire field '+repr(提供方['wire']),{'field':提供方['wire']})#非法
-            接收方={'kind':'context','context':标记['invocation']['context'],'wire':提供方['wire'],'codec':{'mode':'src-json'}}#上下文调用
-        描述符={#SRC 描述符
-            'id':'src:'+绑定['serviceKey']+'#'+端点,#id
-            'service':绑定['serviceKey'],#服务键
-            'namespace':绑定['namespace'],#命名空间
-            'method':方法,#导出名
-            'invocation':接收方,#接收方
-            'parameters':参数列表,#参数
-            'result':{'mode':'src-json'},#弱结果
-        }#描述符
-        if 标记['method']!=方法:#导出名与实现不同
-            描述符['implementation']=标记['method']#记下实现
-        if 取消 is not None:#有取消
-            描述符['cancellation']=取消#带上
-        return 描述符#描述符
-
-    def 解析接收上下文(自身,描述符,参数,端点):
-        '直接调用用网关自身上下文。参数为 dict'
-        if 描述符['invocation']['kind']=='direct':#直接
-            return 自身.ctx#自身
-        调用=描述符['invocation']#上下文调用
-        提供方=自身.ctx.typert.contexts.getHost(调用['context'])#提供方
-        if 提供方 is None:#不可用
-            raise 网关错误('context-unavailable',端点,'Context provider '+repr(调用['context'])+' is unavailable')#抛出
-        严格=调用['codec']['mode']=='strict' if 'mode' in 调用['codec'] else False#严格
-        符号匹配=('wireTypeSymbol' in 提供方 and 'typeSymbol' in 调用['codec'] and 提供方['wireTypeSymbol']==调用['codec']['typeSymbol'])#符号
-        if 提供方['wire']!=调用['wire'] or (严格 and not 符号匹配):#不匹配
-            raise 网关错误('provider-mismatch',端点,'Context provider '+repr(调用['context'])+' does not match its strict definition',{'field':调用['wire']})#抛出
-        身份=解码(调用['codec'],参数[调用['wire']] if 调用['wire'] in 参数 else None,'input-invalid',端点,调用['wire'])#解码身份
-        try:
-            上下文=提供方['resolve'](身份)#同步解析
-        except BaseException as 原因:
-            if getattr(原因,'name',None)=='TypertLookupFailure':#查找策略按结构识别
-                raise#原样
-            raise 网关错误('context-failed',端点,'Context provider '+repr(调用['context'])+' failed',{'cause':原因,'field':调用['wire']})#包成
-        if 上下文 is None:#未解析到
-            raise 网关错误('context-not-found',端点,'Context provider '+repr(调用['context'])+' did not resolve the requested identity',{'field':调用['wire']})#抛出
-        return 上下文#上下文
-
-    def 解析参数(自身,参数,参数表,端点):
-        '缺席 json 可省略；lookup 必须出现。参数与参数表为 dict'
-        if 参数['wire'] not in 参数表:#缺席
-            return None#省略键
-        值=解码(参数['codec'],参数表[参数['wire']],'input-invalid',端点,参数['wire'])#解码
-        if 参数['source']=='json':#json
-            return 值#直接用
-        if 'lookup' not in 参数:#缺键
-            raise 网关错误('lookup-unavailable',端点,'lookup parameter '+repr(参数['name'])+' has no provider key',{'field':参数['wire']})#抛出
-        键=参数['lookup']#查找键
-        提供方=自身.ctx.typert.lookups.get(键)#按键取提供方
-        if 提供方 is None:#不可用
-            raise 网关错误('lookup-unavailable',端点,'lookup provider '+repr(键)+' is unavailable',{'field':参数['wire']})#抛出
-        严格=参数['codec']['mode']=='strict' if 'mode' in 参数['codec'] else False#严格
-        符号匹配=('wireTypeSymbol' in 提供方 and 'typeSymbol' in 参数['codec'] and 提供方['wireTypeSymbol']==参数['codec']['typeSymbol'])#符号
-        if 提供方['wire']!=参数['wire'] or (严格 and not 符号匹配):#不匹配
-            raise 网关错误('provider-mismatch',端点,'lookup provider '+repr(键)+' does not match its strict definition',{'field':参数['wire']})#抛出
-        try:
-            已解析=提供方['resolve'](值)#同步解析
-        except BaseException as 原因:
-            if getattr(原因,'name',None)=='TypertLookupFailure':#查找策略按结构识别
-                raise#原样
-            raise 网关错误('lookup-failed',端点,'lookup provider '+repr(键)+' failed',{'cause':原因,'field':参数['wire']})#包成
-        if 已解析 is None:#未找到
-            raise 网关错误('lookup-not-found',端点,'lookup provider '+repr(键)+' did not resolve the requested identity',{'field':参数['wire']})#抛出
-        return 已解析#业务对象
-
-    def 登记远程事件(自身,源,宿主):
-        '登记本应用选定的转发事件源。源为 (信号)->迭代器'
-        if 自身.远程事件登记 is not None:#已有
-            raise 远程流载体错误('typert gateway: forwarded Remote event source is already registered')
-        寿命=中止控制器()#源寿命
-        流=源(寿命.信号)#打开
-        完成=期约()#消费完成
-        def 消费():
-            '后台消费事件源'
-            try:
-                自身.消费远程事件(流,寿命.信号)#消费
-            except BaseException as 错误:
-                if 自身.远程事件登记 is None or 自身.远程事件登记['lifetime'] is not 寿命 or 已中止(寿命.信号):
-                    pass#已拆除或已中止
-                else:
-                    自身.关闭远程事件(错误)#关闭
-                    自身.远程事件登记=None#清空
-                    寿命.中止(错误)#中止寿命
-            finally:
-                完成.解决()#完成
-        启动守护线程(消费)#消费线程
-        登记={'lifetime':寿命,'done':完成,'host':{'home':宿主['home']}}#登记
-        自身.远程事件登记=登记#记下
-        def 拆除():
-            '去掉本源并取消活动流，返回消费结束后解决的期约'
-            if 自身.远程事件登记 is 登记:#仍是本源
-                自身.远程事件登记=None#清空
-                错误=Exception('typert gateway: forwarded Remote event source was removed')
-                登记['lifetime'].中止(错误)#中止
-                自身.关闭远程事件(错误)#关闭
-            return 完成#消费结束的期约
-        return 拆除#拆除器
-
-    def 打开远程事件(自身,载荷,信号):
-        '打开一条转发事件流；载荷须为 {args:{}}'
-        if (not 是否对象(载荷) or not 是否普通对象(载荷) or list(载荷.keys())!=['args']
-                or not 是否对象(载荷['args']) or not 是否普通对象(载荷['args'])
-                or len(载荷['args'])!=0):
-            raise 网关错误('arguments-invalid',远程事件流端点,'forwarded Remote event stream requires an empty args object')
-        登记=自身.远程事件登记#当前源
-        if 登记 is None:#无源
-            raise 网关错误('service-unavailable',远程事件流端点,'forwarded Remote event source is unavailable')
-        寿命=中止信号.任一([信号,登记['lifetime'].信号])#合成寿命
-        客户端标识=str(生成uuid4())#代际标识
-        while 客户端标识 in 自身.远程事件客户端:#碰撞
-            客户端标识=str(生成uuid4())#再抽
-        客户端={'id':客户端标识,'queue':远程事件帧队列(),'deliveries':{}}#代际
-        自身.远程事件客户端[客户端标识]=客户端#登记
-        for 挂起 in list(自身.待决远程事件.values()):#已有瀑布
-            自身.投递远程事件(挂起,客户端)#补投
-        try:
-            yield {'type':'ready','clientId':客户端标识,'host':登记['host']}#就绪
-            yield from 客户端['queue'].迭代(寿命)#后续帧
-        finally:
-            自身.移除远程事件客户端(客户端)#摘掉
-
-    def 消费远程事件(自身,源,信号):
-        '消费应用事件源'
-        for 派发 in 源:#逐帧
-            if 已中止(信号):#中止
-                if isinstance(派发,dict) and 'context' in 派发:#瀑布
-                    派发['reject'](信号._异常)#拒绝
+    def 推入(自身,值,帧字节):
+        '客户端的一条上行。半关之后或超过上限则失败整条流'
+        with 自身._条件:#互斥
+            if 自身.失败 is not None or 自身.已关:#已经没了
+                return#丢
+            if 自身.已结束:#半关之后又来项
+                自身._违规(远程错误(
+                    'gateway/protocol',
+                    'api gateway: Remote stream uplink item after end',
+                    {'endpoint':自身.端点},
+                ))#协议
                 return#停
-            if isinstance(派发,dict) and 'context' in 派发:#瀑布
-                自身.启动远程事件(派发)#启动
-            else:
-                自身.广播远程事件(派发)#广播
-        if not 已中止(信号):#源自己结束
-            raise 远程流载体错误('typert gateway: forwarded Remote event source ended unexpectedly')
-
-    def 广播远程事件(自身,帧):
-        '向所有代际推 emit'
-        断言远程事件帧(帧)#校验
-        线={'type':'emit','event':帧['event'],'args':帧['args']}#线帧
-        for 客户端 in 自身.远程事件客户端.values():#各代际
-            客户端['queue'].推入(线)#推
-
-    def 启动远程事件(自身,源):
-        '把一次瀑布投递给现有代际'
-        try:
-            断言远程事件名(源)#名
-            if not 是否远程事件智能体标识(源['context']['agentId']):#无身份
-                raise TypeError('typert gateway: scoped Remote events require a non-empty Agent identity')
-            投影=投影远程事件请求(源['request'],源['context']['subject'])#投影
-            标识=str(生成uuid4())#事件标识
-            while 标识 in 自身.待决远程事件:#碰撞
-                标识=str(生成uuid4())#再抽
-            try:
-                def 释放上下文工厂():
-                    'Context 拆除时取消'
-                    def 取消():
-                        '取消本瀑布'
-                        自身.取消远程事件(挂起,Exception('typert gateway: Remote event Agent Context was released'))
-                    return 取消
-                释放上下文=源['context']['value'].副作用(释放上下文工厂,'api-gateway: Remote event '+repr(源['event']))
-            except BaseException:
-                源['resolve']({'kind':'next'})#委托本地
-                return
-            信号集合=[]#取消信号
-            if 'signal' in 投影 and 投影['signal'] is not None:
-                信号集合.append(投影['signal'])
-            def 中止():
-                '信号置位则取消'
-                原因=None
-                for 项 in 信号集合:
-                    if 已中止(项):
-                        原因=项._异常
-                        break
-                自身.取消远程事件(挂起,原因 if isinstance(原因,BaseException) else Exception('typert gateway: Remote event was cancelled'))
-            挂起={
-                'id':标识,'source':源,
-                'frame':{
-                    'type':'waterfall','event':源['event'],'eventId':标识,
-                    'agentId':源['context']['agentId'],'request':投影['request'],
-                },
-                'deliveries':set(),
-                'releaseContext':释放上下文,
-                'releaseSignal':lambda: None,
-            }
-            监视=[]
-            def 监视信号(来源):
-                '等到来源置位'
-                来源._事件.wait()
-                中止()
-            for 项 in 信号集合:
-                监视.append(启动守护线程(监视信号,项))
-            def 释放信号():
-                '监视线程随取消自然结束'
-                return None
-            挂起['releaseSignal']=释放信号
-            自身.待决远程事件[标识]=挂起#记下
-            if any(已中止(项) for 项 in 信号集合):#已中止
-                中止()
-            else:
-                for 客户端 in 自身.远程事件客户端.values():#投递
-                    自身.投递远程事件(挂起,客户端)
-        except BaseException as 错误:
-            源['reject'](错误)#拒绝源
-
-    def 投递远程事件(自身,挂起,客户端):
-        '把瀑布帧推给一代'
-        挂起['deliveries'].add(id(客户端))
-        客户端['deliveries'][挂起['id']]=挂起
-        客户端['queue'].推入(挂起['frame'])
-
-    def 收取远程事件结果(自身,客户端,结果):
-        '结算一次客户端瀑布结果'
-        挂起=自身.待决远程事件.get(结果['eventId'])
-        if 挂起 is None or id(客户端) not in 挂起['deliveries']:
-            return
-        自身.移除远程事件投递(挂起,客户端)
-        结局=结果['outcome']
-        if 结局['kind']=='result':
-            自身.结算远程事件(挂起,{'kind':'result','value':结局.get('value')})
-        elif 结局['kind']=='rejected':
-            自身.取消远程事件(挂起,还原远程事件拒绝(结局['error']))
-        elif len(挂起['deliveries'])==0:
-            自身.结算远程事件(挂起,{'kind':'next'})
-
-    def 移除远程事件投递(自身,挂起,客户端):
-        '摘掉一代对某瀑布的投递'
-        挂起['deliveries'].discard(id(客户端))
-        客户端['deliveries'].pop(挂起['id'],None)
-
-    def 移除远程事件客户端(自身,客户端):
-        '代际结束'
-        自身.远程事件客户端.pop(客户端['id'],None)
-        for 挂起 in list(客户端['deliveries'].values()):
-            自身.移除远程事件投递(挂起,客户端)
-        客户端['queue'].结束()
-
-    def 结算远程事件(自身,挂起,结局):
-        '兑现源监听'
-        自身.结束远程事件(挂起)
-        挂起['source']['resolve'](结局)
-
-    def 取消远程事件(自身,挂起,原因):
-        '拒绝源监听'
-        if 自身.待决远程事件.get(挂起['id']) is not 挂起:
-            return
-        自身.结束远程事件(挂起)
-        挂起['source']['reject'](原因)
-
-    def 结束远程事件(自身,挂起):
-        '摘掉挂起并通知各代际取消'
-        自身.待决远程事件.pop(挂起['id'],None)
-        挂起['releaseSignal']()
-        挂起['releaseContext']()
-        客户端表=[]
-        for 客户端 in 自身.远程事件客户端.values():
-            if 挂起['id'] in 客户端['deliveries']:
-                客户端表.append(客户端)
-        for 客户端 in 客户端表:
-            自身.移除远程事件投递(挂起,客户端)
-        取消帧={'type':'cancel','eventId':挂起['id']}
-        for 客户端 in 客户端表:
-            客户端['queue'].推入(取消帧)
-
-    def 关闭远程事件(自身,原因):
-        '源拆除时拒绝全部挂起'
-        for 挂起 in list(自身.待决远程事件.values()):
-            自身.取消远程事件(挂起,原因)
-        for 客户端 in list(自身.远程事件客户端.values()):
-            客户端['queue'].结束()
-
-def RPC失败(错误):
-    '把捕获错误折成 RPC 失败信封。控制流按 name/failure 结构识别'
-    远程=取远程错误(错误)
-    if 远程 is not None:
-        return {'ok':False,'error':{'code':远程.code,'message':远程.message,'details':远程.details}}
-    if getattr(错误,'name',None)=='RemoteInvocationCancelled':#取消
-        return {'ok':False,'error':{'code':'gateway/cancelled','message':失败说明(错误),'details':{}}}#取消信封
-    if getattr(错误,'name',None)=='TypertLookupFailure' and hasattr(错误,'failure'):#查找策略
-        return {'ok':False,'error':错误.failure}#沿用
-    return {'ok':False,'error':{'code':'gateway/internal','message':失败说明(错误),'details':{}}}#内部，说明去掉绝对路径
-
-class 远程事件帧队列:
-    '一代客户端的拉取队列'
-
-    def __init__(自身):
-        '空队列'
-        自身.帧=双端队列()
-        自身.等待事件=threading.Event()
-        自身.已关闭=False
-
-    def 推入(自身,帧):
-        '入队'
-        if 自身.已关闭:
-            return
-        自身.帧.尾推(帧)
-        自身.等待事件.set()
+            if 自身.字节+帧字节>自身.最大字节:#超过上限
+                自身._违规(远程错误(
+                    'gateway/uplink-overflow',
+                    'api gateway: Remote stream uplink exceeded '+str(自身.最大字节)+' buffered bytes',
+                    {'endpoint':自身.端点},
+                ))#溢出
+                return#停
+            自身.队列.尾推({'value':值,'bytes':帧字节})#入队
+            自身.字节+=帧字节#记账
+            自身._条件.notify_all()#叫醒读者
 
     def 结束(自身):
-        '关闭'
-        if 自身.已关闭:
-            return
-        自身.已关闭=True
-        自身.等待事件.set()
+        '客户端半关。重复调用无效果'
+        with 自身._条件:#互斥
+            if 自身.已结束:#已经
+                return#停
+            自身.已结束=True#半关
+            自身._条件.notify_all()#叫醒
 
-    def 迭代(自身,信号):
-        '拉取直至关闭或中止'
-        try:
-            while True:
-                while 自身.帧.大小>0:
-                    yield 自身.帧.头弹()
-                if 自身.已关闭 or 已中止(信号):
-                    return
-                自身.等待事件.clear()
-                while not 自身.已关闭 and not 已中止(信号) and 自身.帧.大小==0:
-                    自身.等待事件.wait(0.05)
-        finally:
-            pass
+    def 失败(自身,错误):
+        '下次读取抛出错误，并丢掉缓冲。重复调用无效果'
+        with 自身._条件:#互斥
+            if 自身.失败 is not None:#已经
+                return#停
+            自身.失败=错误#记下
+            自身.队列.清空()#丢掉
+            自身.字节=0#清零
+            自身._条件.notify_all()#叫醒
 
-def 断言远程事件帧(帧):
-    '校验 emit 帧'
-    断言远程事件名(帧)
-    if not isinstance(帧.get('args'),list) or not 是否远程json值(帧['args']):
-        raise TypeError('typert gateway: Remote event '+repr(帧.get('event'))+' arguments are not lossless JSON data')
+    def 交还(自身):
+        '读者不再读。后来的项丢掉'
+        with 自身._条件:#互斥
+            自身.已关=True#关
+            自身.队列.清空()#丢掉
+            自身.字节=0#清零
+            自身._条件.notify_all()#叫醒挂起的读
 
-def 断言远程事件名(帧):
-    '事件名非空'
-    if not isinstance(帧.get('event'),str) or 帧.get('event')=='':
-        raise TypeError('typert gateway: Remote event name must be a nonempty string')
+    def _违规(自身,错误):
+        '先失败队列，再让连接中止逻辑流'
+        自身.失败=错误#下次读抛出
+        自身.队列.清空()#丢掉
+        自身.字节=0#清零
+        自身._条件.notify_all()#叫醒
+        自身.违规时(错误)#中止
 
-def 解析远程事件结果载荷(载荷):
-    '载荷须恰好 args'
-    if (not 是否对象(载荷) or not 是否普通对象(载荷)
-            or list(载荷.keys())!=['args']):
-        raise 远程流载体错误('typert gateway: Remote event result requires exactly one plain-object args field')
-    return 解析远程事件结果(载荷['args'])
+class 远程流复用连接:
+    '一条物理套接字上的全部逻辑流'
+    def __init__(自身,套接字,打开,失败映射,收件箱字节,存活):
+        '打开函数已经绑好对等端'
+        自身.套接字=套接字#物理套接字
+        自身.打开=打开#打开一条逻辑流
+        自身.失败映射=失败映射#错误到线路字段
+        自身.收件箱字节=收件箱字节#上行上限
+        自身.存活=存活#任何活动都清零错过的心跳
+        自身.流表={ }#流标识到活动流
+        自身._写锁=threading.Lock()#下行写串行
+        自身._关闭=threading.Event()#套接字关闭
+        自身._泵={ }#流标识到线程
 
-def 校验绑定(接收方,服务键,命名空间,端点):
-    '返回绑定与原始对象'
-    原始=取原始(接收方)#原始
-    值=getattr(原始,'typertRemote',None)#绑定
-    if 值 is None:#没有
-        raise 网关错误('binding-invalid',端点,'Service '+repr(服务键)+' has no visible typertRemote binding')#抛出
-    return {'binding':读绑定(值,原始,服务键,端点,命名空间),'original':原始}#解析结果
+    def 登记(自身):
+        '在开始读之前挂上套接字事件'
+        def 当关闭():
+            '套接字没了'
+            自身._关闭.set()#放开运行
+        def 当错误():
+            '出错就拆'
+            自身.套接字.terminate()#拆
+        def 当消息(数据,是二进制):
+            '一帧文本'
+            自身.存活()#活动
+            if 是二进制:#必须是文本
+                自身.套接字.close(1003,'text messages required')#关
+                return#停
+            try:#解析
+                自身.接收(数据)#分发
+            except Exception:#坏请求
+                自身.套接字.close(1008,'invalid Remote stream request')#关
+        自身.套接字.once('close',当关闭)#关闭
+        自身.套接字.once('error',当错误)#出错
+        自身.套接字.on('pong',自身.存活)#pong 也算活动
+        自身.套接字.on('message',当消息)#帧
 
-def 读绑定(值,原始,服务键,端点,命名空间=None):
-    '与接收方一致才通过。值为 dict'
-    if not isinstance(值,dict):#非映射
-        raise 网关错误('binding-invalid',端点,'Service '+repr(服务键)+' has an inconsistent typertRemote binding')#抛出
-    if ('service' not in 值) or (值['service'] is not 原始):#服务不是同一对象
-        raise 网关错误('binding-invalid',端点,'Service '+repr(服务键)+' has an inconsistent typertRemote binding')#抛出
-    if ('serviceKey' not in 值) or 值['serviceKey']!=服务键:#键不符
-        raise 网关错误('binding-invalid',端点,'Service '+repr(服务键)+' has an inconsistent typertRemote binding')#抛出
-    if ('namespace' not in 值) or (not isinstance(值['namespace'],str)):#命名空间非法
-        raise 网关错误('binding-invalid',端点,'Service '+repr(服务键)+' has an inconsistent typertRemote binding')#抛出
-    if 命名空间 is not None and 值['namespace']!=命名空间:#命名空间不符
-        raise 网关错误('binding-invalid',端点,'Service '+repr(服务键)+' has an inconsistent typertRemote binding')#抛出
-    return 值#绑定
+    def 运行(自身):
+        '阻塞到套接字关闭，然后停掉全部逻辑流'
+        自身._关闭.wait()#等关闭
+        活动=list(自身.流表.values())#当时还在的流
+        for 流 in 活动:#逐个
+            流['停止'](Exception('Remote stream socket closed'))#停
+        for 线程 in list(自身._泵.values()):#等泵
+            线程.join()#等
 
-def 方法参数名(服务实例,方法,端点):
-    '禁止解构、默认、剩余；用 inspect.signature'
-    实现=None#函数实现
-    for 类 in type(服务实例).__mro__:#沿 MRO
-        if 方法 in 类.__dict__:#本层有
-            成员=类.__dict__[方法]#取出
-            if callable(成员):#可调用
-                实现=成员#记下
-            break#停止
-    if 实现 is None:#没有
-        raise 网关错误('method-unavailable',端点,'Remote marker has no prototype method '+repr(方法))#抛出
-    try:
-        签名=inspect.signature(实现)#签名
-    except (TypeError,ValueError):
-        raise 网关错误('signature-invalid',端点,'SRC method '+repr(方法)+' must use unique identifier parameters without destructuring, defaults, or rest')#非法
-    名列表=[]#参数名
-    已见=set()#查重
-    for 名,参数 in 签名.parameters.items():#逐个
-        if 名 in ('self','cls','自身','类'):#跳过接收者
-            continue#跳过
-        if 参数.kind in (inspect.Parameter.VAR_POSITIONAL,inspect.Parameter.VAR_KEYWORD):#剩余
-            raise 网关错误('signature-invalid',端点,'SRC method '+repr(方法)+' must use unique identifier parameters without destructuring, defaults, or rest')#非法
-        if 参数.default is not inspect.Parameter.empty:#有默认
-            raise 网关错误('signature-invalid',端点,'SRC method '+repr(方法)+' must use unique identifier parameters without destructuring, defaults, or rest')#非法
-        if 标识符模式.match(名) is None or 名 in 已见:#非法或重名
-            raise 网关错误('signature-invalid',端点,'SRC method '+repr(方法)+' must use unique identifier parameters without destructuring, defaults, or rest')#非法
-        已见.add(名)#记下
-        名列表.append(名)#加入
-    return 名列表#按出现顺序
+    def 接收(自身,文本):
+        '分发一帧。已经结束的流上的 item、end、cancel 丢掉。重复 open 关掉套接字'
+        报文=解析远程流客户端报文(文本)#校验
+        种类=报文['type']#种类
+        if 种类=='open':#打开
+            自身.打开流(报文)#打开
+            return#完
+        if 种类=='item':#上行项
+            流=自身.流表.get(报文['streamId'])#可能已经结束
+            if 流 is not None:#还在
+                流['收件箱'].推入(报文.get('value'),len(文本.encode('utf-8')))#入队
+            return#完
+        if 种类=='end':#半关
+            流=自身.流表.get(报文['streamId'])#可能已经结束
+            if 流 is not None:#还在
+                流['收件箱'].结束()#半关
+            return#完
+        if 种类=='cancel':#取消
+            流=自身.流表.get(报文['streamId'])#可能已经结束
+            if 流 is not None:#还在
+                流['停止'](Exception('Remote stream cancelled'))#停
+            return#完
+        raise Exception('api gateway: unknown Remote stream client message '+json.dumps(报文,ensure_ascii=False))#解析不应放行
 
-def 断言精确参数(参数,描述符,端点):
-    '校验 args 自有键与描述符期望完全一致。参数为 dict'
-    if not 是否普通对象(参数):#必须普通对象
-        raise 网关错误('arguments-invalid',端点,'args must be a plain object')#抛出
-    期望=set(项['wire'] for 项 in 描述符['parameters'])#业务线字段
-    if 描述符['invocation']['kind']=='context':#上下文
-        期望.add(描述符['invocation']['wire'])#身份线字段
-    实际=set(参数.keys())#实际键
-    多余=实际-期望#多余
-    可缺=set()#允许缺席的 json 线字段
-    for 项 in 描述符['parameters']:#逐个
-        接受省略=('acceptsUndefined' in 项 and 项['acceptsUndefined'] is True) or ('mode' in 项['codec'] and 项['codec']['mode']=='src-json')#可缺
-        if 项['source']=='json' and 接受省略:#可缺
-            可缺.add(项['wire'])#记下
-    缺失=[键 for 键 in 期望 if 键 not in 参数 and 键 not in 可缺]#缺失
-    if len(多余)==0 and len(缺失)==0:#完全匹配
-        return#通过
-    子句=[]#诊断
-    if len(缺失)>0:#有缺失
-        子句.append('missing '+', '.join(repr(键) for 键 in 缺失))#列出
-    if len(多余)>0:#有多余
-        子句.append('unexpected '+', '.join(repr(键) for 键 in 多余))#列出
-    raise 网关错误('arguments-invalid',端点,'args fields do not match the descriptor: '+'; '.join(子句))#抛出
+    def 打开流(自身,报文):
+        'open 帧。收件箱先建好，紧跟着的 item 不会丢'
+        if 报文['streamId'] in 自身.流表:#重复
+            raise Exception('api gateway: duplicate Remote stream id '+json.dumps(报文['streamId'],ensure_ascii=False))#关掉套接字
+        中止=中止控制器()#逻辑流取消
+        def 违规(错误,中止=中止):
+            '上行违规中止逻辑流，原因是远程失败'
+            中止.abort(错误)#中止
+        收件箱=上行收件箱(自身.收件箱字节,报文['endpoint'],违规)#先建
+        活动={'中止':中止,'收件箱':收件箱,'停止':None}#活动记录
+        def 停止(原因,中止=中止,收件箱=收件箱):
+            '取消并结束还堵在上行上的读取'
+            中止.abort(原因)#中止
+            收件箱.失败(原因)#叫醒读者
+        活动['停止']=停止#填上
+        自身.流表[报文['streamId']]=活动#占住标识
+        def 跑():
+            '泵下行，结束时摘掉'
+            try:#泵
+                自身.泵(报文['streamId'],报文['endpoint'],报文['payload'],活动)#泵
+            finally:#无论成败
+                自身.流表.pop(报文['streamId'],None)#摘掉
+                自身._泵.pop(报文['streamId'],None)#摘线程
+        线程=threading.Thread(target=跑,daemon=True)#不堵接收
+        自身._泵[报文['streamId']]=线程#记下
+        线程.start()#开始
 
-def 解码(编解码,值,码,端点,字段):
-    '严格模式先走 schema；再断言 JSON 安全。编解码为 dict'
-    try:
-        if 'mode' in 编解码 and 编解码['mode']=='strict':#严格
-            值=编解码['schema'].parse(值)#schema
-            if 值 is None:#undefined
-                return 值#直接返回
-        断言JSON值(值,set())#JSON 安全
-        return 值#通过
-    except BaseException as 原因:
-        消息=('wire field '+repr(字段)+' failed boundary validation') if 码=='input-invalid' else 'business result failed boundary validation'#诊断
-        raise 网关错误(码,端点,消息,{'cause':原因,'field':字段})#包成
+    def 泵(自身,流标识,端点,载荷,活动):
+        '打开业务流并把项写回套接字'
+        失败=False#是否抛了
+        错误=None#抛出的东西
+        try:#打开并消费
+            样本=json.dumps({'type':'item','streamId':流标识,'value':None},separators=(',',':'))#带 null 的样例
+            开销=len(样本.encode('utf-8'))-len('null')#去掉值本身
+            源=自身.打开(端点,载荷,活动['收件箱'],活动['中止'],{#窗口
+                'maxBytes':自身.收件箱字节,
+                'frameOverheadBytes':开销,
+            })#打开
+            for 值 in 源:#逐项
+                自身.发送({'type':'item','streamId':流标识,'value':值})#下行
+        except Exception as 捕获:#打开或消费失败
+            失败=True#失败
+            错误=捕获#记下
+        活动['收件箱'].失败(Exception('Remote stream ended'))#后来的上行改变不了结局
+        if 活动['中止'].signal.aborted:#被中止
+            原因=活动['中止'].signal.reason#原因
+            if 取远程错误(原因) is not None:#远程失败要送到客户端
+                自身.发送失败(流标识,原因)#错误帧
+            return#取消则不再送 end
+        if 失败:#业务失败
+            自身.发送失败(流标识,错误)#错误帧
+            return#完
+        try:#正常结束
+            自身.发送({'type':'end','streamId':流标识})#结束帧
+        except Exception as 捕获:#结束帧写不出去
+            自身.发送失败(流标识,捕获)#改送失败
 
-def 断言JSON值(值,祖先):
-    'null/字符串/布尔/有限数字/稠密数组/普通对象'
-    if 值 is None or isinstance(值,(str,bool)):#简单
-        return#通过
-    if isinstance(值,(int,float)) and not isinstance(值,bool):#数字，先排除 bool
-        if 值==值 and 值 not in (float('inf'),float('-inf')):#有限（NaN!=NaN）
-            return#通过
-        raise TypeError('non-finite number is not JSON-safe')#非有限
-    if not 是否对象(值):#其余原始类型
-        raise TypeError(type(值).__name__+' is not JSON-safe')#不安全
-    if id(值) in 祖先:#成环
-        raise TypeError('cyclic value is not JSON-safe')#环
-    祖先.add(id(值))#压入
-    try:
-        if isinstance(值,(list,tuple)):#数组
-            for 项 in 值:#逐项
-                断言JSON值(项,祖先)#递归
-            return#通过
-        if not 是否普通对象(值):#非普通对象
-            raise TypeError('non-plain object is not JSON-safe')#不安全
-        for 键 in 值.keys():#遍历
-            if not isinstance(键,str):#非字符串键
-                raise TypeError('non-data property is not JSON-safe')#不安全
-            断言JSON值(值[键],祖先)#递归
-    finally:
-        祖先.discard(id(值))#离开
+    def 发送失败(自身,流标识,错误):
+        '套接字还开着才送错误帧。送不出去就关掉这一代'
+        if 自身.套接字.readyState!=1:#已经关
+            return#停
+        try:#编码或写可能失败
+            自身.发送({'type':'error','streamId':流标识,'error':自身.失败映射(错误)})#错误帧
+        except Exception:#终端帧送不出去
+            自身.套接字.close(1011,'Remote stream failure could not be delivered')#拆掉物理代际
+
+    def 发送(自身,报文):
+        '按顺序写一条下行。写完即返回'
+        try:#可能不是 JSON
+            文本=json.dumps(报文,separators=(',',':'),ensure_ascii=False)#紧凑
+        except (TypeError,ValueError) as 原因:#不能编码
+            raise Exception('api gateway: Remote stream item is not JSON serializable') from 原因#失败
+        with 自身._写锁:#串行
+            if 自身.套接字.readyState!=1:#已经关
+                raise Exception('api gateway: Remote stream socket is closed')#失败
+            自身.套接字.send(文本)#写
+
+class 远程流复用服务器:
+    '无独立监听端口。网页服务器把已准入的升级交过来'
+    def __init__(自身,打开,失败映射,心跳间隔毫秒,收件箱字节):
+        '打开、失败映射和两个传输参数'
+        自身.打开=打开#网关分发
+        自身.失败映射=失败映射#线路错误
+        自身.心跳间隔毫秒=心跳间隔毫秒#ping 间隔
+        自身.收件箱字节=收件箱字节#每条流的上行上限
+        自身.客户=set()#打开的套接字
+        自身.错过={ }#套接字身份到错过次数
+        自身._连接={ }#套接字身份到运行线程
+        自身._停心跳=threading.Event()#关闭时停
+        自身._心跳线程=None#第一次升级才启动
+
+    def 处理升级(自身,请求,套接字,头,对等):
+        '完成握手并服务这条套接字上的逻辑流。对等端在升级时定死'
+        网页=网页套接字(请求,套接字)#包装
+        try:#握手可能失败
+            网页.握手()#101
+        except Exception as 错误:#升级失败
+            print('[api-gateway] Remote stream upgrade failed:',错误)#诊断
+            try:#尽量拆
+                套接字.destroy()#拆
+            except Exception:#壳没有 destroy
+                pass#忽略
+            return#不服务
+        上下文=对等['ctx'] if isinstance(对等,dict) else 对等.ctx#对等端上下文
+        try:#对等端已经拆除时 effect 会失败
+            def 绑定寿命():
+                '对等端离开时关掉套接字'
+                def 离开():
+                    '1001 peer left'
+                    网页.close(1001,'peer left')#关
+                return 离开#拆除器
+            释放=上下文.副作用(绑定寿命,'api-gateway: Remote stream socket bound to its Peer')#登记
+        except Exception:#已经没有对等端
+            网页.close(1001,'peer left')#现在就关
+            return#不服务
+        def 存活(网页=网页):
+            '清零错过的心跳'
+            自身.错过[id(网页)]=0#清零
+        存活()#刚连上
+        自身.客户.add(网页)#记入
+        自身._启动心跳()#第一次才启动
+        def 绑定打开(端点,载荷,上行,控制,窗口,对等=对等):
+            '这条套接字上的流都代表升级时的对等端'
+            return 自身.打开(端点,载荷,上行,对等,控制,窗口)#转发
+        连接=远程流复用连接(网页,绑定打开,自身.失败映射,自身.收件箱字节,存活)#连接
+        连接.登记()#先听
+        网页.开始读()#再读
+        def 跑完():
+            '运行到套接字关闭。对等端作用域仍由 effect 持有，离开时再关套接字'
+            try:#连接失败只记日志
+                连接.运行()#阻塞到关闭
+            except Exception as 错误:#失败
+                print('[api-gateway] Remote stream connection failed:',错误)#诊断
+            finally:#摘掉心跳记账
+                自身.客户.discard(网页)#摘掉
+                自身.错过.pop(id(网页),None)#摘掉
+        线程=threading.Thread(target=跑完,daemon=True)#不堵升级
+        自身._连接[id(网页)]=线程#记下
+        线程.start()#运行
+
+    def 关闭(自身):
+        '拆掉全部套接字并等到迭代器返回'
+        自身._停心跳.set()#停心跳
+        for 套接字 in list(自身.客户):#全部
+            套接字.terminate()#拆
+        for 线程 in list(自身._连接.values()):#等运行结束
+            线程.join()#等
+
+    def _启动心跳(自身):
+        '第一次升级后启动。空窗期也继续，直到关闭'
+        if 自身._心跳线程 is not None:#已经有
+            return#停
+        def 循环():
+            '按间隔 ping。错过两次就拆'
+            while not 自身._停心跳.wait(自身.心跳间隔毫秒/1000):#到点且未停
+                for 套接字 in list(自身.客户):#每个客户
+                    if 套接字.readyState!=1:#不是打开
+                        continue#下一个
+                    错过=自身.错过.get(id(套接字),0)#当前
+                    if 错过>=错过心跳上限:#太久
+                        def 再查(套接字=套接字):
+                            '等这一拍，若仍然没有活动再拆'
+                            if 自身.错过.get(id(套接字),0)>=错过心跳上限:#仍错过
+                                套接字.terminate()#拆
+                        threading.Thread(target=再查,daemon=True).start()#不堵心跳
+                        continue#下一个
+                    自身.错过[id(套接字)]=错过+1#记一次
+                    try:#ping 可能失败
+                        套接字.ping()#ping
+                    except Exception:#写失败
+                        套接字.terminate()#拆
+        自身._心跳线程=threading.Thread(target=循环,daemon=True)#后台
+        自身._心跳线程.start()#启动
+
+def 拒绝远程流升级(套接字,状态):
+    '不把套接字交给 WebSocket，直接回一段 HTTP 拒绝'
+    if 状态==401:#未认证
+        原因='Unauthorized'#短语
+    elif 状态==403:#禁止
+        原因='Forbidden'#短语
+    else:#409
+        原因='Conflict'#短语
+    正文=原因.lower()#小写正文
+    字节=正文.encode('utf-8')#长度按字节
+    文本='\r\n'.join([#响应
+        'HTTP/1.1 '+str(状态)+' '+原因,
+        'Connection: close',
+        'Content-Type: text/plain; charset=utf-8',
+        'Content-Length: '+str(len(字节)),
+        '',
+        正文,
+    ])#拼接
+    数据=文本.encode('utf-8')#字节
+    if hasattr(套接字,'end'):#Node 双工
+        套接字.end(文本)#写出并结束
+        return#完
+    原始=getattr(套接字,'原始',None)#网页服务器的套接字壳
+    if 原始 is not None:#有原始套接字
+        原始.sendall(数据)#写出
+        套接字.destroy()#关
+        return#完
+    if hasattr(套接字,'sendall'):#裸套接字
+        套接字.sendall(数据)#写出
+        套接字.close()#关
+        return#完
+    if hasattr(套接字,'write'):#类文件
+        套接字.write(数据)#写出
+        if hasattr(套接字,'close'):#可关
+            套接字.close()#关
+
+__all__=['远程流复用服务器','拒绝远程流升级']#公开名

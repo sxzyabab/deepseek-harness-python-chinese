@@ -1,87 +1,98 @@
-'置顶动作：会话菜单项与行悬停按钮，共用注入行为'
+'置顶：菜单一行和行尾一枚按钮。归档的行不提供置顶'
+from ....模块.客户端.通告 import 取握手窗口
+from ....ui_基础界面组件.提示泡 import 提示泡
+from .派生 import 菜单项按钮,画图标,换上
+from ..文案 import 中文
 
-from nicegui import ui as 界面
+__all__=['置顶会话菜单项','置顶会话行按钮']
 
-__all__=['读置顶态','置顶会话菜单项','置顶会话行按钮']#仅中文公开名
-
-def 读置顶态(会话标识,用已置顶,用已归档):
-    '行的置顶与归档成员，各一次 Set 查找'
-    return {#态
-        'pinned':用已置顶(lambda 集:会话标识 in 集),#已置顶
-        'archived':用已归档(lambda 集:会话标识 in 集),#已归档
-    }#态结束
-
-class 置顶会话菜单项:#菜单 order 100
-    '按当前态置顶或取消；已归档行返回 None'
-
+class 置顶会话菜单项:
+    '菜单里的置顶或取消置顶。归档行不画'
     def __init__(自身,属性):
-        '记下 props'
-        自身.属性=属性 if 属性 is not None else {}#props
-        自身.渲染()#槽位只调用构造
-
-    def 更新(自身,属性):
-        '刷新'
-        自身.属性=属性 if 属性 is not None else {}#最新
+        '记下属性'
+        自身.属性=属性#宿主属性
+        自身.根=None#节点
 
     def 渲染(自身):
-        '菜单行；已归档不提供'
-        属性=自身.属性#props
-        if 'sessionId' not in 属性 or 'usePinned' not in 属性 or 'useArchived' not in 属性 or 't' not in 属性 or 'useMenuOpenState' not in 属性:
-            return#缺席位
-        态=读置顶态(属性['sessionId'],属性['usePinned'],属性['useArchived'])#态
-        if 态['archived']:#已归档
-            return#不提供
-        已钉=态['pinned']#钉
-        动作键='unpinSession' if 已钉 else 'pinSession'#钉或取消
-        if 动作键 not in 属性:#无动作
-            return
-        翻译=属性['t']#文案
-        def 选定():
-            '关菜单后钉/取消'
-            设开=属性['useMenuOpenState']()[1]#setter
-            设开(False)#关
-            属性[动作键](属性['sessionId'])#动作
-        界面.button(翻译('menu.unpinSession' if 已钉 else 'menu.pinSession'), on_click=选定)
+        '按当前是否置顶画出菜单项'
+        属性=自身.属性#属性
+        窗口=属性['window'] if 'window' in 属性 else 取握手窗口()#窗口
+        会话号=属性['sessionId']#会话
+        def 是否置顶(集):
+            '这一行是否已置顶'
+            return 会话号 in 集#成员
+        def 是否归档(集):
+            '这一行是否已归档'
+            return 会话号 in 集#成员
+        置顶=属性['usePinned'](是否置顶)#是否置顶
+        归档=属性['useArchived'](是否归档)#是否归档
+        if 归档:#归档不提供
+            return 换上(自身,None)#不画
+        打开对=属性['useMenuOpenState']()#打开状态
+        def 点下():
+            '关掉菜单再置顶或取消'
+            打开对[1](False)#关掉
+            if 置顶:#已置顶
+                属性['unpinSession'](会话号)#取消
+            else:#未置顶
+                属性['pinSession'](会话号)#置顶
+        名='pin-fill-16' if 置顶 else 'pin-outline-16'#图标
+        文=中文['menu.unpinSession'] if 置顶 else 中文['menu.pinSession']#中文
+        根=菜单项按钮(窗口,文,点下,画图标(窗口,名))#菜单项
+        return 换上(自身,根)#节点
 
-    def __call__(自身,属性=None):
-        '刷新后渲染'
-        if 属性 is not None:
-            自身.更新(属性)#刷新
-        return 自身.渲染()
-
-class 置顶会话行按钮:#悬停 order 200，最右
-    '落在静止态钉标位置；已归档行返回 None'
-
+class 置顶会话行按钮:
+    '行尾的置顶按钮。归档行不画'
     def __init__(自身,属性):
-        '记下 props'
-        自身.属性=属性 if 属性 is not None else {}#props
-        自身.渲染()#槽位只调用构造
-
-    def 更新(自身,属性):
-        '刷新'
-        自身.属性=属性 if 属性 is not None else {}#最新
+        '记下属性'
+        自身.属性=属性#宿主属性
+        自身.根=None#节点
 
     def 渲染(自身):
-        '行按钮；已归档不提供'
-        属性=自身.属性#props
-        if 'sessionId' not in 属性 or 'usePinned' not in 属性 or 'useArchived' not in 属性 or 't' not in 属性:
-            return#缺席位
-        态=读置顶态(属性['sessionId'],属性['usePinned'],属性['useArchived'])#态
-        if 态['archived']:#已归档
-            return#不提供
-        已钉=态['pinned']#钉
-        动作键='unpinSession' if 已钉 else 'pinSession'#钉或取消
-        if 动作键 not in 属性:#无动作
-            return
-        翻译=属性['t']#文案
-        def 点击():
-            '钉/取消'
-            属性[动作键](属性['sessionId'])#动作
-        文=翻译('menu.unpinSession' if 已钉 else 'menu.pinSession')
-        界面.button(文, on_click=点击).tooltip(翻译('actions.unpin' if 已钉 else 'actions.pin'))
+        '提示泡里放一枚图标按钮'
+        属性=自身.属性#属性
+        窗口=属性['window'] if 'window' in 属性 else 取握手窗口()#窗口
+        文档=窗口.document#文档
+        会话号=属性['sessionId']#会话
+        def 是否置顶(集):
+            '这一行是否已置顶'
+            return 会话号 in 集#成员
+        def 是否归档(集):
+            '这一行是否已归档'
+            return 会话号 in 集#成员
+        置顶=属性['usePinned'](是否置顶)#是否置顶
+        归档=属性['useArchived'](是否归档)#是否归档
+        if 归档:#归档不提供
+            return 换上(自身,None)#不画
+        钮=文档.createElement('button')#按钮
+        钮.type='button'#按钮
+        钮.className='iconButton'#上游类名
+        钮.setAttribute('aria-label',中文['menu.unpinSession'] if 置顶 else 中文['menu.pinSession'])#无障碍
+        def 点击(事件):
+            '置顶或取消'
+            if 置顶:#已置顶
+                属性['unpinSession'](会话号)#取消
+            else:#未置顶
+                属性['pinSession'](会话号)#置顶
+        钮.addEventListener('click',点击)#点击
+        图=画图标(窗口,'pin-fill-16' if 置顶 else 'pin-outline-16',14)#图标
+        if 图 is not None:#有
+            钮.appendChild(图)#放入
+        泡=提示泡({
+            'window':窗口,
+            'label':中文['actions.unpin'] if 置顶 else 中文['actions.pin'],
+            'side':'bottom',
+            'align':'end',
+            'delayMs':500,
+            'portal':True,
+            'children':钮,
+        })#提示
+        return 换上(自身,泡.渲染())#节点
 
-    def __call__(自身,属性=None):
-        '刷新后渲染'
-        if 属性 is not None:
-            自身.更新(属性)#刷新
-        return 自身.渲染()
+def 置顶会话菜单项组件(属性):
+    '渲染器按函数调用'
+    return 置顶会话菜单项(属性).渲染()#节点
+
+def 置顶会话行按钮组件(属性):
+    '渲染器按函数调用'
+    return 置顶会话行按钮(属性).渲染()#节点

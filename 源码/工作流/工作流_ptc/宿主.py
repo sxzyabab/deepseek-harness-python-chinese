@@ -386,8 +386,8 @@ class ptc工作流运行:#持有者所有的工作流
         '跑 PTC 程序并清理子；清理结束后解决自身.结果'
         终态={'结果':None}#终态
         try:#执行
-            规格=自身._运行时.解析({'program':程序,'bindings':[{'global':'workflowHost','functions':自身._绑定()}],'cwd':自身._当前目录,'sandboxPolicy':自身._政策,'timeoutMs':None,'signal':自身._控制器.信号})#解析
-            运行结局=自身._运行时.运行(规格)#运行
+            规格=自身._运行时.解析执行({'program':程序,'bindings':[{'global':'workflowHost','functions':自身._绑定()}],'cwd':自身._当前目录,'sandboxPolicy':自身._政策,'timeoutMs':None,'signal':自身._控制器.信号})#解析
+            运行结局=自身._运行时.运行程序(规格)#运行
             自身._终态=True#终态
             if 自身._取消原因 is not None:#取消获胜
                 终态['结果']=自身._已取消结果()#取消

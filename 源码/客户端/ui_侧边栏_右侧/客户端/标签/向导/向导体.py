@@ -1,175 +1,264 @@
+'向导正文。链上有人接走就用那一页，否则画出入口'
+from .....模块.客户端.通告 import 取握手窗口
+import os
+from .....ui_对话.异常 import 注入模块样式文件,标样式模块
+from ...约定.槽位 import 席名右侧向导,席名右侧向导条目
+from .向导标题 import 罗盘字形,立方字形
 
-__all__=['向导体','样式表','最多带说明入口数']#仅中文公开名
+__all__=['向导体','入口盒','出厂向导']
 
-from nicegui import ui as 界面
-from ....异常 import 异常原文
-
-最多带说明入口数=4#超过则隐藏各入口 description
-
-样式表='''#对齐 GuideBody.module.css
-.guide{display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;box-sizing:border-box;min-height:100%;padding:0 24px}
-.guide::after{content:'';flex:0 1 10%}
-.hero{display:flex;margin-bottom:16px;color:var(--dsw-static-neutral-200)}
-.entry{display:flex;gap:14px;align-items:center;box-sizing:border-box;width:380px;max-width:100%;min-height:56px;padding:14px 20px;color:var(--dsw-alias-label-primary);font:inherit;text-align:left;background:var(--dsw-alias-bg-layer-1);border:0.5px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-xl);cursor:pointer}
-.entry:hover,button.q-btn.entry:hover{background:var(--dsw-alias-interactive-bg-hover) !important}
-button.q-btn.entry{width:380px;max-width:100%;min-height:56px;padding:14px 20px;justify-content:flex-start;border:0.5px solid var(--dsw-alias-border-l3) !important;border-radius:var(--dsw-radius-xl);background:var(--dsw-alias-bg-layer-1) !important;color:var(--dsw-alias-label-primary) !important;box-shadow:none !important}
-button.q-btn.entry .q-btn__content{gap:14px;justify-content:flex-start;flex-wrap:nowrap;width:100%}
-.entryIcon{display:flex;flex:none;align-items:center;justify-content:center;width:26px;height:26px;color:var(--dsw-alias-label-secondary)}
-.placeholderInk{color:var(--dsw-alias-label-tertiary)}
-.entryText{display:flex;flex-direction:column;gap:3px;min-width:0}
-.entryTitle{overflow:hidden;font-size:14px;line-height:1.4;white-space:nowrap;text-overflow:ellipsis}
-.entryDescription{overflow:hidden;color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:1.4;white-space:nowrap;text-overflow:ellipsis}
-.entryCell{width:380px;max-width:100%}
-body[data-ds-dark-theme] .hero{color:var(--dsw-static-neutral-700)}
-'''#样式表结束
-
-界面.add_css(样式表,shared=True)
-
-from ...约定.槽位 import 席名右侧向导,席名右侧向导条目#席名
-from .向导标题 import 立方标记,罗盘标记,画字形#字形
+样式路径=os.path.join(os.path.dirname(__file__),'向导体.module.css')
+样式模块='sidebar-right-guide'
+描述上限=4
 
 
-class 向导体:#向导正文视图模型
-    '链席回退为出厂向导：罗盘水印与入口胶囊'
+def _窗口(属性):
+    '调用方带来的窗口，否则用桥上的窗口'
+    if isinstance(属性,dict) and 属性.get('window') is not None:
+        return 属性['window']
+    return 取握手窗口()
 
-    def __init__(自身,属性):
-        '记下合成 props。槽位只调用构造，键齐了就画。'
-        自身.属性=属性 if 属性 is not None else {}#props
-        if 'useGuideEntries' in 自身.属性 or 'renderSlotChain' in 自身.属性 or 'useTabInfo' in 自身.属性:
-            自身.渲染()
 
-    def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性 if 属性 is not None else {}#最新
+def _订(钩子,回调):
+    '选择器钩子上挂着的订阅'
+    订=getattr(钩子,'_subscribe',None)
+    if callable(订):
+        return 订(回调)
+    return None
 
-    def 点选入口(自身,条目):
-        '入口打开对应种类并替换本签'
-        钩=自身.属性['useTabInfo'] if 'useTabInfo' in 自身.属性 else None#标签钩
-        if not callable(钩):#没有
-            return#不打开
-        信息=钩()#标签信息
-        签=信息['tab'] if isinstance(信息,dict) else 信息.tab#记录
-        动作=签['actions'] if isinstance(签,dict) else 签.actions#动作
-        动作['openTab'](条目['kind'],{'replaceTab':True})
 
-    def _读入口(自身):
-        '向导入口表；钩子未就绪则为空'
-        自身._入口失败=None
-        用入口=自身.属性['useGuideEntries'] if 'useGuideEntries' in 自身.属性 else None#入口钩
-        if not callable(用入口):#无
-            return ()#空
-        try:
-            值=用入口(lambda 表:表)#整表
-        except Exception as 错误:
-            自身._入口失败=错误
-            return ()#空
-        if 值 is None:#无
-            return ()#空
-        return tuple(值)#条目
+def _键帽(文档,键表):
+    '一串按键。共享键帽组件还没迁过来，这里按同样的字画出来'
+    if not isinstance(键表,(list,tuple)) or len(键表)==0:
+        return None
+    根=文档.createElement('span')
+    for 键 in 键表:
+        帽=文档.createElement('kbd')
+        帽.textContent=str(键)
+        根.appendChild(帽)
+    return 根
 
-    def _说明文(自身,条目,带说明):
-        '短列表才取说明'
-        if not 带说明:#长列表
-            return None#不显示
-        取说明=条目['description'] if 'description' in 条目 else None#可选
-        if not callable(取说明):#无
-            return None#无
-        文=取说明()#文案
-        if isinstance(文,str) and 文!='':
-            return 文#说明
-        return None#无
 
-    def _出口内容(自身,结果):
-        '槽出口的 content；其它原样'
-        if isinstance(结果,dict) and 结果.get('type')=='slot-outlet':#出口
-            return 结果.get('content')#内容
-        return 结果#原样
+class 入口盒:
+    '一个入口：图标、标题，名单短的时候还有说明'
 
-    def _是回退(自身,结果,标记):
-        '链或键控席没有当选，退回标记'
-        return 自身._出口内容(结果) is 标记#同一标记
-
-    def 画胶囊(自身,条目,带说明):
-        '出厂入口：按钮、字形、标题，短列表再加说明'
-        说明=自身._说明文(条目,带说明)#说明
-        尺寸=22 if 说明 is None else 26#图标边
-        图标=条目['icon'] if 'icon' in 条目 else None#登记的字形
-        图标类='entryIcon' if 图标 is not None else 'entryIcon placeholderInk'#类
-        def 点(条=条目):
-            '打开该入口'
-            自身.点选入口(条)
-        种类=条目['kind'] if 'kind' in 条目 else ''#种类
-        钮=界面.button(on_click=点).props('flat no-caps align=left').classes('entry')#胶囊
-        钮.props('data-sidebar-right-guide-entry='+str(种类))#标记
-        with 钮:#内容
-            if isinstance(图标,str) and 图标.startswith('<'):#已是 svg
-                界面.html(图标,sanitize=False).classes(图标类)#字形
-            elif callable(图标):#宿主字形
-                try:#交给它画
-                    图标(尺寸)#画
-                except TypeError:#不收尺寸
-                    画字形(立方标记,尺寸,图标类)#立方
-            else:#没有登记字形
-                画字形(立方标记,尺寸,图标类)#立方
-            标题=条目['title']() if 'title' in 条目 and callable(条目['title']) else ''#标题
-            with 界面.column().classes('entryText'):#文
-                界面.label(str(标题)).classes('entryTitle')#题
-                if 说明 is not None:
-                    界面.label(说明).classes('entryDescription')#述
-
-    def 画入口(自身,条目,带说明):
-        '先画登记的入口席；没有登记再画出厂胶囊'
-        with 界面.element('div').classes('entryCell'):#一格
-            画=自身.属性['renderSlot'] if 'renderSlot' in 自身.属性 else None#子槽
-            标记=object()#回退身份
-            已画=False#席是否已画
-            if callable(画):
-                说明=自身._说明文(条目,带说明)#说明
-                拥有={'entryId':条目['id'] if 'id' in 条目 else None,'kind':条目['kind'] if 'kind' in 条目 else None}#属主
-                if 'title' in 条目 and callable(条目['title']):#标题
-                    拥有['title']=条目['title']()#文
-                if 说明 is not None:#说明
-                    拥有['description']=说明#文
-                钩=自身.属性['useTabInfo'] if 'useTabInfo' in 自身.属性 else None#钩上下文
-                try:#子槽失败则出厂胶囊
-                    结果=画(席名右侧向导条目,拥有,{'entryKey':条目['providerId'] if 'providerId' in 条目 else None,'hookContext':钩,'fallback':标记})#画席
-                    已画=not 自身._是回退(结果,标记)#当选才算画出
-                except Exception as 错误:
-                    界面.label(异常原文(错误))
-                    已画=False#改出厂
-            if not 已画:#没有登记
-                自身.画胶囊(条目,带说明)#胶囊
-
-    def 画出厂向导(自身):
-        '罗盘水印和入口列'
-        条目表=自身._读入口()#入口
-        带说明=len(条目表)<=最多带说明入口数#短列表
-        列=界面.column().classes('guide')#向导列
-        列.props('data-sidebar-right-guide')#标记
-        with 列:#内容
-            if 自身._入口失败 is not None:
-                界面.label(异常原文(自身._入口失败))
-            罗盘=画字形(罗盘标记,56,'hero')#罗盘
-            罗盘.props('aria-hidden=true')#装饰
-            for 条目 in 条目表:#逐入口
-                自身.画入口(条目,带说明)#一格
-
-    def _链已画出(自身):
-        '替换链有当选时，当选组件已在构造里画出'
-        链=自身.属性['renderSlotChain'] if 'renderSlotChain' in 自身.属性 else None#链
-        if not callable(链):#无
-            return False#出厂
-        标记=object()#回退身份
-        钩=自身.属性['useTabInfo'] if 'useTabInfo' in 自身.属性 else None#钩上下文
-        try:#链崩溃则出厂向导
-            结果=链(席名右侧向导,{},{'hookContext':钩,'fallback':标记})#选举
-        except Exception as 错误:
-            界面.label(异常原文(错误))
-            return False#出厂
-        return not 自身._是回退(结果,标记)#当选
+    def __init__(自身,窗口,入口,写出说明,快捷,选中):
+        '记下这一条'
+        自身.窗口=窗口
+        自身.属性={'window':窗口}
+        自身.入口=入口
+        自身.写出说明=写出说明
+        自身.快捷=快捷
+        自身.选中=选中
+        自身.根=None
 
     def 渲染(自身):
-        '链席当选则用它；否则画出厂罗盘和入口'
-        if 自身._链已画出():#替换链已画
-            return#一具正文
-        自身.画出厂向导()#出厂
+        '点一下就按这个种类打开'
+        文档=自身.窗口.document
+        注入模块样式文件(文档,'向导体样式',样式路径,样式模块)
+        钮=文档.createElement('button')
+        钮.type='button'
+        钮.className='entry'
+        标样式模块(钮,样式模块)
+        钮.setAttribute('data-sidebar-right-guide-entry',str(自身.入口.get('kind')))
+        if 自身.快捷 is not None and 自身.快捷.get('aria'):
+            钮.setAttribute('aria-keyshortcuts',自身.快捷['aria'])
+
+        def 点击():
+            '交给外面打开'
+            自身.选中(自身.入口)
+
+        钮.addEventListener('click',lambda 事件: 点击())
+        说明=None
+        if 自身.写出说明 and callable(自身.入口.get('description')):
+            说明=自身.入口['description']()
+        尺寸=22 if 说明 is None else 26
+        图标=自身.入口.get('icon')
+        图标盒=文档.createElement('span')
+        图标盒.className='entryIcon'
+        标样式模块(图标盒,样式模块)
+        类名='placeholderInk' if 图标 is None else None
+        if 图标 is None:
+            图=立方字形(自身.窗口,尺寸,类名).渲染()
+        elif hasattr(图标,'渲染'):
+            图=图标.渲染()
+        elif callable(图标):
+            图=图标(自身.窗口,尺寸,类名)
+        else:
+            图=立方字形(自身.窗口,尺寸,类名).渲染()
+        if 图 is not None and hasattr(图,'tagName'):
+            图标盒.appendChild(图)
+        钮.appendChild(图标盒)
+        文=文档.createElement('span')
+        文.className='entryText'
+        标样式模块(文,样式模块)
+        题=文档.createElement('span')
+        题.className='entryTitle'
+        标样式模块(题,样式模块)
+        题.textContent=自身.入口['title']() if callable(自身.入口.get('title')) else ''
+        文.appendChild(题)
+        if 说明 is not None:
+            述=文档.createElement('span')
+            述.className='entryDescription'
+            标样式模块(述,样式模块)
+            述.textContent=str(说明)
+            文.appendChild(述)
+        钮.appendChild(文)
+        if 自身.快捷 is not None:
+            帽=_键帽(文档,自身.快捷.get('keys'))
+            if 帽 is not None:
+                钮.appendChild(帽)
+        自身.根=钮
+        return 钮
+
+
+class 出厂向导:
+    '罗盘下面一列入口'
+
+    def __init__(自身,窗口,子节点):
+        '记下入口节点'
+        自身.窗口=窗口
+        自身.属性={'window':窗口}
+        自身.子节点=子节点
+        自身.根=None
+
+    def 渲染(自身):
+        '居中的一列'
+        文档=自身.窗口.document
+        注入模块样式文件(文档,'向导体样式',样式路径,样式模块)
+        根=文档.createElement('div')
+        根.className='guide'
+        标样式模块(根,样式模块)
+        根.setAttribute('data-sidebar-right-guide','')
+        英雄=文档.createElement('span')
+        英雄.className='hero'
+        标样式模块(英雄,样式模块)
+        英雄.setAttribute('aria-hidden','true')
+        英雄.appendChild(罗盘字形(自身.窗口,56).渲染())
+        根.appendChild(英雄)
+        for 节点 in 自身.子节点:
+            if 节点 is not None and hasattr(节点,'tagName'):
+                根.appendChild(节点)
+        自身.根=根
+        return 根
+
+
+class 向导体:
+    '链槽优先。没有人接就画出厂向导'
+
+    def __init__(自身,属性=None):
+        '记下份额'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        自身._退订=[]
+        自身.渲染()
+        自身._订阅()
+
+    def __call__(自身,属性=None):
+        '再次绘制'
+        if 属性 is not None:
+            自身.属性=属性
+        return 自身.渲染()
+
+    def _订阅(自身):
+        '入口或快捷键变了就重画'
+        def 变更():
+            '还挂着才重画'
+            if 自身.根 is not None and getattr(自身.根,'isConnected',True) is False:
+                for 退 in 自身._退订:
+                    退()
+                自身._退订.clear()
+                return
+            自身.渲染()
+        for 名 in ('useGuideEntries','useShortcuts','useTabInfo'):
+            退=_订(自身.属性.get(名),变更)
+            if 退 is not None:
+                自身._退订.append(退)
+
+    def 渲染(自身):
+        '链的后备就是出厂向导'
+        窗口=_窗口(自身.属性)
+        文档=窗口.document
+        注入模块样式文件(文档,'向导体样式',样式路径,样式模块)
+        用签=自身.属性.get('useTabInfo')
+        签={}
+        if callable(用签):
+            信息=用签()
+            if isinstance(信息,dict) and isinstance(信息.get('tab'),dict):
+                签=信息['tab']
+        用入口=自身.属性.get('useGuideEntries')
+        入口表=()
+        if callable(用入口):
+            def 原样(值):
+                '入口名单'
+                return 值
+            读到=用入口(原样)
+            if isinstance(读到,(list,tuple)):
+                入口表=读到
+        用快捷=自身.属性.get('useShortcuts')
+        快捷表=()
+        if callable(用快捷):
+            def 原样快捷(值):
+                '快捷键目录'
+                return 值
+            读到=用快捷(原样快捷)
+            if isinstance(读到,(list,tuple)):
+                快捷表=读到
+        写出说明=len(入口表)<=描述上限
+        格表=[]
+        画槽=自身.属性.get('renderSlot')
+        for 入口 in 入口表:
+            说明=None
+            if 写出说明 and callable(入口.get('description')):
+                说明=入口['description']()
+            快捷=None
+            for 行 in 快捷表:
+                if 行.get('id')==入口.get('commandId'):
+                    快捷=行
+                    break
+
+            def 选中(选,动作=签.get('actions')):
+                '在这张向导签的位置打开'
+                if isinstance(动作,dict) and callable(动作.get('openTab')):
+                    动作['openTab'](选['kind'],{'replaceTab':True})
+
+            后备=入口盒(窗口,入口,写出说明,快捷,选中)
+            格=文档.createElement('div')
+            格.className='entryCell'
+            标样式模块(格,样式模块)
+            内容=None
+            if callable(画槽):
+                拥有={'entryId':入口.get('id'),'kind':入口.get('kind'),'title':入口['title']() if callable(入口.get('title')) else '','window':窗口}
+                if 说明 is not None:
+                    拥有['description']=说明
+                内容=画槽(席名右侧向导条目,拥有,{
+                    'entryKey':入口.get('providerId'),
+                    'hookContext':用签,
+                    'fallback':后备,
+                })
+            if 内容 is None:
+                格.appendChild(后备.渲染())
+            elif hasattr(内容,'tagName'):
+                格.appendChild(内容)
+            elif getattr(内容,'根',None) is not None:
+                格.appendChild(内容.根)
+            else:
+                格.appendChild(后备.渲染())
+            格表.append(格)
+        后备页=出厂向导(窗口,格表)
+        画链=自身.属性.get('renderSlotChain')
+        根=None
+        if callable(画链):
+            根=画链(席名右侧向导,{},{'hookContext':用签,'fallback':后备页})
+        if 根 is None:
+            根=后备页.渲染()
+        elif hasattr(根,'渲染'):
+            画出=根.渲染()
+            根=画出 if 画出 is not None else 后备页.渲染()
+        elif getattr(根,'根',None) is not None:
+            根=根.根
+        自身.根=根 if hasattr(根,'tagName') else 后备页.渲染()
+        父=自身.属性.get('parent')
+        if 父 is not None and getattr(自身.根,'parentNode',None) is None:
+            父.appendChild(自身.根)
+        return 自身

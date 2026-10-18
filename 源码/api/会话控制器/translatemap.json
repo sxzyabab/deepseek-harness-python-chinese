@@ -2,7 +2,7 @@
     "agent":"智能体",
     "archived-session-gate":"已归档会话闸门",
     "assistant-stream":"助手流",
-    "catalog":"目录",
+    "catalog":"模型名录",
     "commands":"命令",
     "control":"控制",
     "file-references":"文件引用",
@@ -10,5 +10,6 @@
     "list":"列表",
     "media-references":"媒体引用",
     "model-selection-projection":"模型选择投影",
-    "skill-catalog":"技能目录"
+    "skill-catalog":"技能名录",
+    "types":"类型列表"
 }

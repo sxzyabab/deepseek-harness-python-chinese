@@ -5,5 +5,8 @@
     "query-reader":"查询读取器",
     "publisher":"发布器",
     "buffer":"缓冲",
-    "messages":"消息"
+    "messages":"消息",
+    "rpc":"rpc",
+    "codec":"编解码器",
+    "validation":"校验结果"
 }

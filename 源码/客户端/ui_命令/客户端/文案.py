@@ -1,7 +1,6 @@
+__all__=['中文','英文']
 
-__all__=['中文','英文']#仅中文公开名
-
-中文={#简体中文词条
+中文={
     'section.add':'添加',
     'section.commands':'指令',
     'label.goal':'目标',
@@ -27,14 +26,12 @@ __all__=['中文','英文']#仅中文公开名
     'status.loading':'正在加载选项…',
     'status.applying':'正在应用…',
     'status.empty':'无选项',
-    'retry':'重试',
-    'close':'关闭',
     'overlay.aria':'/{command} 选项',
     'listbox.aria':'/{command} 匹配项',
     'notice.attachmentsUnsupported':'/{command} 不接受附件，请先移除附件',
-}#中文结束
+}
 
-英文={#英文词条
+英文={
     'section.add':'Add',
     'section.commands':'Commands',
     'label.goal':'Goal',
@@ -60,9 +57,7 @@ __all__=['中文','英文']#仅中文公开名
     'status.loading':'Loading options…',
     'status.applying':'Applying…',
     'status.empty':'No options',
-    'retry':'Retry',
-    'close':'Close',
     'overlay.aria':'/{command} options',
     'listbox.aria':'/{command} matches',
     'notice.attachmentsUnsupported':'/{command} does not accept attachments; remove them first',
-}#英文结束
+}

@@ -2,5 +2,8 @@
     "json-value":"json值",
     "owned-value":"拥有值",
     "remote-error":"远程制品",
-    "types":"类型"
+    "types":"类型",
+    "principal":"主体",
+    "remote-access":"远程访问",
+    "remote-info":"远程信息"
 }

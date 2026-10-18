@@ -1,98 +1,66 @@
-from .调用模型 import 派生工具行
+from ...ui_基础界面组件.icons import (
+    图标代码16,图标接口14,图标星闪16,图标浏览16,图标编辑16,图标检索16,
+)
+from .文案 import 中文文案
 from .自动拒绝 import 本地化自动拒绝
 from .读卡模型 import 读卡模型
 from .差异卡模型 import 差异卡模型
 from .检索卡模型 import 检索卡模型
 from .终端卡模型 import 终端卡模型,终端已失败
 from .网页卡模型 import 网页卡模型
-from .详情卡片模型 import 详情卡片模型
+from .调用模型 import 工具行模型
 from .工具行 import 工具行
 
-__all__=['回退工具卡','变体图标表']
+__all__=['回退工具卡']
 
-变体图标表={
-    'search':'search',
-    'read':'browse',
-    'bash':'api',
-    'write':'edit',
-    'edit':'edit',
-    'code':'code',
-    'others':'sparkle',
-}
+def 变体图标(窗口,变体):
+    '14 像素的变体前导图标'
+    属性={'window':窗口,'size':14}
+    if 变体=='search':
+        return 图标检索16(属性)
+    if 变体=='read':
+        return 图标浏览16(属性)
+    if 变体=='bash':
+        return 图标接口14(属性)
+    if 变体=='write' or 变体=='edit':
+        return 图标编辑16(属性)
+    if 变体=='code':
+        return 图标代码16(属性)
+    return 图标星闪16(属性)
 
 class 回退工具卡:
-    '未登记工具名的回退行。父组件调用渲染，构造本身不画'
-
-    def __init__(自身,属性=None):
-        '记下 props，并挂上空的工具行'
-        自身.属性=属性 if 属性 is not None else {}
-        自身.行=工具行()
-
-    def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性 if 属性 is not None else {}
-
-    def 渲染(自身):
-        '派生行模型后交给工具行'
-        属性=自身.属性
-        工具名=属性['toolName'] if 'toolName' in 属性 else None
-        块=属性['block'] if 'block' in 属性 else None
-        工作目录=属性['cwd'] if 'cwd' in 属性 else None
-        主目录=属性['home'] if 'home' in 属性 else None
-        翻译=属性['t'] if 't' in 属性 else None
-        模型=派生工具行(工具名,块,工作目录,主目录)
-        拒绝=模型['autoReviewDenial'] if 'autoReviewDenial' in 模型 else None
-        自动展示=None if 拒绝 is None else 本地化自动拒绝(拒绝,翻译)
-        终端=终端卡模型(块,工作目录)
-        读=读卡模型(块,工作目录)
-        差异=差异卡模型(块)
-        检索=检索卡模型(块)
-        网页=网页卡模型(块)
-        态=模型['state'] if 'state' in 模型 else None
-        if 态=='ok' and 终端 is not None and 终端已失败(终端):
-            态='error'
-        单文件=模型['filePath'] if 'filePath' in 模型 else None
-        摘要=None
-        if 终端 is not None:
-            摘要=终端['description'] if 'description' in 终端 else None
-        if 摘要 is None and 检索 is not None:
-            摘要=检索['title'] if 'title' in 检索 else None
-        if 摘要 is None:
-            摘要=模型['summary'] if 'summary' in 模型 else None
-        变体=模型['variant'] if 'variant' in 模型 else 'others'
-        体=None if 单文件 is not None or 自动展示 is not None else (模型['body'] if 'body' in 模型 else None)
-        输出=自动展示['output'] if 自动展示 is not None else (模型['output'] if 'output' in 模型 else None)
-        错误摘要=自动展示['summary'] if 自动展示 is not None else (模型['errorSummary'] if 'errorSummary' in 模型 else None)
-        详情=None
-        if isinstance(块,dict) and callable(翻译) and 终端 is None and 读 is None and 差异 is None and 检索 is None and 网页 is None:
-            语言=属性['locale'] if 'locale' in 属性 and isinstance(属性['locale'],str) else 'zh'
-            详情=详情卡片模型(块,翻译,语言)
-        载荷={
-            't':翻译,
-            'variant':变体,
-            'toolName':工具名,
-            'icon':变体图标表[变体] if 变体 in 变体图标表 else 'sparkle',
-            'title':模型['title'] if 'title' in 模型 else None,
-            'summary':摘要,
-            'body':体,
-            'output':输出,
-            'errorSummary':错误摘要,
+    '没有按键视图时的通用卡。自动拒绝换掉普通失败输出'
+    def __new__(类,属性):
+        '派生各卡材料后交给工具行'
+        模型=工具行模型(属性['toolName'],属性['block'],属性.get('cwd'),属性.get('home'))
+        if 模型['autoReviewDenial'] is None:
+            拒绝=None
+        else:
+            拒绝=本地化自动拒绝(模型['autoReviewDenial'])
+        终端=终端卡模型(属性['block'],属性.get('cwd'))
+        if 模型['state']=='ok' and 终端 is not None and 终端已失败(终端):
+            状态='error'
+        else:
+            状态=模型['state']
+        单文件=模型['filePath'] is not None
+        return 工具行({
+            'window':属性['window'],
+            'useDisclosure':属性['useDisclosure'],
+            'variant':模型['variant'],
+            'toolName':属性['toolName'],
+            'icon':变体图标(属性['window'],模型['variant']),
+            'title':中文文案(模型['titleKey']),
+            'summary':模型['summary'],
+            'bodyRaw':None if 单文件 or 拒绝 is not None else 模型['bodyRaw'],
+            'output':模型['output'] if 拒绝 is None else 拒绝['output'],
+            'errorSummary':模型['errorSummary'] if 拒绝 is None else 拒绝['summary'],
             'terminal':终端,
-            'diff':差异,
-            'read':读,
-            'search':检索,
-            'web':网页,
-            'details':详情,
-            'state':态,
-            'filePath':单文件,
-            'onOpenFile':(属性['openFile'] if 'openFile' in 属性 else None) if 单文件 is not None else None,
-            'inspect':属性['inspect'] if 'inspect' in 属性 else None,
-        }
-        自身.行.更新(载荷)
-        return 自身.行.渲染()
-
-    def __call__(自身,属性=None):
-        '有新属性则刷新后渲染'
-        if 属性 is not None:
-            自身.更新(属性)
-        return 自身.渲染()
+            'diff':差异卡模型(属性['block']),
+            'read':读卡模型(属性['block'],属性.get('cwd'),属性.get('home')),
+            'search':检索卡模型(属性['block']),
+            'web':网页卡模型(属性['block']),
+            'state':状态,
+            'filePath':模型['filePath'],
+            'onOpenFile':属性.get('openFile') if 单文件 else None,
+            'inspect':属性.get('inspect'),
+        })

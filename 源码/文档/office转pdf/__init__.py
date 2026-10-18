@@ -181,7 +181,7 @@ class office转pdf(远程服务):
                     raise office转pdf错误('source-changed','The source changed.')
                 断言未变({'absolutePath':文件系统.进程路径(目标),'version':信息['version']})
                 try:
-                    字节=文件系统.读字节(目标,上游,最大字节)
+                    字节=文件系统.读取字节(目标,上游,最大字节)
                 except BaseException as 原因:
                     if getattr(原因,'code',None)=='FS_TOO_LARGE':#按 code 字段识别过大
                         断言未变(文件.stat(作用域,路径,上游))

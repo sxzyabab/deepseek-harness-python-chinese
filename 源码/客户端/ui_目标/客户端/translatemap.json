@@ -1,0 +1,12 @@
+{
+    "GoalBar": "目标条",
+    "GoalCommandInputView": "命令输入视图",
+    "activation-source": "激活源",
+    "goal-command-input": "命令输入",
+    "locales": "文案",
+    "slots": "槽位",
+    "GoalCommandReference": "命令引用",
+    "user-text-rules": "用户文本规则",
+    "GoalBar.module": "目标条.module",
+    "GoalCommandInputView.module": "命令输入视图.module"
+}

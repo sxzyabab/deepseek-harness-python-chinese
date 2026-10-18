@@ -30,6 +30,7 @@ def 展平谱系(摘要列表):
             return#停
         已访问.add(标识)#标记
         行=dict(摘要)#拷贝
+        行.pop('agentAvailable',None)#列表行不带智能体可用性
         行['depth']=深度#缩进
         输出.append(行)#收下
         for 子 in (子表[标识] if 标识 in 子表 else []):#子项

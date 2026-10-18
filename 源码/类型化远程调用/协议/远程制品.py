@@ -7,10 +7,13 @@ class 透传模式:
         return 值
 
 def 严格编解码(类型符号,模式=None):
-    'mode 为 strict。未给模式时用透传'
+    'mode 为 strict。未给模式时用透传。create 交出这份模式'
     if 模式 is None:
-        模式=透传模式()
-    return {'mode':'strict','typeSymbol':类型符号,'schema':模式}
+        模式=透传模式()#默认透传
+    def 创建():
+        '交出已备好的模式'
+        return 模式#模式
+    return {'mode':'strict','typeSymbol':类型符号,'schema':模式,'create':创建}#编解码
 
 def 调用描述符(
     标识,服务,命名空间,方法,参数列表,结果编解码,源码位置,

@@ -1,67 +1,95 @@
-__all__=['扁平会话顺序键','创建工作区查看存储']#仅中文公开名
+'浏览区查看存储。分组、排序、展开、手动顺序和归档筛选都写在这一份里'
+from ...存储 import 声明存储
+from .树 import 调和手动顺序
 
-扁平会话顺序键='__flat_session_order__'#无层级扁平会话列表的浏览器本地排序账本键
+__all__=['扁平会话顺序键','创建工作区查看存储']
 
-def 拷会话顺序(顺序表):#只读投影 → 可变拷贝
-    '逐账本浅拷贝顺序'
-    return {键:list(顺序) for 键,顺序 in 顺序表.items()}#可变拷贝
+扁平会话顺序键='__flat_session_order__'#无层级扁平列表的本地账本键
 
-def 初值():#播种初始查看状态
-    '默认按工作区分组、按近因'
-    return {#查看状态
-        'groupBy':'workspace',#默认按工作区分组
-        'orderBy':'updated',#默认按近因
-        'groupExpansion':{},#分组展开表为空
-        'sessionOrderByAccount':{},#各账本会话顺序为空
-    }#初值结束
+def 拷会话顺序(顺序表):
+    '把只读顺序拷成可写入的列表'
+    return {键:list(顺序) for 键,顺序 in 顺序表.items()}#逐账本拷贝
 
-def 设分组(草稿,模式):#写入分组模式
+def 初值():
+    '默认按工作区分组、按最近更新，归档筛选为 default'
+    return {
+        'groupBy':'workspace',#分组
+        'orderBy':'updated',#排序
+        'groupExpansion':{},#展开
+        'sessionOrderByAccount':{},#手动顺序
+        'archivedFilter':'default',#归档筛选
+    }
+
+def 设分组(草稿,模式):
     '写入 groupBy'
-    草稿['groupBy']=模式#写入
+    草稿['groupBy']=模式#分组
 
-def 设排序(草稿,模式,初始顺序):#写入排序模式
-    '切入手动时拷初始序；切近因则清空账本'
-    if 模式==草稿['orderBy']:#未变
+def 设排序(草稿,模式,初始顺序):
+    '切入手动时拷入当前顺序，切回最近更新则清空账本'
+    if 模式==草稿['orderBy']:#没变
         return#不动
-    草稿['sessionOrderByAccount']=拷会话顺序(初始顺序) if 模式=='manual' else {}#切入手动才拷
-    草稿['orderBy']=模式#写入
+    草稿['sessionOrderByAccount']=拷会话顺序(初始顺序) if 模式=='manual' else {}#账本
+    草稿['orderBy']=模式#排序
 
-def 设分组展开(草稿,键,展开):#写入某分组展开
-    '写入 groupExpansion[key]'
-    草稿['groupExpansion'][键]=展开#写入
+def 设分组展开(草稿,键,展开):
+    '写入某一个分组是否展开'
+    草稿['groupExpansion'][键]=展开#展开
 
-def 保留账本键(草稿,工作区键集合):#丢掉已不存在的工作区账本键
-    '只保留仍存在的账本键，并丢掉旧时间戳账本'
-    保留=set(工作区键集合)#仍应保留的工作区键集合
-    草稿['groupExpansion']={键:值 for 键,值 in 草稿['groupExpansion'].items() if 键 in 保留}#重写分组展开表
-    草稿['sessionOrderByAccount']={键:值 for 键,值 in 草稿['sessionOrderByAccount'].items() if 键 in 保留}#重写会话顺序账本
-    if 'sessionUpdatedAtByAccount' in 草稿:#旧时间戳账本
+def 保留账本键(草稿,工作区键集合):
+    '只留下仍存在的账本，并丢掉旧的时间戳账本'
+    保留=set(工作区键集合)#仍在的键
+    草稿['groupExpansion']={键:值 for 键,值 in 草稿['groupExpansion'].items() if 键 in 保留}#展开
+    草稿['sessionOrderByAccount']={键:值 for 键,值 in 草稿['sessionOrderByAccount'].items() if 键 in 保留}#顺序
+    if 'sessionUpdatedAtByAccount' in 草稿:#旧字段
         del 草稿['sessionUpdatedAtByAccount']#丢掉
 
-def 同步会话顺序(草稿,顺序表):#合并写入各账本顺序
-    '近因模式不写手动账本'
-    if 草稿['orderBy']!='manual':#近因
+def 同步会话顺序(草稿,顺序表):
+    '只在手动排序时把顺序合并进账本'
+    if 草稿['orderBy']!='manual':#不是手动
         return#不写
-    草稿['sessionOrderByAccount'].update(拷会话顺序(顺序表))#合并拷贝
+    草稿['sessionOrderByAccount'].update(拷会话顺序(顺序表))#合并
 
-def 设会话顺序(草稿,账本键,顺序,初始顺序):#只写某账本会话顺序
-    '从近因切入手动时先铺全表'
+def 设会话顺序(草稿,账本键,顺序,初始顺序):
+    '从最近更新切入手动时先铺全表，再写这一本'
     if 草稿['orderBy']=='updated':#从近因切入
         草稿['sessionOrderByAccount']=拷会话顺序(初始顺序)#铺全表
-    草稿['orderBy']='manual'#此后为手动
-    草稿['sessionOrderByAccount'][账本键]=list(顺序)#写入该账本
+    else:#已经是手动
+        草稿['sessionOrderByAccount'].update(拷会话顺序(初始顺序))#先对齐其它账本
+    草稿['orderBy']='manual'#改为手动
+    草稿['sessionOrderByAccount'][账本键]=list(顺序)#这一本
 
-def 创建工作区查看存储():#创建查看 store 句柄
-    '返回 store 规格（init / persist / actions），供 register 收下'
-    return {#规格进、句柄出（对齐 defineStore 入参）
-        'init':初值,#播种
+def 置顶会话顺序(草稿,会话号,账本键列,来源):
+    '被置顶的会话排到它所属账本的最前，其它账本只做调和'
+    选中=set(账本键列)#要提前的账本
+    成员表=来源['members']#各账本成员
+    摘要=来源['summaries']#会话摘要
+    行态=来源['rowState']#置顶与归档
+    下一={}#新账本
+    for 键,成员 in 成员表.items():#逐账本
+        顺序=调和手动顺序(成员,草稿['sessionOrderByAccount'].get(键),摘要,行态)#调和
+        if 键 in 选中:#这一本要置顶
+            下一[键]=[会话号]+[标识 for 标识 in 顺序 if 标识!=会话号]#排到最前
+        else:#其它账本
+            下一[键]=顺序#保持调和结果
+    草稿['sessionOrderByAccount']=下一#写回
+
+def 设归档筛选(草稿,筛选):
+    '写入归档行的可见性'
+    草稿['archivedFilter']=筛选#筛选
+
+def 创建工作区查看存储():
+    '返回浏览区查看存储句柄。登记时由渲染器创建一份实例'
+    return 声明存储({
+        'init':初值,#初值
         'persist':'dsh.workspace.view.v5',#持久化键
-        'actions':{#动作写集合
-            'setGroupBy':设分组,#写入分组模式
-            'setOrderBy':设排序,#写入排序模式
-            'setGroupExpanded':设分组展开,#写入某分组展开
-            'retainAccountKeys':保留账本键,#保留账本键
-            'syncSessionOrders':同步会话顺序,#合并写入各账本
-            'setSessionOrder':设会话顺序,#只写顺序
-        },#动作结束
-    }#规格结束
+        'actions':{#动作名保持上游
+            'setGroupBy':设分组,#分组
+            'setOrderBy':设排序,#排序
+            'setGroupExpanded':设分组展开,#展开
+            'retainAccountKeys':保留账本键,#保留键
+            'syncSessionOrders':同步会话顺序,#同步
+            'setSessionOrder':设会话顺序,#写一本
+            'pinSessionOrder':置顶会话顺序,#置顶提前
+            'setArchivedFilter':设归档筛选,#归档筛选
+        },
+    })

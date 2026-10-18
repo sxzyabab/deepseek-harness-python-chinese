@@ -60,7 +60,7 @@ def 要求目录(标签,路径):#要求已存在目录
     if not os.path.exists(路径) or not os.path.isdir(路径):#不是目录
         失败(标签+' is not an existing directory')#边界失败
 
-def 主():#运行器入口
+def 启动运行器():#运行器入口
     '解析参数、物化沙箱、生成隔离子进程并镜像退出码'
     解析=解析参数(sys.argv[1:])#解析参数
     要求目录('--workspace',解析['workspace'])#工作区必须存在
@@ -126,7 +126,7 @@ def 主():#运行器入口
 
 if __name__=='__main__':#脚本入口
     try:#入口结算
-        退出码=主()#跑主流程
+        退出码=启动运行器()#跑主流程
         sys.exit(退出码)#镜像退出码
     except 运行器失败:#已打印签名
         sys.exit(运行器失败退出)#运行器失败码

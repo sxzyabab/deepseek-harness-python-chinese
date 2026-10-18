@@ -474,3 +474,20 @@
   text-decoration: line-through;
   opacity: 0.7;
 }
+
+.输入卡 textarea.草稿{
+  box-sizing:border-box;
+  display:block;
+  width:100%;
+  min-height:52px;
+  margin:0;
+  resize:none;
+  border:none;
+  outline:none;
+  background:transparent;
+  color:var(--dsw-alias-label-primary);
+  caret-color:var(--dsw-alias-state-business-primary);
+  font:inherit;
+  padding:8px 16px 0;
+}
+.输入卡 textarea.草稿::placeholder{color:var(--dsw-alias-label-tertiary)}

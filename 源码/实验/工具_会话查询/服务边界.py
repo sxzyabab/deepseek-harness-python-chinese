@@ -1,5 +1,5 @@
 '模型安全的会话检索调用与错误翻译边界'
-from ...模型后端.llm.异常 import 装备错误,错误链#Harness错误与错误链
+from ...模型后端.llm.异常 import harness错误,错误链#Harness错误与错误链
 from ...会话检索.会话查询.异常 import 会话查询错误#检索错误
 from ...会话检索.会话查询.配置 import 已中止,若已中止则抛出#中止
 
@@ -27,7 +27,7 @@ from ...会话检索.会话查询.配置 import 已中止,若已中止则抛出#
 
 def 未授权目标():
     '工作区外目标的稳定未授权错误'
-    return 装备错误('session target is outside the caller workspace','SESSION_QUERY_TOOL_UNAUTHORIZED')#未授权
+    return harness错误('session target is outside the caller workspace','SESSION_QUERY_TOOL_UNAUTHORIZED')#未授权
 
 def 调用(上下文,信号,操作名,执行):
     '内含一次服务调用并消毒错误'
@@ -51,7 +51,7 @@ def 消毒错误(上下文,操作名,错误):
             失败=安全会话查询失败[码] if isinstance(码,str) and 码 in 安全会话查询失败 else None#查表
             if 失败 is not None and 失败['code']!='SESSION_QUERY_TOOL_FAILED':#可暴露
                 return 会话查询错误(失败['message'],失败['code'])#安全重建
-        if isinstance(错误,装备错误) and 错误.code=='SESSION_QUERY_TOOL_UNAUTHORIZED':#已是未授权
+        if isinstance(错误,harness错误) and 错误.code=='SESSION_QUERY_TOOL_UNAUTHORIZED':#已是未授权
             return 未授权目标()#稳定未授权
     except (TypeError,ValueError,AttributeError,KeyError):#日志或翻译自己又抛
         return 通用#退回通用
@@ -59,7 +59,7 @@ def 消毒错误(上下文,操作名,错误):
 
 def 通用失败():
     '通用工具失败'
-    return 装备错误('session query operation failed','SESSION_QUERY_TOOL_FAILED')#通用工具失败
+    return harness错误('session query operation failed','SESSION_QUERY_TOOL_FAILED')#通用工具失败
 
 def 完整错误(错误):
     '渲染错误及 cause 链'

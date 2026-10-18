@@ -1,7 +1,7 @@
 from datetime import datetime as 日期时间,timedelta as 时间增量
 import time as 时间模块
 
-__all__=['本地日起点','距下一本地午夜毫秒','格式化运行时长','格式化延迟秒','格式化每秒令牌','格式化消息时钟']
+__all__=['本地日起点','距下一本地午夜毫秒','格式化运行时长','格式化延迟秒','格式化每秒令牌','格式化消息时钟','实况时钟间隔毫秒']
 
 def 补两位(数):
     '左侧补零到两位'
@@ -19,17 +19,25 @@ def 距下一本地午夜毫秒(毫秒):
     次日=(时刻+时间增量(days=1)).replace(hour=0,minute=0,second=0,microsecond=0)
     return max(int(次日.timestamp()*1000)-毫秒,1)
 
-def 格式化运行时长(毫秒,翻译):#经过时长标签
-    '满一小时走小时模板，满一分钟走分钟模板，否则只报秒'
-    总秒=max(0,毫秒//1000)#钳零整秒
-    时=总秒//3600#整小时
-    分=(总秒//60)%60#余分钟
-    秒=总秒%60#余秒
-    if 时>0:#小时模板
-        return 翻译('duration.hours',{'hours':时,'minutes':补两位(分),'seconds':补两位(秒)})#时分秒
-    if 分>0:#分钟模板
-        return 翻译('duration.minutes',{'minutes':分,'seconds':补两位(秒)})#分+秒
-    return 翻译('duration.seconds',{'seconds':秒})#仅秒
+实况时钟间隔毫秒=1000
+
+
+def 格式化运行时长(毫秒,翻译):
+    '数字和单位交替。满 60 秒才写分钟，满 60 分钟才写小时'
+    总秒=max(0,毫秒//1000)
+    时=总秒//3600
+    分=(总秒//60)%60
+    秒=总秒%60
+    段=[]
+    if 时>0:
+        段.append({'text':str(时),'numeric':True})
+        段.append({'text':翻译('duration.hourUnit'),'numeric':False})
+    if 总秒>=60:
+        段.append({'text':str(分),'numeric':True})
+        段.append({'text':翻译('duration.minuteUnit'),'numeric':False})
+    段.append({'text':str(秒),'numeric':True})
+    段.append({'text':翻译('duration.secondUnit'),'numeric':False})
+    return 段
 
 def 格式化延迟秒(毫秒):#延迟秒显示
     '十秒以下一位小数，以上整秒'

@@ -1,244 +1,233 @@
-from ..约定.回合指标 import 推导回合指标 as 派生回合指标#回合指标
-from ...异常 import 聊天错误#本包异常
-from .节点工厂 import 聊天合成序号偏移,聊天节点#公共
-from .事件面 import 是追加面事件,转助手块列表#面辅助
+from .....模型后端.token计数器.客户端 import 派生回合令牌用量
+from ...异常 import 聊天错误
+from .节点工厂 import 聊天合成序号偏移,聊天节点
 
-__all__=['回合尾定义','登记回合尾会话节点']#仅中文公开名
+__all__=['回合尾定义','登记回合尾会话节点']
 
-def 有文本助手(事件):#终态助手是否含非空文本
-    'assistant/message + 追加面 + 非空 text 块'
-    if 事件['type']!='assistant/message' or not 是追加面事件(事件):#非
-        return False#否
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    消息=数据['message'] if 'message' in 数据 else None#消息
-    内容=消息['content'] if 消息 is not None and 'content' in 消息 else None#内容
-    for 块 in 转助手块列表(内容):#扫
-        文=块['text'] if 'kind' in 块 and 块['kind']=='text' and 'text' in 块 and 块['text'] is not None else ''#正文
-        if 'kind' in 块 and 块['kind']=='text' and 文.strip()!='':#有文本
-            return True
-    return False#无
 
-def 块有文本(事件):#流式块是否带非空文本
-    'text-delta 或 block-end 文本'
-    if 事件['type']!='assistant/live-chunk':#非
-        return False#否
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    块=数据['chunk'] if 'chunk' in 数据 and 数据['chunk'] is not None else {}#块
-    种=块['type'] if 'type' in 块 else None#种
-    if 种=='text-delta':#增量
-        文=块['text'] if 'text' in 块 and 块['text'] is not None else ''#正文
-        return 文.strip()!=''#非空
-    if 种=='block-end':#块结束
-        定=块['block'] if 'block' in 块 and 块['block'] is not None else {}#定稿
-        文=定['text'] if 'text' in 定 and 定['text'] is not None else ''#正文
-        return 'type' in 定 and 定['type']=='text' and 文.strip()!=''#非空文本
-    return False#其它
+def 是会话事件(事件):
+    '实时块不是持久会话事件，不送进用量折叠'
+    return isinstance(事件,dict) and 事件.get('type')!='assistant/live-chunk'
 
-def 回合坐标(事件):#从事件读回合/步骤坐标
-    '没有则 None'
-    种=事件['type']#种
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    if 种 in ('assistant/message','assistant/attempt','assistant/live-chunk','step/end','llm/retry'):#带坐标
-        出={'turn':数据['turn'] if 'turn' in 数据 else None}#回合
-        if 'step' in 数据 and 数据['step'] is not None:#有步
-            出['step']=数据['step']#步
-        return 出#坐标
-    return None#无
 
-def 收口锚(上下文):#收口节点应挂的合成序号
-    '终态文本之后，或中断流式之后'
-    匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
-    终点=None#turn/end
-    for 候 in 匹配列表:#扫
-        if 候['event']['type']=='turn/end':#命中
-            终点=候
+def 回合坐标(事件):
+    '能落到某个回合的事件'
+    数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+    if 事件.get('type') in ('assistant/message','assistant/attempt','assistant/live-chunk','step/start','step/end','llm/retry','llm/retry-started'):
+        return {'turn':数据.get('turn'),'step':数据.get('step')}
+    return None
+
+
+def 回合位置(上下文):
+    '这份上下文所属的回合'
+    起点=上下文.get('start') if isinstance(上下文.get('start'),dict) else None
+    匹配=上下文.get('matches') if isinstance(上下文.get('matches'),list) else []
+    位置=起点.get('location') if isinstance(起点,dict) else None
+    if not isinstance(位置,dict) and len(匹配)>0 and isinstance(匹配[0],dict):
+        位置=匹配[0].get('location')
+    if isinstance(位置,dict) and 位置.get('kind') in ('turn','step'):
+        return 位置.get('turn') if isinstance(位置.get('turn'),dict) else None
+    return None
+
+
+def 有文本(数据):
+    '定稿助手里有非空文本'
+    if not isinstance(数据,dict) or 数据.get('finalNode') is None:
+        return False
+    块表=数据.get('blocks') if isinstance(数据.get('blocks'),list) else []
+    for 块 in 块表:
+        if isinstance(块,dict) and 块.get('kind')=='text':
+            文=块.get('text')
+            if isinstance(文,str) and 文.strip()!='':
+                return True
+    return False
+
+
+def 尾数据(上下文):
+    '完成回合的页脚：收束助手、能否分支、以及从回合起点算出的用量'
+    状态=上下文.get('state') if isinstance(上下文.get('state'),dict) else None
+    匹配=上下文.get('matches') if isinstance(上下文.get('matches'),list) else []
+    if 状态 is None or 状态.get('end') is None:
+        结束=None
+        for 项 in 匹配:
+            事件=项.get('event') if isinstance(项,dict) else None
+            if isinstance(事件,dict) and 事件.get('type')=='turn/end':
+                结束=项
+    else:
+        结束=状态.get('end')
+    if not isinstance(结束,dict) or not isinstance(结束.get('event'),dict) or 结束['event'].get('type')!='turn/end':
+        return None
+    回合=回合位置(上下文)
+    if not isinstance(回合,dict):
+        return None
+    助手表=[]
+    步表=回合.get('steps') if isinstance(回合.get('steps'),list) else []
+    for 步 in 步表:
+        if not isinstance(步,dict):
+            continue
+        数据=步.get('data')
+        材料=数据.get('assistant-step') if hasattr(数据,'get') else None
+        if isinstance(材料,dict):
+            助手表.append(材料)
+    定稿=[]
+    for 材料 in 助手表:
+        if isinstance(材料.get('finalNode'),dict):
+            定稿.append(材料)
+    def 定稿序号(项):
+        '按定稿消息序号排序'
+        终=项.get('finalNode') if isinstance(项.get('finalNode'),dict) else {}
+        return 终.get('seq') or 0
+    定稿.sort(key=定稿序号)
+    收束=None
+    for 材料 in reversed(定稿):
+        if 有文本(材料):
+            收束=材料
             break
-    起点=上下文['start'] if 'start' in 上下文 else None#起点
-    锚=终点['event']['seq'] if 终点 is not None else None#优先
-    if 锚 is None and 起点 is not None:#无终点
-        锚=起点['event']['seq']#开节点
-    if 锚 is None and len(匹配列表)>0:#仍无
-        锚=匹配列表[0]['event']['seq']#首匹配
-    if 锚 is None:#都无
-        锚=0#零
-    步证={}#步 → 证据
-    for 匹配项 in 匹配列表:#扫
-        事件=匹配项['event']#事件
-        if 事件['type']=='turn/end':#回合结束
-            continue#跳过
-        坐标=回合坐标(事件)#坐标
-        if 坐标 is None or 'step' not in 坐标 or 坐标['step'] is None:#无步
-            continue#跳过
-        步=坐标['step']#步号
-        先前=步证[步] if 步 in 步证 else {'streamedText':False,'finalized':False}#证据
-        种=事件['type']#种
-        if 种=='assistant/live-chunk':#流式
-            步证[步]={**先前,'streamedText':先前['streamedText'] or 块有文本(事件)}#更新
-            continue#下
-        if 种=='assistant/message':#终态
-            步证[步]={'streamedText':False,'finalized':True}#覆盖
-            if 有文本助手(事件):#有文本
-                锚=事件['seq']+聊天合成序号偏移['finalizedFollowup']#挪锚
-            continue#下
-        if 种=='llm/retry':#重试
-            步证[步]={'streamedText':False,'finalized':False}#清空
-            continue#下
-        if 种=='step/end' and 先前['streamedText'] and not 先前['finalized']:#中断收口
-            锚=事件['seq']+聊天合成序号偏移['interruptedFollowup']#中断锚
-    return 锚#最终
+    最新序号=None
+    if len(定稿)>0 and isinstance(定稿[-1].get('finalNode'),dict):
+        最新序号=定稿[-1]['finalNode'].get('seq')
+    for 项 in 匹配:
+        事件=项.get('event') if isinstance(项,dict) else None
+        if not isinstance(事件,dict):
+            continue
+        候选=None
+        if 事件.get('type')=='tool/call':
+            候选=事件.get('seq')
+        elif 事件.get('type')=='tool/result' and 事件.get('surfaceOp')=='append':
+            候选=事件.get('seq')
+        elif 事件.get('type')=='turn/end':
+            数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+            原因=数据.get('reason') if isinstance(数据.get('reason'),dict) else {}
+            if 原因.get('kind')=='error':
+                候选=事件.get('seq')
+        elif 事件.get('type')=='llm/retry':
+            候选=事件.get('seq')
+        if 候选 is not None and (最新序号 is None or 候选>最新序号):
+            最新序号=候选
+    起点=上下文.get('start') if isinstance(上下文.get('start'),dict) else None
+    起点事件=起点.get('event') if isinstance(起点,dict) else None
+    用量=None
+    if isinstance(起点事件,dict) and 起点事件.get('type')=='turn/start':
+        事件表=[]
+        for 项 in 匹配:
+            事件=项.get('event') if isinstance(项,dict) else None
+            if 是会话事件(事件):
+                事件表.append(事件)
+        用量=派生回合令牌用量(事件表)
+    结束事件=结束['event']
+    结束数据=结束事件.get('data') if isinstance(结束事件.get('data'),dict) else {}
+    收束序号=收束['finalNode'].get('seq') if isinstance(收束,dict) and isinstance(收束.get('finalNode'),dict) else None
+    结果={
+        'turn':结束数据.get('turn'),
+        'seq':结束事件.get('seq'),
+        'time':结束事件.get('time'),
+        'closing':收束,
+        'branchUnavailable':收束 is None or 最新序号!=收束序号,
+    }
+    if 用量 is not None:
+        结果['tokenUsage']=用量
+    return 结果
 
-def 回合位置(上下文):#取回合位置
-    'turn/step 才有'
-    起点=上下文['start'] if 'start' in 上下文 else None#起点
-    匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
-    if 起点 is not None and 'location' in 起点:#有起点
-        位置=起点['location']#位置
-    elif len(匹配列表)>0 and 'location' in 匹配列表[0]:#首匹配
-        位置=匹配列表[0]['location']#位置
-    else:#无
-        位置=None#无
-    if 位置 is not None and 'kind' in 位置 and 位置['kind'] in ('turn','step'):
-        return 位置['turn'] if 'turn' in 位置 else None#回合
-    return None#无
 
-def 有文本(数据):#助手行是否已终态且含非空文本
-    '须有 finalNode 与非空 text'
-    if 'finalNode' not in 数据 or 数据['finalNode'] is None:#无终态
-        return False#否
-    块列表=数据['blocks'] if 'blocks' in 数据 and 数据['blocks'] is not None else []#块
-    for 块 in 块列表:#扫
-        文=块['text'] if 'kind' in 块 and 块['kind']=='text' and 'text' in 块 and 块['text'] is not None else ''#正文
-        if 'kind' in 块 and 块['kind']=='text' and 文.strip()!='':
-            return True
-    return False#无
-
-def 终态序号(候):#排序键：终态 seq
-    '无则 0'
-    终=候['finalNode'] if 'finalNode' in 候 else None#终态
-    return 终['seq'] if 终 is not None and 'seq' in 终 else 0#序号
-
-def 尾载荷(上下文):#折叠已结束回合的尾载荷
-    '尚未结束则 None'
-    态=上下文['state'] if 'state' in 上下文 and 上下文['state'] is not None else {}#态
-    结束=态['end'] if 'end' in 态 else None#已记下
-    if 结束 is None:#无
-        匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
-        for 候 in 匹配列表:#扫
-            if 候['event']['type']=='turn/end':#命中
-                结束=候
-                break
-    if 结束 is None or 结束['event']['type']!='turn/end':#尚未结束
-        return None#无法出尾
-    回合=回合位置(上下文)#回合位置
-    if 回合 is None:#无
-        return None#无法
-    步列表=回合['steps'] if 'steps' in 回合 and 回合['steps'] is not None else []#各步
-    助手列表=[]#助手行
-    for 步 in 步列表:#每步
-        数据面=步['data'] if 'data' in 步 else None#data
-        候=数据面['assistant-step'] if 数据面 is not None and 'assistant-step' in 数据面 else None#助手
-        if 候 is not None:
-            助手列表.append(候)#收下
-    已结=[候 for 候 in 助手列表 if 'finalNode' in 候 and 候['finalNode'] is not None]#有终态
-    已结=sorted(已结,key=终态序号)#按 seq
-    收束=None#收口
-    for 候 in reversed(已结):#从后找
-        if 有文本(候):#有文本
-            收束=候#收口
-            break
-    最新转录=已结[-1]['finalNode']['seq'] if len(已结)>0 else None#默认
-    匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
-    for 匹配项 in 匹配列表:#扫转录
-        事件=匹配项['event']#事件
-        种=事件['type']#种
-        数据=事件['data'] if 'data' in 事件 else {}#载荷
-        候选=None#候选 seq
-        if 种=='tool/call' or (种=='tool/result' and 是追加面事件(事件)) or 种=='llm/retry':#算转录
-            候选=事件['seq']#序号
-        else:#可能出错结束
-            原因=数据['reason'] if 'reason' in 数据 else None#原因
-            if 种=='turn/end' and 原因 is not None and 'kind' in 原因 and 原因['kind']=='error':#出错结束
-                候选=事件['seq']#序号
-        if 候选 is not None and (最新转录 is None or 候选>最新转录):#更晚
-            最新转录=候选#抬高
-    指标表=派生回合指标([候['finalNode'] for 候 in 已结])#按终态算
-    结束数据=结束['event']['data'] if 'data' in 结束['event'] else {}#载荷
-    回合号=结束数据['turn'] if 'turn' in 结束数据 else None#回合号
-    指标=指标表[回合号] if isinstance(指标表,dict) and 回合号 in 指标表 else None#本回合
-    收束终=收束['finalNode'] if 收束 is not None and 'finalNode' in 收束 else None#收束终态
-    出={#回合尾载荷
-        'turn':回合号,#回合
-        'seq':结束['event']['seq'],#序号
-        'time':结束['event']['time'] if 'time' in 结束['event'] else None,#时刻
-        'closing':收束,#收口
-        'branchUnavailable':收束 is None or 最新转录!=(收束终['seq'] if 收束终 is not None and 'seq' in 收束终 else None),#能否分叉
-    }#结束
-    if 指标 is not None:#有指标
-        if 'ttftMs' in 指标 and 指标['ttftMs'] is not None:#TTFT
-            出['ttftMs']=指标['ttftMs']#带上
-        if 'tokensPerSecond' in 指标 and 指标['tokensPerSecond'] is not None:#吞吐
-            出['tokensPerSecond']=指标['tokensPerSecond']#带上
-    return 出#载荷
-
-def 回合尾匹配(事件):#判定事件是否属于本节点
-    'turn/start 开；end/工具/坐标更新'
-    种=事件['type']#种
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    if 种=='turn/start':#开始
-        return {'id':str(数据['turn']),'role':'start'}
-    if 种=='turn/end':#结束
-        return {'id':str(数据['turn']),'role':'update'}#更新
-    if 种 in ('tool/call','tool/result'):#工具
-        return {'id':str(数据['turn']),'role':'update'}#更新
-    坐标=回合坐标(事件)#坐标
+def 回合尾匹配(事件):
+    '回合起止、工具，以及能落到回合上的助手和步骤事件'
+    数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+    if 事件.get('type')=='turn/start':
+        return {'id':str(数据.get('turn')),'role':'start'}
+    if 事件.get('type')=='turn/end':
+        return {'id':str(数据.get('turn')),'role':'update'}
+    if 事件.get('type') in ('tool/call','tool/result'):
+        return {'id':str(数据.get('turn')),'role':'update'}
+    坐标=回合坐标(事件)
     if 坐标 is not None:
-        return {'id':str(坐标['turn']),'role':'update'}#更新
-    return None#忽略
+        return {'id':str(坐标['turn']),'role':'update'}
+    return None
 
-def 回合尾开始(_上下文,匹配项):#用 turn/start 建折叠状态
-    '必须是 turn/start'
-    事件=匹配项['event']#事件
-    if 事件['type']!='turn/start':#非
-        raise 聊天错误('turn-tail start requires turn/start')#硬失败
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    return {'turn':数据['turn'] if 'turn' in 数据 else None}
 
-def 回合尾更新(上下文,匹配项):#turn/end 写入 end 匹配
-    '其余不改'
-    if 匹配项['event']['type']=='turn/end':#结束
-        return {**上下文['state'],'end':匹配项}
-    return 上下文['state']#不改
+def 回合尾开始(上下文,匹配项):
+    '必须从 turn/start 开始'
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else None
+    if not isinstance(事件,dict) or 事件.get('type')!='turn/start':
+        raise 聊天错误('turn-tail start requires turn/start')
+    数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+    return {'turn':数据.get('turn')}
 
-def 回合尾发布(匹配项):#只有结束才立刻发表
-    'immediate / none'
-    return 'immediate' if 匹配项['event']['type']=='turn/end' else 'none'#发表
 
-def 回合尾位置数据(上下文,作用域):#往回合位置写折叠数据
-    '只贡献回合范围'
-    if 作用域!='turn':#非
-        return None#无
-    值=尾载荷(上下文)#折叠
-    if 值 is None:#未结束
-        return None#不写
-    return {'kind':'turn','turn':值['turn'],'key':'turn-tail','value':值}#位置数据
+def 回合尾更新(上下文,匹配项):
+    '只有回合结束改状态'
+    状态=上下文.get('state') if isinstance(上下文.get('state'),dict) else {}
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else None
+    if isinstance(事件,dict) and 事件.get('type')=='turn/end':
+        下一=dict(状态)
+        下一['end']=匹配项
+        return 下一
+    return 状态
 
-def 回合尾建视图(上下文):#组装 Chat 目标上的回合尾节点
-    '读已写入的尾载荷'
-    回合=回合位置(上下文)#回合
-    if 回合 is None:#无
-        return None#无
-    数据面=回合['data'] if 'data' in 回合 else None#data
-    数据=数据面['turn-tail'] if 数据面 is not None and 'turn-tail' in 数据面 else None#尾载荷
-    if 数据 is None:#无
-        return None#无
-    return 聊天节点(上下文,'turn-tail',收口锚(上下文),数据)#节点
 
-回合尾定义={#回合尾会话节点定义
-    'kind':'turn-tail','target':'chat',#kind/目标
-    'match':回合尾匹配,'start':回合尾开始,'update':回合尾更新,#生命周期
-    'publication':回合尾发布,'buildLocationData':回合尾位置数据,'buildViewNode':回合尾建视图,#发布/视图
-}#结束
+def 回合尾公布(匹配项):
+    '只有回合结束立刻公布'
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else {}
+    if 事件.get('type')=='turn/end':
+        return 'immediate'
+    return 'none'
 
-def 登记回合尾会话节点(上下文):#注册已完成回合页脚
-    '挂到 uiConversation.events'
-    上下文.uiConversation.events.register(回合尾定义)#登记
+
+def 回合尾建位置数据(上下文,范围):
+    '页脚事实写在回合数据上'
+    if 范围!='turn':
+        return None
+    值=尾数据(上下文)
+    if 值 is None:
+        return None
+    return {'kind':'turn','turn':值['turn'],'key':'turn-tail','value':值}
+
+
+def 回合尾建视图(上下文):
+    '页脚跟在定稿内容后面'
+    回合=回合位置(上下文)
+    数据=None
+    if isinstance(回合,dict) and hasattr(回合.get('data'),'get'):
+        数据=回合['data'].get('turn-tail')
+    if not isinstance(数据,dict):
+        return None
+    return 聊天节点(
+        上下文,
+        'turn-tail',
+        数据.get('seq')+聊天合成序号偏移['finalizedFollowup'],
+        数据,
+        {'groupTree':'turn'},
+    )
+
+
+回合尾定义={
+    'kind':'turn-tail',
+    'target':'chat',
+    'match':回合尾匹配,
+    'start':回合尾开始,
+    'update':回合尾更新,
+    'publication':回合尾公布,
+    'buildLocationData':回合尾建位置数据,
+    'buildViewNode':回合尾建视图,
+}
+
+
+def 登记回合尾会话节点(上下文):
+    '按事件类型分发匹配'
+    def 匹配(事件):
+        '转给定义上的匹配'
+        return 回合尾匹配(事件)
+    登记=dict(回合尾定义)
+    登记['match']={
+        'turn/start':匹配,
+        'turn/end':匹配,
+        'tool/call':匹配,
+        'tool/result':匹配,
+        'assistant/message':匹配,
+        'assistant/attempt':匹配,
+        'assistant/live-chunk':匹配,
+        'step/start':匹配,
+        'step/end':匹配,
+        'llm/retry':匹配,
+        'llm/retry-started':匹配,
+    }
+    上下文.uiConversation.events.register(登记)

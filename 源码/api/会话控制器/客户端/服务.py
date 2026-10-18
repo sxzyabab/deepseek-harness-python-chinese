@@ -7,7 +7,7 @@ from .传输 import 会话搜索结果上限,创建会话控制流#传输
 from .作用域 import 创建作用域,作用域标签,作用域身份#作用域
 from .会话簇 import 会话簇#会话簇
 from ..异常 import 会话创建错误,会话分叉错误,失败说明#本包异常
-from ..远程错误与并发 import 若已中止则抛出#中止查询
+from ..远程错误与并发 import 已中止,若已中止则抛出#中止查询
 
 __all__=['会话创建错误','会话分叉错误','客户端会话服务','应用客户端会话']#仅中文公开名
 
@@ -39,6 +39,16 @@ class _快照存储:
                 回调()#通知
             except Exception as 错误:
                 print('[session-controller] list store subscriber failed:',type(错误).__name__,失败说明(错误))#日志，去掉绝对路径
+
+    def __getitem__(自身,键):
+        '调用方按 getSnapshot、subscribe、set 这三个名字取方法'
+        if 键=='getSnapshot':#读
+            return 自身.getSnapshot#方法
+        if 键=='subscribe':#订
+            return 自身.subscribe#方法
+        if 键=='set':#写
+            return 自身.set#方法
+        raise KeyError(键)#没有这个名字
 
 def _展示标题(标题,工作目录,标识):
     '持久标题、项目基名，然后 id'
@@ -84,19 +94,43 @@ class _会话引用:
             raise 自身._就绪错误#抛
         return 自身.binding
     def attachOpening(自身,打开任务,信号=None):
-        '附着打开'
+        '附着打开。共享历史继续跑，这次等待可以被取消或释放打断'
         def 后台():
-            '等打开'
+            '等打开落定'
             try:
                 if 信号 is not None:#有信号
                     若已中止则抛出(信号)#已取消
-                if callable(打开任务):#可调用
-                    打开任务()
-                elif hasattr(打开任务,'result'):#Future
-                    打开任务.result()#等
+                打开结果=打开任务() if callable(打开任务) else 打开任务#共享打开
+                if hasattr(打开结果,'然后'):#期约
+                    完成=threading.Event()#落定
+                    错误盒=[]#失败
+                    def 成功(_值=None):
+                        '打开完成'
+                        完成.set()#醒
+                    def 失败(错误):
+                        '打开失败'
+                        错误盒.append(错误)#记下
+                        完成.set()#醒
+                    打开结果.然后(成功,失败)#接上
+                    while not 完成.is_set():#还在等历史
+                        if 自身._已释:#释放只打断这次等待
+                            return#停
+                        if 信号 is not None and 已中止(信号):#取消
+                            原因=getattr(信号,'reason',None)#原因
+                            if 原因 is None:#再看中文槽
+                                原因=getattr(信号,'原因',None)#原因
+                            if not isinstance(原因,BaseException):#无异常
+                                原因=RuntimeError('aborted')#中止
+                            raise 原因#打断等待
+                        完成.wait(0.05)#短等
+                    if len(错误盒)>0:#失败
+                        raise 错误盒[0]#抛
+                if 自身._已释:#释放已另行唤醒
+                    return#停
                 自身._就绪.set()#就绪
             except BaseException as 错误:
-                自身._就绪错误=错误#记下
+                if not 自身._已释 and 自身._就绪错误 is None:#这次等待的失败
+                    自身._就绪错误=错误#记下
                 自身._就绪.set()#唤醒
         启动守护线程(后台)#启
     def release(自身):
@@ -128,7 +162,7 @@ class 客户端会话服务:
         自身._远程=远程#远程
         自身.searchResultLimit=会话搜索结果上限#上限
         自身._会话簇=会话簇(远程)#会话簇
-        自身.list=_快照存储({'ids':[],'byId':{},'phase':'pending','subagentsByParent':{},'jobsBySession':{}})#列表
+        自身.list=_快照存储({'ids':[],'byId':{},'phase':'pending','projectionsBySession':{}})#列表
         自身._作用域表={}#作用域
         自身._保留观察={}#观察者
         自身._已关=False
@@ -194,13 +228,9 @@ class 客户端会话服务:
         '取子地址'
         return 自身._会话簇.subagentAddress(标识)#委托
 
-    def setSubagentCatalogOpen(自身,父会话标识,打开):
-        '目录打开态'
-        自身._会话簇.setSubagentCatalogOpen(父会话标识,打开)#委托
-
-    def refreshSubagents(自身,父会话标识):
-        '刷新子目录'
-        自身._会话簇.refreshSubagents(父会话标识)#委托
+    def refreshProjections(自身,会话标识):
+        '不打开会话地重读投影'
+        return 自身._会话簇.refreshProjections(会话标识)#委托
 
     def refresh(自身):
         '刷新列表'
@@ -314,7 +344,7 @@ class 客户端会话服务:
             else:#发布
                 自身._发布保留(标识)#发布
         引用=_会话引用(标识,记录,释放)#引用
-        if 标识 not in 自身.list.getSnapshot()['byId']:#无行
+        if 标识 not in 自身.list.getSnapshot()['byId'] and 自身._会话簇.subagentAddress(标识) is not None:#目录子行
             自身._投影列表()#投影
         自身._发布保留(标识)#发布
         return 引用#引用
@@ -386,72 +416,95 @@ class 客户端会话服务:
         for 项 in 快照['items']:#逐行
             标识列表.append(项['sessionId'])#id
             标题=项.get('title')#标题
-            按标识[项['sessionId']]={
+            行={
                 'id':项['sessionId'],
                 'displayTitle':_展示标题(标题,项.get('cwd'),项['sessionId']),
                 'running':项.get('running',False),
                 'retainedBy':自身._保留快照(项['sessionId'])['retainedBy'],
                 'blank':项.get('blank',True),
                 'updatedAt':项.get('updatedAt',0),
-                **({'title':标题} if 标题 is not None else {}),
-                **({'cwd':项['cwd']} if 'cwd' in 项 else {}),
-                **({'parentId':项['parentSessionId']} if 'parentSessionId' in 项 else {}),
-                **({'origin':项['origin']} if 'origin' in 项 else {}),
-                **({'projectionValues':项['projectionValues']} if 'projectionValues' in 项 else {}),
             }#摘要
-        for 父标识,目录 in 快照.get('subagentsByParent',{}).items():#子目录
-            for 子 in 目录.get('entries',[]):#子
-                if 子.get('kind')!='child':#非子
+            if 'formatStatus' in 项:#格式
+                行['formatStatus']=项['formatStatus']#写入
+            if 'projectionValues' in 项:#投影值，含 subagentCatalog、subagentTiming、tokenUsage
+                行['projectionValues']=项['projectionValues']#写入
+            if 标题 is not None:#标题
+                行['title']=标题#写入
+            if 'cwd' in 项:#目录
+                行['cwd']=项['cwd']#写入
+            if 'parentSessionId' in 项:#父
+                行['parentId']=项['parentSessionId']#写入
+            if 'origin' in 项:#来源
+                行['origin']=项['origin']#写入
+            按标识[项['sessionId']]=行#收下
+        for 父标识,投影 in 快照.get('projectionsBySession',{}).items():#按父投影补子行
+            值表=投影.get('values') if isinstance(投影,dict) else None#值
+            目录=值表.get('subagentCatalog') if isinstance(值表,dict) else None#名录
+            if not isinstance(目录,list):#无
+                continue#下一父
+            for 子 in 目录:#子
+                if not isinstance(子,dict) or 子.get('mode')=='external':#外部任务不进列表
                     continue#跳过
-                子标识=子['id']#id
-                摘要=按标识.get(子标识)#摘要
-                投影值=(摘要.get('projectionValues') if 摘要 else None) or 自身._会话簇.projectionValues(子标识)#投影
+                子标识=子.get('id')#id
+                if 子标识 is None:#无身份
+                    continue#跳过
+                摘要=按标识.get(子标识)#已有行
+                投影值=摘要.get('projectionValues') if 摘要 is not None and 'projectionValues' in 摘要 else 自身._会话簇.projectionValues(子标识)#投影
                 投影标题=投影值.get('title') if isinstance(投影值,dict) else None#标题
                 标题=投影标题 if isinstance(投影标题,str) and 投影标题!='' else None#标题
-                展示=标题 if 标题 is not None else (子.get('label') or 子标识)#展示
+                展示=标题 if 标题 is not None else (子.get('label') if 子.get('label') is not None else 子标识)#展示
                 if 摘要 is None:#新行
+                    运行=False#未打开
+                    if 子标识 in 自身._作用域表:#已保留
+                        运行=自身._作用域表[子标识]['session'].getSnapshot().get('running',False)#快照
                     按标识[子标识]={
                         'id':子标识,'displayTitle':展示,'parentId':父标识,'origin':'subagent',
-                        'running':子.get('activity')=='running','blank':False,'updatedAt':0,
+                        'running':运行,'blank':False,'updatedAt':0,
                         'retainedBy':自身._保留快照(子标识)['retainedBy'],
                         **({} if 投影值 is None else {'projectionValues':投影值}),
                         **({} if 标题 is None else {'title':标题}),
                     }#行
-                elif 摘要.get('displayTitle')!=展示 or 摘要.get('projectionValues') is not 投影值:
-                    行=dict(摘要)#拷
-                    行['displayTitle']=展示#展示
+                elif 摘要.get('displayTitle')!=展示 or 摘要.get('projectionValues') is not 投影值:#变了
+                    新行=dict(摘要)#拷
+                    新行['displayTitle']=展示#展示
                     if 投影值 is not None:#投影
-                        行['projectionValues']=投影值#写
-                    按标识[子标识]=行#写
-        for 标识,记录 in 自身._作用域表.items():#作用域行
+                        新行['projectionValues']=投影值#写
+                    按标识[子标识]=新行#写
+        for 标识,记录 in 自身._作用域表.items():#保留中的子会话
             if 标识 in 按标识:#已有
+                continue#跳过
+            地址=自身._会话簇.subagentAddress(标识)#地址
+            if 地址 is None:#不是子会话
                 continue#跳过
             先前行=先前.get(标识)#先前
             会话快照=记录['session'].getSnapshot()#快照
-            地址=自身._会话簇.subagentAddress(标识)#地址
-            按标识[标识]={
-                **(先前行 if 先前行 is not None else {'id':标识,'displayTitle':标识,'updatedAt':0}),
-                'running':会话快照.get('running',False),
-                'retainedBy':记录['retention']['retainedBy'],
-                'blank':会话快照.get('blank',True),
-                **({} if 地址 is None else {'parentId':地址['parentSessionId'],'origin':'subagent'}),
-            }#行
+            投影值=自身._会话簇.projectionValues(标识)#投影
+            投影标题=投影值.get('title') if isinstance(投影值,dict) else None#标题
+            标题=投影标题 if isinstance(投影标题,str) and 投影标题!='' else (先前行.get('title') if isinstance(先前行,dict) else None)#标题
+            行=dict(先前行 if 先前行 is not None else {'id':标识,'displayTitle':标识,'updatedAt':0})#底
+            行['running']=会话快照.get('running',False)#运行
+            行['retainedBy']=记录['retention']['retainedBy']#保留
+            行['blank']=会话快照.get('blank',True)#空白
+            行['parentId']=地址['parentSessionId']#父
+            行['origin']='subagent'#来源
+            if 投影值 is not None:#投影
+                行['projectionValues']=投影值#写入
+            if isinstance(标题,str) and 标题!='':#有标题
+                行['title']=标题#写入
+                行['displayTitle']=标题#展示
+            按标识[标识]=行#收下
         自身.list.set({
             'ids':标识列表,
             'byId':按标识,
             'phase':快照.get('phase','pending'),
-            'subagentsByParent':快照.get('subagentsByParent',{}),
-            'jobsBySession':快照.get('jobsBySession',{}),
+            'projectionsBySession':快照.get('projectionsBySession',{}),
         })#写
 
-def 应用客户端会话(上下文):
+def 应用客户端会话(上下文,配置=None):
     '安装 Client Session 状态及其可重连控制流'
     远程=上下文.remote#远程根
     服务=客户端会话服务(上下文,远程)#根服务
-    if hasattr(上下文,'提供'):#有提供
-        上下文.提供('sessions',服务)#登记 sessions 依赖
-    else:#直接挂
-        上下文.sessions=服务#挂属性
+    上下文.提供服务('sessions',服务)#登记 sessions
     def 转发会话已添加(摘要):
         'added'
         服务.handleSessionAdded(摘要)#转发

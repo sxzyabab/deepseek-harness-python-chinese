@@ -1,142 +1,133 @@
-'日程目录的可观察快照：读取、删除、刷新'
-from ..异常 import 页面失败文案
+'会话和宿主目录共用的权威查询与删除。调用同步返回'
+from ...模块.客户端.通告 import 取握手窗口
 
-__all__=['创建目录源','空目录快照']
-
-空目录快照={'records':[],'status':'loading','deleting':[],'settled':False,'readRequest':0,'readSettled':0}
-
-class 目录钩子:
-    '带 getSnapshot 和 subscribe 方法的目录源。绑定器不认字典上的同名键'
-    def __init__(自身,取,订):
-        '记下读和订'
-        自身._取=取
-        自身._订=订
-
-    def getSnapshot(自身):
-        '当前目录快照'
-        return 自身._取()
-
-    def subscribe(自身,回调):
-        '第一个订阅者才开始读'
-        return 自身._订(回调)
+__all__=['创建目录源']
 
 def 创建目录源(依赖):
-    'list / remove / 两路失效订阅。变更时重新拉权威列表'
-    格子={'状态':dict(空目录快照)}
-    监听=set()
-    拆除=[]
-    世代=[0]
-    飞行=[None]
-    飞行请求=[0]
-    批=[False]
+    '订阅跟着框架订阅者走。删除各自返回 deleted、failed 或 pending'
+    快照={'records':[],'status':'loading','deleting':[],'settled':False,'readRequest':0,'readSettled':0}
+    监听列=set()
+    拆除列=[]
+    纪元=0
+    生命周期=0
+    批处理中=False
+    飞行中=None
+    飞行请求号=0
 
-    def 发布(下一):
-        '换快照并通知'
-        格子['状态']=下一
-        for 回调 in list(监听):
-            try:
-                回调()
-            except Exception as 错误:
-                print('目录订阅者失败:',页面失败文案(错误))
+    def 发布(下一份):
+        '换上快照并通知当前监听'
+        nonlocal 快照
+        快照=下一份
+        for 监听 in list(监听列):
+            监听()
 
-    def 应用读取(请求号,当前世代,结果):
-        '成功写入记录；失败只改状态'
-        if 当前世代!=世代[0]:
-            return
-        状态=格子['状态']
-        if isinstance(结果,dict) and 'ok' in 结果 and 结果['ok'] is True and 'value' in 结果 and isinstance(结果['value'],list):
-            发布({**状态,'records':结果['value'],'status':'ready','settled':True,'readSettled':请求号})
-            return
-        if isinstance(结果,list):
-            发布({**状态,'records':结果,'status':'ready','settled':True,'readSettled':请求号})
-            return
-        发布({**状态,'status':'error'})
-
-    def 读(请求号,当前世代):
-        '调用 list，同步值或 thenable 都收'
+    def 读取(请求号,当前代):
+        '拉一次列表。传输失败和远端失败都变成可重试的 error'
+        nonlocal 快照
         try:
             结果=依赖['list']()
         except Exception:
-            if 当前世代==世代[0]:
-                发布({**格子['状态'],'status':'error'})
+            if 当前代==纪元:
+                发布({**快照,'status':'error'})
             return
-        def 成功(值):
-            '读回'
-            应用读取(请求号,当前世代,值)
-        def 失败(_错误):
-            '传输失败'
-            应用读取(请求号,当前世代,{'ok':False})
-        if hasattr(结果,'then') and callable(结果.then):
-            结果.then(成功,失败)
+        if 当前代!=纪元:
             return
-        成功(结果)
+        if 结果.get('ok'):
+            发布({**快照,'records':结果['value'],'status':'ready','settled':True,'readSettled':请求号})
+        else:
+            发布({**快照,'status':'error'})
 
-    def 刷新(取代=False,自从=0):
-        '同一拍里的请求共用一次读取'
-        状态=格子['状态']
-        请求号=状态['readRequest']+1
-        发布({**状态,'status':'loading','readRequest':请求号})
-        if 取代 is False and 批[0] is True and 飞行[0] is not None and 飞行请求[0]>自从:
-            return 飞行[0]
-        批[0]=True
-        当前=世代[0]+1
-        世代[0]=当前
-        读(请求号,当前)
-        飞行请求[0]=请求号
-        飞行[0]=请求号
-        return 请求号
+    def 刷新(取代=False,起始=0):
+        '同一轮里后到的请求共享这一次读取。取代则另开一次'
+        nonlocal 纪元,批处理中,飞行中,飞行请求号
+        请求号=快照['readRequest']+1
+        发布({**快照,'status':'loading','readRequest':请求号})
+        if (not 取代) and 批处理中 and 飞行中 is not None and 飞行请求号>起始:
+            return
+        窗口=取握手窗口()
+        if not 批处理中:
+            批处理中=True
+            def 清批():
+                '这一轮提交结束'
+                nonlocal 批处理中
+                批处理中=False
+            窗口.queueMicrotask(清批)
+        当前代=纪元+1
+        纪元=当前代
+        待定=object()
+        飞行请求号=请求号
+        飞行中=待定
+        def 收尾():
+            '这次读取不再可加入'
+            nonlocal 飞行中
+            if 飞行中 is 待定:
+                飞行中=None
+        窗口.queueMicrotask(收尾)
+        读取(请求号,当前代)
 
-    def 失效():
-        '变更或断线重读，不并进旧请求'
+    def 作废():
+        '变更或断线重连要盖过正在进行的读取'
         刷新(True)
 
-    def 订阅(回调):
-        '订阅目录；退订到零时拆掉远端监听'
-        监听.add(回调)
-        if len(监听)==1:
-            改=依赖['subscribeChanged'](失效)
-            重=依赖['subscribeReset'](失效)
-            拆除[:] = [项 for 项 in (改,重) if callable(项)]
-            失效()
-        def 退订():
-            '最后一个订阅者离开后停止读取'
-            监听.discard(回调)
-            if len(监听)!=0:
-                return
-            for 拆 in 拆除:
-                拆()
-            拆除.clear()
-            世代[0]+=1
-            发布({**格子['状态'],'deleting':[]})
-        return 退订
-
     def 删除(标识):
-        '删一条；已在删则 pending'
-        状态=格子['状态']
-        正在=状态['deleting']
-        if 标识 in 正在:
+        '同一条正在删则 pending。确认后强制再读一次'
+        nonlocal 快照
+        if 标识 in 快照['deleting']:
             return 'pending'
-        发布({**状态,'deleting':[*正在,标识]})
+        开始代=生命周期
+        发布({**快照,'deleting':[*快照['deleting'],标识]})
         try:
             结果=依赖['remove'](标识)
         except Exception:
-            发布({**格子['状态'],'deleting':[项 for 项 in 格子['状态']['deleting'] if 项!=标识]})
+            if 开始代==生命周期:
+                留下=[值 for 值 in 快照['deleting'] if 值!=标识]
+                发布({**快照,'deleting':留下})
             return 'failed'
-        def 收尾(值):
-            '确认后刷新列表'
-            发布({**格子['状态'],'deleting':[项 for 项 in 格子['状态']['deleting'] if 项!=标识]})
-            成功=isinstance(值,dict) and 'ok' in 值 and 值['ok'] is True
-            if 成功:
-                刷新(True)
-            return 'deleted' if 成功 else 'failed'
-        if hasattr(结果,'then') and callable(结果.then):
-            结果.then(收尾,lambda _错误:收尾({'ok':False}))
-            return 'pending'
-        return 收尾(结果)
+        if 开始代!=生命周期:
+            return 'deleted' if 结果.get('ok') else 'failed'
+        留下=[值 for 值 in 快照['deleting'] if 值!=标识]
+        发布({**快照,'deleting':留下})
+        if 结果.get('ok'):
+            刷新(True)
+        return 'deleted' if 结果.get('ok') else 'failed'
 
-    def 重试(自从=0):
-        '失败或创建卡要求的新读取'
-        return 刷新(False,自从)
+    def 订阅(监听):
+        '第一个订阅者才去订远端，并立刻作废读取'
+        nonlocal 拆除列,纪元,生命周期,快照
+        监听列.add(监听)
+        if len(监听列)==1:
+            生命周期=生命周期+1
+            拆除列=[依赖['subscribeChanged'](作废),依赖['subscribeReset'](作废)]
+            作废()
+        def 退订():
+            '最后一个离开就拆订阅，并清掉进行中的删除'
+            nonlocal 拆除列,纪元,生命周期,快照
+            监听列.discard(监听)
+            if len(监听列)!=0:
+                return
+            for 拆除 in 拆除列:
+                拆除()
+            拆除列=[]
+            纪元=纪元+1
+            生命周期=生命周期+1
+            快照={**快照,'deleting':[]}
+        return 退订
 
-    钩子=目录钩子(lambda:格子['状态'],订阅)
-    return {'hooks':{'catalog':钩子},'onDelete':删除,'onRetry':重试}
+    def 重试(起始=0):
+        '失败或写回之后再读。起始是调用方见过的请求序号'
+        刷新(False,起始)
+
+    def 取快照():
+        '当前目录快照'
+        return 快照
+
+    return {
+        'hooks':{
+            'catalog':{
+                'getSnapshot':取快照,
+                'subscribe':订阅,
+            },
+        },
+        'onDelete':删除,
+        'onRetry':重试,
+    }

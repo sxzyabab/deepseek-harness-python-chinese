@@ -1,40 +1,112 @@
-'桌面埋点事件名与选定字段'
+'桌面埋点事件名与选定字段。事件名和属性键保持英文'
 
-__all__=['引导页','产品事件字段','可选产品事件字段']
+__all__=['引导页','产品事件图','产品事件','跟踪产品事件']#仅中文公开名
 
-引导页=('onboarding_welcome','onboarding_recharge','onboarding_use_case','onboarding_process')
+引导页=(#公开页名，不跟内部引导状态名
+    'onboarding_welcome',#欢迎
+    'onboarding_recharge',#充值
+    'onboarding_use_case',#用途
+    'onboarding_process',#流程
+)#引导页结束
 
-产品事件字段={
-    'desktop_app_launch':(),
-    'auth_page_view':(),
-    'auth_page_click':('button_name',),
-    'api_key_save_click':(),
-    'onboarding_page_view':('page_name',),
-    'onboarding_page_click':('page_name','button_name'),
-    'onboarding_popup_view':('popup_name',),
-    'onboarding_popup_click':('popup_name','button_name'),
-    'desktop_upgrade_click':(),
-    'desktop_upgrade_download_result':('is_success',),
-    'desktop_upgrade_install_restart_click':(),
-    'send_button_click':('run_mode','msg_type'),
-    'model_switch':('switch_from','switch_to'),
-    'thinking_level_switch':('switch_from','switch_to','model_name'),
-    'context_compression':('session_id','trigger_type'),
-    'branch_session_click':('session_id','parent_session_id','click_position'),
-    'sidebar_menu_click':('menu_name',),
-    'plugin_toggle':('plugin_name','plugin_type','is_enabled','is_builtin'),
-    'plugin_add_button_click':(),
-    'plugin_install_click':('input_value',),
-    'install_plugin_result':('input_value','is_success','duration'),
-    'confirm_uninstall_plugin':('plugin_name',),
-}
+产品事件图={#事件名 → 必填属性域与可选属性域
+    'desktop_app_launch':{'必填':{},'可选':{}},#启动
+    'auth_page_view':{'必填':{},'可选':{}},#认证页出现
+    'auth_page_click':{#认证页点击
+        '必填':{'button_name':('sign_in','api-key')},#按钮
+        '可选':{},#无
+    },#认证页点击结束
+    'api_key_save_click':{'必填':{},'可选':{}},#保存密钥
+    'onboarding_page_view':{#引导页出现
+        '必填':{'page_name':引导页},#页名
+        '可选':{},#无
+    },#引导页出现结束
+    'onboarding_page_click':{#引导页点击
+        '必填':{#必填
+            'page_name':引导页,#页名
+            'button_name':('next','back','skip','charge','later','continue'),#按钮
+        },#必填结束
+        '可选':{#可选
+            'selected_content':(#所选内容
+                'office','code','code_office','focus_result','key_detail','full_process',
+            ),#内容结束
+        },#可选结束
+    },#引导页点击结束
+    'onboarding_popup_view':{#弹层出现
+        '必填':{'popup_name':('skip_charge','skip_setting')},#弹层名
+        '可选':{},#无
+    },#弹层出现结束
+    'onboarding_popup_click':{#弹层点击
+        '必填':{#必填
+            'popup_name':('skip_charge','skip_setting'),#弹层名
+            'button_name':('charge','know','enter','setting','close'),#按钮
+        },#必填结束
+        '可选':{},#无
+    },#弹层点击结束
+    'desktop_upgrade_click':{'必填':{},'可选':{}},#升级点击
+    'desktop_upgrade_download_result':{#下载结果
+        '必填':{'is_success':bool},#是否成功
+        '可选':{'error_reason':str},#失败原因
+    },#下载结果结束
+    'desktop_upgrade_install_restart_click':{'必填':{},'可选':{}},#安装后重启
+    'send_button_click':{#发送
+        '必填':{#必填
+            'run_mode':('plan','goal','default'),#运行模式
+            'msg_type':('default','steer','queue'),#消息类型
+        },#必填结束
+        '可选':{#可选
+            'session_id':str,#会话
+            'model_name':str,#模型
+            'thinking_effort':str,#思考强度
+        },#可选结束
+    },#发送结束
+    'model_switch':{#切换模型
+        '必填':{'switch_from':str,'switch_to':str},#从、到
+        '可选':{'session_id':str},#会话
+    },#切换模型结束
+    'thinking_level_switch':{#切换思考档
+        '必填':{'switch_from':str,'switch_to':str,'model_name':str},#从、到、模型
+        '可选':{'session_id':str},#会话
+    },#切换思考档结束
+    'context_compression':{#压缩
+        '必填':{'session_id':str,'trigger_type':('auto','manual')},#会话与触发
+        '可选':{},#无
+    },#压缩结束
+    'branch_session_click':{#分支会话
+        '必填':{#必填
+            'session_id':str,#会话
+            'parent_session_id':str,#父会话
+            'click_position':('footer','sidebar'),#点击位置
+        },#必填结束
+        '可选':{'parent_message_id':str},#父消息
+    },#分支会话结束
+    'sidebar_menu_click':{#侧栏菜单
+        '必填':{'menu_name':('plugin','cron')},#菜单
+        '可选':{},#无
+    },#侧栏菜单结束
+    'plugin_toggle':{#插件开关
+        '必填':{#必填
+            'plugin_name':str,#名称
+            'plugin_type':('plugin','bundle'),#种类
+            'is_enabled':bool,#是否启用
+            'is_builtin':bool,#是否内置
+        },#必填结束
+        '可选':{},#无
+    },#插件开关结束
+    'plugin_add_button_click':{'必填':{},'可选':{}},#添加按钮
+    'plugin_install_click':{#安装点击
+        '必填':{'input_value':str},#输入
+        '可选':{},#无
+    },#安装点击结束
+    'install_plugin_result':{#安装结果
+        '必填':{'input_value':str,'is_success':bool,'duration':int},#输入、成败、耗时
+        '可选':{'error_reason':str,'plugin_name':str},#原因、名称
+    },#安装结果结束
+    'confirm_uninstall_plugin':{#确认卸载
+        '必填':{'plugin_name':str},#名称
+        '可选':{},#无
+    },#确认卸载结束
+}#事件图结束
 
-可选产品事件字段={
-    'onboarding_page_click':('selected_content',),
-    'desktop_upgrade_download_result':('error_reason',),
-    'send_button_click':('session_id','model_name','thinking_effort'),
-    'model_switch':('session_id',),
-    'thinking_level_switch':('session_id',),
-    'branch_session_click':('parent_message_id',),
-    'install_plugin_result':('error_reason','plugin_name'),
-}
+产品事件=('eventName','attributes','timestamp')#一条已关联的埋点：事件名、属性、发生时间
+跟踪产品事件=('名称','属性')#交给呈现组件的回调形状；采集关闭时不传入

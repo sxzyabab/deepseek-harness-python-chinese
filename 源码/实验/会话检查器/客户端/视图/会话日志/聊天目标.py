@@ -1,65 +1,54 @@
-'交给目标自己的 Chat 定位使用的原始日志坐标'
-
-__all__=['会话日志聊天目标']
-
-def 片段部位(分片):
-    '推理或回复分片对应的 group 部位'
-    if 分片 is None:
-        return None
-    类型=分片.get('type')
-    if 类型=='reasoning-delta':
-        return 'reasoning'
-    if 类型=='text-delta':
-        return 'response'
-    块类型=None
-    if 类型=='block-start':
-        块类型=分片.get('blockType')
-    elif 类型=='block-end':
-        块=分片.get('block') or {}
-        块类型=块.get('type')
-    if 块类型=='reasoning':
-        return 'reasoning'
-    if 块类型=='text':
-        return 'response'
-    return None
+'把日志坐标交给主对话去定位，不读另一个视图的模型'
 
 def 会话日志聊天目标(锚):
-    '描述一条日志记录，不读取另一个视图的模型或 DOM'
-    事件=锚['event']
-    分片=锚.get('chunk')
-    数据=事件['data'] if isinstance(事件,dict) else 事件.data
-    if not isinstance(数据,dict):
-        数据={}
-    回合=数据['turn'] if 'turn' in 数据 and isinstance(数据['turn'],(int,float)) and not isinstance(数据['turn'],bool) else None
-    步=数据['step'] if 'step' in 数据 and isinstance(数据['step'],(int,float)) and not isinstance(数据['step'],bool) else None
-    类型=事件['type'] if isinstance(事件,dict) else 事件.type
-    调用=None
-    if 类型=='tool/call':
-        调用=数据.get('callId')
-    elif 类型=='tool/result':
-        消息=数据.get('message') or {}
-        调用=消息.get('source',{}).get('callId') if isinstance(消息,dict) else None
-    elif 'subCallId' in 数据 and isinstance(数据['subCallId'],str):
-        调用=数据['subCallId']
-    elif 分片 is not None and 分片.get('type')=='tool-call-delta':
-        调用=分片.get('id')
-    elif 分片 is not None and 分片.get('type')=='block-end':
-        块=分片.get('block') or {}
-        if 块.get('type')=='tool-call':
-            调用=块.get('id')
-    根调用=数据['rootCallId'] if 'rootCallId' in 数据 and isinstance(数据['rootCallId'],str) else 调用
-    部位=片段部位(分片)
-    结果={'anchorSeq':事件['seq'] if isinstance(事件,dict) else 事件.seq}
-    if 类型 in ('assistant/message','assistant/attempt','assistant/live-chunk'):
-        结果['nodeKind']='assistant-step'
-    if 回合 is not None:
-        结果['turn']=回合
-    if 步 is not None:
-        结果['step']=步
-    if 调用 is not None:
-        结果['callId']=调用
-    if 根调用 is not None and 根调用!=调用:
-        结果['rootCallId']=根调用
-    if 部位 is not None:
-        结果['groupPart']=部位
-    return 结果
+    '用原始事件和可选增量描述一条日志在对话里的位置'
+    事件=锚['event']#原始事件
+    块=锚.get('chunk')#助手子行才有增量
+    数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}#事件数据
+    回合=数据.get('turn') if isinstance(数据.get('turn'),(int,float)) and not isinstance(数据.get('turn'),bool) else None#回合号
+    步=数据.get('step') if isinstance(数据.get('step'),(int,float)) and not isinstance(数据.get('step'),bool) else None#步骤号
+    类型=事件.get('type')#事件类型
+    调用=None#工具调用身份
+    if 类型=='tool/call':#调用本身
+        调用=事件.get('data',{}).get('callId')#调用号
+    elif 类型=='tool/result':#调用结果
+        消息=事件.get('data',{}).get('message') if isinstance(事件.get('data'),dict) else None#结果消息
+        来源=消息.get('source') if isinstance(消息,dict) else None#来源
+        调用=来源.get('callId') if isinstance(来源,dict) else None#来源调用
+    elif isinstance(数据.get('subCallId'),str):#子调用
+        调用=数据.get('subCallId')#子调用号
+    elif isinstance(块,dict) and 块.get('type')=='tool-call-delta':#增量里的调用
+        调用=块.get('id')#增量调用号
+    elif isinstance(块,dict) and 块.get('type')=='block-end' and isinstance(块.get('block'),dict) and 块['block'].get('type')=='tool-call':#工具块结束
+        调用=块['block'].get('id')#块上的调用号
+    根调用=数据.get('rootCallId') if isinstance(数据.get('rootCallId'),str) else 调用#没有根调用时用调用号
+    部位=None#助手部位
+    if isinstance(块,dict):#有增量才有部位
+        if 块.get('type')=='reasoning-delta':#推理增量
+            部位='reasoning'#推理
+        elif 块.get('type')=='text-delta':#文本增量
+            部位='response'#回复
+        else:#块开始或结束
+            块类型=None#块种类
+            if 块.get('type')=='block-start':#开始
+                块类型=块.get('blockType')#块类型
+            elif 块.get('type')=='block-end' and isinstance(块.get('block'),dict):#结束
+                块类型=块['block'].get('type')#块类型
+            if 块类型=='reasoning':#推理块
+                部位='reasoning'#推理
+            elif 块类型=='text':#文本块
+                部位='response'#回复
+    目标={'anchorSeq':事件.get('seq')}#原始序号
+    if 类型 in ('assistant/message','assistant/attempt','assistant/live-chunk'):#助手行
+        目标['nodeKind']='assistant-step'#对话里的助手步骤
+    if 回合 is not None:#有回合
+        目标['turn']=回合#回合号
+    if 步 is not None:#有步骤
+        目标['step']=步#步骤号
+    if 调用 is not None:#有调用
+        目标['callId']=调用#调用号
+    if 根调用 is not None and 根调用!=调用:#根调用和调用不同才单独写
+        目标['rootCallId']=根调用#根调用
+    if 部位 is not None:#有部位
+        目标['groupPart']=部位#分组部位
+    return 目标#坐标

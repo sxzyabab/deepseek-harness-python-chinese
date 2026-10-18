@@ -3,5 +3,5 @@
     "close-requests":"关闭请求",
     "model":"模型",
     "retention":"窗口保持",
-    "shell-preference":"外壳偏好"
+    "shell-preference":"命令解释器偏好"
 }

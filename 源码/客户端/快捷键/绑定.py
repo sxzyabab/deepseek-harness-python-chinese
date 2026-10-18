@@ -1,5 +1,6 @@
 '浏览器命令与桌面适配器共享的物理键协议；不含 DOM 或运行时状态'
 import re#物理码校验
+from .异常 import 快捷键错误#不支持的物理码
 
 __all__=[#仅中文公开名
     '键名表','修饰键序','规范化绑定','绑定键','呈现绑定','Web绑定是否准入',
@@ -24,9 +25,9 @@ def 规范化绑定(绑定,平台):
     码表.sort()#排序使对顺序无关
     for 码 in 码表:#校验每个物理码
         if 物理码模式.match(码) is None and 码 not in 键名表:#既非标准码也非具名键
-            raise ValueError('不支持的快捷键码: '+码)#拒绝
+            raise 快捷键错误('Unsupported shortcut code: '+码)#拒绝
     if len(码表)==2 and 码表[0]==码表[1]:#双键相同
-        raise ValueError('快捷键必须互不相同')#拒绝
+        raise 快捷键错误('Shortcut keys must be distinct')#拒绝
     #展开 primary 并去重
     修饰集合=set()#物理修饰键集合
     for 值 in 绑定['modifiers']:#逐个声明

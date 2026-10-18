@@ -1,7 +1,7 @@
 import json,math,traceback,re
 from ...基础设施.通用工具.时间工具 import 当前毫秒
 from weakref import ref as 弱引用,ReferenceType as 弱引用类型
-from ..工具 import 设置内部数据,获取内部数据,调用方上下文壳#内部数据面读写，方法里的自身可能是壳
+from ..工具 import 设置内部数据,获取内部数据,调用方上下文壳,统一为短横分隔#内部数据面读写，方法里的自身可能是壳，日志名用短横分隔
 
 ################################ 日志级别 ################################
 class 日志级别:

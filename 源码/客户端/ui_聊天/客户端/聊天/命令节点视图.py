@@ -1,69 +1,93 @@
-from .回退命令卡 import 回退命令卡#回退卡
-from .压缩命令卡 import 压缩命令卡#压缩卡
-from .消息项 import 打开列
+from ....ui_对话.异常 import 标样式模块
+from .压缩命令卡 import 压缩命令卡
+from .泛型命令卡 import 泛型命令卡
+from .用披露 import 注入聊天样式,挂节点
 
-__all__=['命令节点视图','手动压缩节点视图']#仅中文公开名
+__all__=['命令节点视图','手动压缩节点视图']
 
-from nicegui import ui as 界面
+样式模块='chat-view'
 
-from nicegui import ui as 界面
-
-def 恒等翻译(键,参数=None):
-    '无文案表时返回键本身'
-    return 键#键即文案
 
 class 命令节点视图:
-    '委托回退命令卡'
+    '普通命令。有同名专用视图时让给槽位'
     def __init__(自身,属性=None):
-        '记下合成 props'
-        自身.属性=属性 if 属性 is not None else {}#合成
-        自身.卡=回退命令卡()#卡
-        自身.根=None#列
-        自身.渲染()#槽位只调用构造，这里就要画
+        '记下命令节点'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        if 'window' in 自身.属性:
+            自身.渲染()
 
     def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性 if 属性 is not None else {}#新
+        '刷新属性'
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
     def 渲染(自身):
-        '命令'
-        属性=自身.属性#props
-        节点=属性['node'] if 'node' in 属性 and 属性['node'] is not None else {}#节点
-        数据=节点['data'] if 'data' in 节点 and 节点['data'] is not None else 节点#数据
-        翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
-        with 打开列(自身,'命令节点'):
-            with 界面.column().classes('命令体'):
-                自身.卡.更新({'node':数据,'t':翻译})
-                自身.卡.渲染()
+        '槽位回退到泛型命令卡'
+        if 自身.根 is not None:
+            自身.根.remove()
+        属性=自身.属性
+        窗口=属性['window']
+        文档=窗口.document
+        注入聊天样式(文档,样式模块,'聊天视图.module.css')
+        节点=属性.get('node') if isinstance(属性.get('node'),dict) else {}
+        命令=节点.get('data') if isinstance(节点.get('data'),dict) else {}
+        根=文档.createElement('div')
+        根.className='callRow'
+        标样式模块(根,样式模块)
+        属主={'node':命令,'window':窗口,'t':属性.get('t')}
+        槽=属性.get('renderSlot')
+        画出=None
+        if callable(槽):
+            回退=泛型命令卡(dict(属主))
+            画出=槽('conversation.chat.commandview',属主,{
+                'entryKey':命令.get('name') or '',
+                'fallback':回退,
+                'window':窗口,
+            })
+            if 画出 is 回退 or 画出 is None:
+                画出=回退.根 if getattr(回退,'根',None) is not None else 回退.渲染()
+        else:
+            回退=泛型命令卡(属主)
+            画出=回退.根
+        挂节点(根,画出)
+        自身.根=根
+        if 属性.get('parent') is not None:
+            属性['parent'].appendChild(根)
+        return 根
 
-    def __call__(自身,属性=None):
-        '对齐'
-        if 属性 is not None:
-            自身.更新(属性)#刷
-        自身.渲染()#画
 
 class 手动压缩节点视图:
-    '委托压缩命令卡'
+    '手动压缩命令和它的检查点画在一起'
     def __init__(自身,属性=None):
-        '记下合成 props'
-        自身.属性=属性 if 属性 is not None else {}#合成
-        自身.卡=压缩命令卡()#卡
-        自身.根=None#列
-        自身.渲染()#槽位只调用构造，这里就要画
+        '记下手动压缩节点'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        if 'window' in 自身.属性:
+            自身.渲染()
 
     def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性 if 属性 is not None else {}#新
+        '刷新属性'
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
     def 渲染(自身):
-        '手动压缩'
-        with 打开列(自身,'手动压缩'):
-            with 界面.column().classes('手动压缩体'):
-                自身.卡.更新(自身.属性)
-                自身.卡.渲染()
-
-    def __call__(自身,属性=None):
-        '对齐'
-        if 属性 is not None:
-            自身.更新(属性)#刷
-        自身.渲染()#画
+        '有压缩结果就交给压缩命令卡'
+        if 自身.根 is not None:
+            自身.根.remove()
+        属性=自身.属性
+        窗口=属性['window']
+        文档=窗口.document
+        注入聊天样式(文档,样式模块,'聊天视图.module.css')
+        节点=属性.get('node') if isinstance(属性.get('node'),dict) else {}
+        数据=节点.get('data') if isinstance(节点.get('data'),dict) else {}
+        根=文档.createElement('div')
+        根.className='callRow'
+        标样式模块(根,样式模块)
+        卡属性={'window':窗口,'node':数据.get('command'),'t':属性.get('t')}
+        if 数据.get('compaction') is not None:
+            卡属性['compaction']=数据['compaction']
+        卡=压缩命令卡(卡属性)
+        挂节点(根,卡.根)
+        自身.根=根
+        if 属性.get('parent') is not None:
+            属性['parent'].appendChild(根)
+        return 根

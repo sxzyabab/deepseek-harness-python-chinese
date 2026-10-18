@@ -4,7 +4,7 @@ from datetime import datetime,timedelta,timezone#ISO 时间戳、固定偏移与
 from zoneinfo import ZoneInfo#IANA / UTC
 from ...依赖.cordis.服务 import 服务
 from .实体 import 工作区实体
-from .异常 import 工作区错误,工作区移动无效错误,工作区未知会话错误,工作区顺序无效错误#一般错误、非法移动、未知会话与非法重排
+from .异常 import 工作区错误,工作区移动无效错误,工作区未知会话错误,工作区顺序无效错误,工作区活动会话错误,工作区已归档会话钉住错误#一般错误、非法移动、未知会话、非法重排、仍在活动、已归档不能钉
 from .路径 import 规范化真实路径
 from .规格 import 工作区域规格
 from . import (
@@ -87,7 +87,7 @@ class 工作区注册表(服务):
             return 自身._会话路径[会话号] if 会话号 in 自身._会话路径 else None
         def 读会话头(会话号):
             '实体读会话头'
-            return 自身._读会话头(会话号)
+            return 自身._读取会话头(会话号)
         自身._宿主={
             'table':取表,
             'sessionPath':取会话路径,
@@ -165,7 +165,7 @@ class 工作区注册表(服务):
             新顺序=去掉[:位置]+[标识]+去掉[位置:]
             if _同id列表(新顺序,状态['workspaceIds']):
                 return 状态['workspaceIds']
-            自身._写状态({**状态,'workspaceIds':新顺序})
+            自身._写入状态({**状态,'workspaceIds':新顺序})
             return 新顺序
         return 自身._入队写操作(操作)
 
@@ -183,7 +183,7 @@ class 工作区注册表(服务):
             if 自身._会话已知(会话号) is not True:
                 raise 工作区未知会话错误(会话号)
             状态=自身._要求状态()
-            自身._写状态({**状态,'archivedSessionIds':[*状态['archivedSessionIds'],会话号]})
+            自身._写入状态({**状态,'archivedSessionIds':[*状态['archivedSessionIds'],会话号]})
         return 自身._入队写操作(操作)
 
     def unarchiveSession(自身,会话号):
@@ -193,7 +193,7 @@ class 工作区注册表(服务):
             状态=自身._要求状态()
             if 会话号 not in 状态['archivedSessionIds']:
                 return
-            自身._写状态({**状态,'archivedSessionIds':[项 for 项 in 状态['archivedSessionIds'] if 项!=会话号]})
+            自身._写入状态({**状态,'archivedSessionIds':[项 for 项 in 状态['archivedSessionIds'] if 项!=会话号]})
         return 自身._入队写操作(操作)
 
     def resolveByPath(自身,路径):
@@ -219,7 +219,7 @@ class 工作区注册表(服务):
         自身._实体[标识]=实体#先发布缓存
         挂起状态={**状态,'pendingMutation':{'operation':'create','workspaceId':标识}}
         try:
-            自身._写状态(挂起状态)
+            自身._写入状态(挂起状态)
         except BaseException as 错误:
             del 自身._实体[标识]
             raise 错误
@@ -228,12 +228,12 @@ class 工作区注册表(服务):
         except BaseException as 错误:
             del 自身._实体[标识]
             try:
-                自身._写状态(状态)
+                自身._写入状态(状态)
             except BaseException as 回滚错误:
                 raise 工作区错误("workspace record write and pending-marker rollback both failed") from 回滚错误
             raise 错误
         try:
-            自身._写状态({'initialized':True,'workspaceIds':[标识,*状态['workspaceIds']],'archivedSessionIds':状态['archivedSessionIds']})
+            自身._写入状态({'initialized':True,'workspaceIds':[标识,*状态['workspaceIds']],'archivedSessionIds':状态['archivedSessionIds']})
         except BaseException as 错误:
             del 自身._实体[标识]
             try:
@@ -241,7 +241,7 @@ class 工作区注册表(服务):
             except BaseException as 回滚错误:
                 raise 工作区错误("workspace order write and record rollback both failed; the pending marker remains recoverable") from 回滚错误
             try:
-                自身._写状态(状态)
+                自身._写入状态(状态)
             except BaseException as 回滚错误:
                 raise 工作区错误("workspace order write and pending-marker rollback both failed") from 回滚错误
             raise 错误
@@ -254,20 +254,20 @@ class 工作区注册表(服务):
         实体=自身._实体[标识]
         状态=自身._要求状态()
         下一状态={'initialized':True,'workspaceIds':[项 for 项 in 状态['workspaceIds'] if 项!=标识],'archivedSessionIds':状态['archivedSessionIds']}
-        自身._写状态({**下一状态,'pendingMutation':{'operation':'delete','workspaceId':标识}})
+        自身._写入状态({**下一状态,'pendingMutation':{'operation':'delete','workspaceId':标识}})
         del 自身._实体[标识]#先从缓存拿掉
         try:
             自身._要求表().delete(标识)
         except BaseException as 错误:
             自身._实体[标识]=实体
             try:
-                自身._写状态(状态)
+                自身._写入状态(状态)
             except BaseException as 回滚错误:
                 del 自身._实体[标识]#与挂起标记一致
                 raise 工作区错误("workspace record deletion and registry-order rollback both failed") from 回滚错误
             raise 错误
         try:
-            自身._写状态(下一状态)
+            自身._写入状态(下一状态)
         except BaseException as 错误:
             自身.所属上下文.日志.警告("workspace was deleted but its pending marker could not be cleared: "+str(错误))
         return True
@@ -281,7 +281,7 @@ class 工作区注册表(服务):
         if 挂起['workspaceId'] in 状态['workspaceIds']:
             raise 工作区错误("workspace domain is inconsistent: pending mutation is still present in registry order")
         自身._要求表().delete(挂起['workspaceId'])
-        自身._写状态({'initialized':状态['initialized'],'workspaceIds':状态['workspaceIds'],'archivedSessionIds':状态['archivedSessionIds']})
+        自身._写入状态({'initialized':状态['initialized'],'workspaceIds':状态['workspaceIds'],'archivedSessionIds':状态['archivedSessionIds']})
 
     def _引导(自身,头列表):
         """按历史头一次性引导工作区表。
@@ -357,8 +357,8 @@ class 工作区注册表(服务):
         工作区列表=sorted(表.entries(),key=工作区排序键)
         工作区标识列表=[标识 for 标识,_ in 工作区列表]
         if not _同id列表(状态['workspaceIds'],工作区标识列表):
-            自身._写状态({'initialized':False,'workspaceIds':工作区标识列表,'archivedSessionIds':状态['archivedSessionIds']})
-        自身._写状态({'initialized':True,'workspaceIds':工作区标识列表,'archivedSessionIds':状态['archivedSessionIds']})
+            自身._写入状态({'initialized':False,'workspaceIds':工作区标识列表,'archivedSessionIds':状态['archivedSessionIds']})
+        自身._写入状态({'initialized':True,'workspaceIds':工作区标识列表,'archivedSessionIds':状态['archivedSessionIds']})
 
     def _校验已存状态(自身,状态):
         '校验域顺序与表一致'
@@ -444,7 +444,7 @@ class 工作区注册表(服务):
                     原因='session header is missing'
                 自身.所属上下文.日志.警告("workspace filtered a session from membership: "+原因)
 
-    def _读会话头(自身,会话号):
+    def _读取会话头(自身,会话号):
         '读会话头'
         活=自身.所属上下文.获取服务('sessions',False)
         if 活 is not None:
@@ -472,7 +472,7 @@ class 工作区注册表(服务):
             raise 工作区错误('workspace registry is not started yet')
         return 自身._状态
 
-    def _写状态(自身,状态):
+    def _写入状态(自身,状态):
         '写全局状态'
         结果=自身._全局.set(状态)
         自身._状态=状态

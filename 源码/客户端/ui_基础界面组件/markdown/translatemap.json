@@ -7,5 +7,9 @@
     "incremental":"增量",
     "parse":"解析",
     "plain-text":"纯文本",
-    "render":"渲染"
+    "render":"渲染",
+    "MarkdownDelegate":"Markdown委托",
+    "useViewportHighlighting":"视口高亮",
+    "mathCompatibility":"数学兼容性",
+    "cjkFriendlyStrong":"中日韩友好强调"
 }

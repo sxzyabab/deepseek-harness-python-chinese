@@ -1,327 +1,768 @@
+'conversation 命名空间的中英文案表。页面显示只用中文表'
 
-__all__=['命名空间','中文','英文']#仅中文公开名
+__all__=['命名空间','中文','英文','填入']
 
-命名空间='conversation'#词典命名空间名
+命名空间='conversation'
+计划下一步中文='描述你的任务以生成计划'
+计划下一步英文='describe your task to generate plan'
 
-计划下一步中文='描述你的任务以生成计划'#中文下一步动作文案
-计划下一步英文='describe your task to generate plan'#英文下一步动作文案
+def 填入(模板,参数=None):
+    '把 {键} 换成这次读到的值。没有参数就返回原文'
+    if not isinstance(参数,dict):
+        return 模板
+    文=模板
+    for 键,值 in 参数.items():
+        文=文.replace('{'+str(键)+'}','' if 值 is None else str(值))
+    return 文
 
-中文={#简体中文词条
-    'hint.plan':计划下一步中文,#计划模式输入提示
-    'hint.goal':'输入目标，智能体将持续执行',#目标模式输入提示
-    'hint.goal.active':'当前目标进行中。可输入 edit 修改 / pause 暂停 / resume 继续 / clear 清除',#活跃目标提示
-    'placeholder.plan':计划下一步中文,#计划模式占位
-    'placeholder.default':'发消息或创建任务, / 调用指令, @ 文件或对话',#默认输入占位
-    'placeholder.unavailable':'会话不可用',#会话不可用占位
-    'placeholder.parentOffline':'父会话已离线，无法继续发送；仍可停止当前运行',#父会话离线占位
-    'placeholder.hero':'描述你想要构建的内容, / 调用指令, @ 文件或对话',#英雄页输入占位
-    'placeholder.workspace':'选择一个工作区开始',#未选工作区占位
-    'placeholder.steerQueue':'Cmd/Ctrl+Enter 插话发送全部排队消息',#插话发送占位
-    'input.commands':'添加文件或调用指令',#添加文件或指令按钮
-    'input.file':'文件',#文件动作标题
-    'input.stop':'停止生成',#停止生成按钮
-    'input.send':'发送消息',#发送按钮
-    'copy':'复制',#复制消息
-    'copied':'已复制',#复制成功
-    'input.send.queue':'排队发送',#排队发送按钮
-    'input.send.steer':'插话发送',#插话发送按钮
-    'attachment.pending':'待发送附件',#待发附件区
-    'attachment.scrollLeft':'向左滚动附件',#左滚附件
-    'attachment.scrollRight':'向右滚动附件',#右滚附件
-    'attachment.dropTitle':'文件或图片拖动到此处即可添加',#拖放区标题
-    'attachment.dropDesc':'图片限制：最多 {count} 张，每张 {size}',#拖放区说明
-    'attachment.dropBlocked':'当前无法添加文件或图片',#拖放被拒
-    'image.pending':'待发送图片',#待发图片区
-    'image.openOriginal':'查看原图',#打开原图
-    'image.openOriginalLabel':'{label}，点击查看原图',#原图无障碍标签
-    'image.remove':'移除图片 {name}',#移除图片
-    'image.original':'原图',#原图标签
-    'image.label':'图片',#图片通用标签
-    'image.loadFailed':'图片加载失败，点击重试',#加载失败
-    'image.loading':'图片加载中…',#加载中
-    'image.preview':'原图预览',#预览标题
-    'image.closePreview':'关闭原图预览',#关闭预览
-    'image.unsupportedType':'仅支持 PNG、JPG、WebP、GIF 格式的图片',#格式不支持
-    'image.tooMany':'一条消息最多添加 {count} 张图片',#数量超限
-    'image.fileTooLarge':'单张图片不能超过 {size}',#单张过大
-    'image.totalTooLarge':'图片总大小超过 {size}，请移除部分图片',#总量过大
-    'image.tooManyPixels':'图片分辨率过大，请压缩后重试',#分辨率过大
-    'image.dimensionTooLarge':'图片宽高不能超过 {size}px，请缩小后重试',#边长过大
-    'image.modelUnsupported':'当前模型不支持图片，请切换支持图片的模型',#模型不支持图
-    'image.sendFailed':'图片发送失败（{reason}），请重新添加图片后再试',#发送失败
-    'file.pending':'待发送文件',#待发文件区
-    'file.remove':'移除文件 {name}',#移除文件
-    'file.uploading':'上传中…',#上传中
-    'file.uploadFailed':'上传失败，点击重试',#上传失败
-    'file.retry':'重试上传 {name}',#重试上传
-    'file.stillUploading':'文件还在上传，请等待上传完成后发送',#仍在上传提示
-    'file.sessionUnavailable':'会话不可用，无法上传文件',#会话不可用上传
-    'file.notStaged':'文件尚未上传成功，请重新添加后再试',#未暂存
-    'file.label':'文件',#文件通用标签
-    'context.aria':'上下文已用 {percent}',#上下文用量无障碍
-    'context.used':'上下文已用',#上下文已用标签
-    'context.system':'系统提示词',#系统提示词分段
-    'context.tools':'工具定义',#工具分段
-    'context.messages':'对话消息',#消息分段
-    'settings.enter.title':'繁忙时的发送行为',#Enter 设置标题
-    'settings.enter.description':'智能体运行时 Enter 键和发送按钮的行为；Cmd/Ctrl+Enter 使用另一行为',#Enter 设置说明
-    'settings.enter.queue':'排队发送',#排队选项
-    'settings.enter.steer':'插话发送',#插话选项
-    'hero.headline':'探索未至之境',#英雄页标题
-    'hero.preview':'预览版',#预览版徽章
-    'hero.chooseWorkspace':'选择工作区',#选工作区按钮
-    'session.hierarchy':'会话层级',#会话层级标题
-    'todo.title':'任务',#待办标题
-    'todo.progress.done':'{done} 已完成',#已完成计数
-    'todo.progress.active':'{active} 进行中',#进行中计数
-    'todo.progress.pending':'{pending} 待处理',#待处理计数
-    'todo.rowTitle':'更新任务清单',#待办行标题
-    'todo.completed':'{done}/{total} 已完成',#完成进度
-    'command.attachmentsUnsupported':'/{command} 不接受附件，请先移除附件',#命令不接受附件
-    'ask.rowTitle':'提问',#提问行标题
-    'ask.waiting':'等待回答',#等待回答
-    'ask.cancelled':'已取消',#已取消
-    'ask.cancelledDetail':'本轮已取消，未提交回答',#取消说明
-    'ask.interrupted':'已中断',#已中断
-    'ask.interruptedDetail':'本轮已中断，未提交回答',#中断说明
-    'ask.answered':'{answered}/{total} 已回答',#已回答进度
-    'ask.skipped':'未回答',#未回答
-    'bash.running':'运行中',#bash 运行中
-    'bash.failed':'失败',#bash 失败
-    'bash.stopped':'已停止',#bash 已停止
-    'row.running':'运行中',#行运行中
-    'row.failed':'失败',#行失败
-    'row.stopped':'已停止',#行停止
-    'row.input':'输入',#行输入
-    'row.output':'输出',#行输出
-    'row.inspect':'查看',#行检视
-    'tool.title.search':'搜索',#搜索工具标题
-    'tool.title.read':'读取',#读取工具标题
-    'tool.title.bash':'Bash',#Bash 工具标题
-    'tool.title.write':'写入',#写入工具标题
-    'tool.title.edit':'编辑',#编辑工具标题
-    'tool.title.code':'代码',#代码工具标题
-    'tool.title.generic':'工具调用',#通用工具标题
-    'tool.title.inspect':'查看',#检视工具标题
-    'tool.title.runCordis':'运行 Cordis 插件',#运行 Cordis
-    'tool.title.stopCordis':'停止 Cordis 插件',#停止 Cordis
-    'tool.title.removeCordis':'移除 Cordis 插件',#移除 Cordis
-    'tool.title.pwsh':'Pwsh',#Pwsh 标题
-    'tool.title.readImage':'读取图片',#读图标题
-    'tool.title.grep':'Grep',#Grep 标题
-    'tool.title.glob':'Glob',#Glob 标题
-    'tool.title.webSearch':'网页搜索',#网页搜索标题
-    'tool.title.webFetch':'网页获取',#网页获取标题
-    'tool.autoReviewRejected':'Auto review 已拒绝',#自动审查拒绝折叠摘要
-    'tool.autoReviewNotExecuted':'工具未执行。原因：{reason}',#自动审查拒绝展开行
-    'tool.autoReviewReasonFallback':'Auto review 未授权此次操作',#无可见原因时的回退
-    'diff.files.one':'{count} 个文件',#diff 文件数单数
-    'diff.files.other':'{count} 个文件',#diff 文件数复数
-    'diff.collapseAria':'收起差异',#收起 diff
-    'diff.expandAria':'展开其余 {count} 行差异',#展开 diff
-    'diff.expandRest':'… 其余 {count} 行',#展开剩余
-    'read.window':'显示 {shown} / {total} 行',#读卡窗口
-    'read.collapseAria':'收起内容',#收起读卡
-    'read.expandAria':'展开其余 {count} 行',#展开读卡
-    'read.expandRest':'… 其余 {count} 行',#展开剩余
-    'search.paths':'{shown} 个路径',#检索路径数
-    'search.paths.truncated':'显示 {shown} / 共 {total} 个路径',#截断路径
-    'search.matches':'{shown} 处匹配 · {files} 个文件',#匹配摘要
-    'search.matches.truncated':'显示 {shown} / 共 {total} 处匹配 · {files} 个文件',#截断匹配
-    'search.noResults':'无结果',#无检索结果
-    'search.collapseAria':'收起结果',#收起检索
-    'search.expandAria':'展开其余 {count} 行结果',#展开检索
-    'search.expandRest':'… 其余 {count} 行',#展开剩余
-    'web.noResults':'未找到结果',#网页无结果
-    'web.sourcesTruncated':'来源列表已截断',#来源截断
-    'web.http':'HTTP',#HTTP 标签
-    'web.contentTruncated':'内容已截断',#内容截断
-    'details.running':'运行中…',#详情运行中
-    'queue.count':'{n} 条排队消息',#排队计数
-    'queue.sending':'发送中…',#发送中
-    'queue.image':'排队消息图片',#排队图片
-    'queue.file':'排队文件 {name}',#排队文件
-    'queue.edit':'编辑排队消息',#编辑排队
-    'queue.edit.unsupported':'包含非文本内容，暂不支持编辑',#不可编辑
-    'queue.save':'保存排队消息',#保存排队
-    'queue.cancelEdit':'取消编辑',#取消编辑
-    'queue.remove':'删除排队消息',#删除排队
-    'queue.steer':'插话发送',#插话发送
-    'queue.steer.unavailable':'仅运行中可插话发送',#插话不可用
-    'error.sessionInUse':'当前会话已被占用，可能是其他正在运行的 DSH 导致的（如其他 dsh web、桌面端），请退出其他正在运行的 DSH 后重试。',#会话占用
-    'queue.editFailed':'编辑失败：这条消息可能已经开始发送。',#编辑失败
-    'queue.removeFailed':'删除失败：这条消息可能已经开始发送。',#删除失败
-    'queue.steerFailed':'插话发送失败，请重试。',#插话失败
-    'terminal.signal':'信号 {signal}',#终端信号
-    'terminal.exitCode':'退出码 {code}',#退出码
-    'terminal.noExitCode':'未正常退出',#无退出码
-    'terminal.running':'运行中',#终端运行中
-    'terminal.failed':'失败',#终端失败
-    'terminal.done':'已完成',#终端完成
-    'terminal.noOutput':'无输出',#无输出
-    'terminal.collapseAria':'收起输出',#收起输出
-    'terminal.expandAria':'展开其余 {n} 行输出',#展开输出
-    'terminal.expandRest':'… 其余 {n} 行',#展开剩余
-    'terminal.sendInput':'（发送输入）',#发送输入占位
-    'terminal.session':'终端 {sessionId}',#终端会话
-}#结束中文
+中文={
+    'shortcut.newline':'换行',
+    'shortcut.complementary':'使用互补的 Queue／Steer 方式',
+    'shortcut.slash':'打开命令菜单',
+    'shortcut.mention':'打开引用菜单',
+    'hint.plan':计划下一步中文,
+    'hint.goal':'输入目标，智能体将持续执行',
+    'hint.goal.active':'当前目标进行中。可输入 edit 修改 / pause 暂停 / resume 继续 / clear 清除',
+    'placeholder.plan':计划下一步中文,
+    'placeholder.default':'发消息或创建任务, / 调用指令, @ 文件或对话',
+    'placeholder.unavailable':'会话不可用',
+    'placeholder.parentOffline':'父会话已离线，无法继续发送；仍可停止当前运行',
+    'placeholder.hero':'描述你想要构建的内容, / 调用指令, @ 文件或对话',
+    'placeholder.workspace':'选择一个工作区开始',
+    'placeholder.steerQueue':'Cmd/Ctrl+Enter 插话发送全部排队消息',
+    'input.commands':'添加文件或调用指令',
+    'input.file':'文件',
+    'input.stop':'停止生成',
+    'input.send':'发送消息',
+    'input.send.queue':'排队发送',
+    'input.send.steer':'插话发送',
+    'attachment.pending':'待发送附件',
+    'attachment.scrollLeft':'向左滚动附件',
+    'attachment.scrollRight':'向右滚动附件',
+    'attachment.dropTitle':'文件或图片拖动到此处即可添加',
+    'attachment.dropDesc':'图片限制：最多 {count} 张，每张 {size}',
+    'attachment.dropBlocked':'当前无法添加文件或图片',
+    'attachment.directoryDesktopOnly':'只有桌面端支持添加文件夹，浏览器里请添加单个文件',
+    'attachment.pathUnavailable':'无法获取文件夹路径，请重新拖入',
+    'attachment.pathUnsupported':'路径含有无法引用的字符，请改名后再试',
+    'image.pending':'待发送图片',
+    'image.openOriginal':'查看原图',
+    'image.openOriginalLabel':'{label}，点击查看原图',
+    'image.remove':'移除图片 {name}',
+    'image.original':'原图',
+    'image.label':'图片',
+    'image.loadFailed':'图片加载失败，点击重试',
+    'image.loading':'图片加载中…',
+    'image.preview':'原图预览',
+    'image.closePreview':'关闭原图预览',
+    'image.unsupportedType':'仅支持 PNG、JPG、WebP、GIF 格式的图片',
+    'image.tooMany':'一条消息最多添加 {count} 张图片',
+    'image.fileTooLarge':'单张图片不能超过 {size}',
+    'image.totalTooLarge':'图片总大小超过 {size}，请移除部分图片',
+    'image.tooManyPixels':'图片分辨率过大，请压缩后重试',
+    'image.dimensionTooLarge':'图片宽高不能超过 {size}px，请缩小后重试',
+    'image.modelUnsupported':'当前模型不支持图片，请切换支持图片的模型',
+    'image.sendFailed':'图片发送失败（{reason}），请重新添加图片后再试',
+    'file.pending':'待发送文件',
+    'file.remove':'移除文件 {name}',
+    'file.uploading':'上传中…',
+    'file.uploadFailed':'上传失败，点击重试',
+    'file.retry':'重试上传 {name}',
+    'file.stillUploading':'文件还在上传，请等待上传完成后发送',
+    'file.sessionUnavailable':'会话不可用，无法上传文件',
+    'file.notStaged':'文件尚未上传成功，请重新添加后再试',
+    'file.label':'文件',
+    'context.aria':'上下文已用 {percent}',
+    'context.used':'上下文已用',
+    'context.system':'系统提示词',
+    'context.tools':'工具定义',
+    'context.messages':'对话消息',
+    'settings.enter.title':'繁忙时的发送行为',
+    'settings.enter.description':'智能体运行时 Enter 键和发送按钮的行为；Cmd/Ctrl+Enter 使用另一行为',
+    'settings.enter.queue':'排队发送',
+    'settings.enter.steer':'插话发送',
+    'hero.headline':'探索未至之境',
+    'hero.preview':'预览版',
+    'hero.chooseWorkspace':'选择工作区',
+    'session.hierarchy':'会话层级',
+    'todo.title':'任务',
+    'todo.progress.done':'{done} 已完成',
+    'todo.progress.active':'{active} 进行中',
+    'todo.progress.pending':'{pending} 待处理',
+    'todo.status.completed':'已完成',
+    'todo.status.inProgress':'进行中',
+    'todo.status.pending':'待处理',
+    'todo.rowTitle':'更新任务清单',
+    'tool.title.createGoal':'创建目标',
+    'tool.title.getGoal':'查看目标',
+    'tool.title.updateGoal':'更新目标',
+    'tool.preparing.content':'{kilobytes}KB',
+    'tool.title.createSchedule':'创建定时任务',
+    'tool.title.listSchedules':'查看定时任务',
+    'tool.title.deleteSchedule':'删除定时任务',
+    'tool.title.updateSchedule':'修改定时任务',
+    'detail.state':'状态',
+    'detail.todo.completed':'已完成',
+    'detail.todo.in_progress':'进行中',
+    'detail.todo.pending':'待处理',
+    'detail.todo.empty':'任务清单为空',
+    'todo.diff.initial':'首次记录',
+    'todo.diff.compare':'与上次清单相比',
+    'todo.diff.unavailable':'旧清单不可用',
+    'todo.diff.noChanges':'清单没有变化',
+    'todo.diff.added':'新增 {count}',
+    'todo.diff.updated':'更新 {count}',
+    'todo.diff.removed':'移除 {count}',
+    'todo.diff.unchanged':'{count} 项未变化',
+    'todo.diff.addedItem':'新增',
+    'todo.diff.updatedItem':'状态变化',
+    'todo.diff.movedItem':'顺序调整',
+    'todo.diff.removedItem':'移除',
+    'detail.goal.empty':'没有目标',
+    'detail.goal.active':'进行中',
+    'detail.goal.disarmed':'等待继续',
+    'detail.goal.paused':'已暂停',
+    'detail.goal.blocked':'受阻',
+    'detail.goal.complete':'已完成',
+    'detail.goal.rounds':'执行轮次',
+    'detail.goal.reason':'受阻原因',
+    'detail.days':'{count} 天',
+    'detail.hours':'{count} 小时',
+    'detail.minutes':'{count} 分钟',
+    'detail.seconds':'{count} 秒',
+    'detail.schedule.once':'单次',
+    'detail.schedule.every':'每 {interval}',
+    'detail.schedule.when':'计划时间',
+    'detail.schedule.frequency':'重复',
+    'detail.schedule.scheduled':'等待触发',
+    'detail.schedule.overdue':'已到期，等待会话恢复',
+    'detail.schedule.empty':'没有定时任务',
+    'detail.schedule.deleted':'已删除',
+    'detail.schedule.count':'{count} 个定时任务',
+    'detail.schedule.daily':'每天 {time}（{zone}）',
+    'detail.schedule.weekly':'每周 {days} {time}（{zone}）',
+    'detail.schedule.cron':'Cron {expression}（{zone}）',
+    'detail.weekday.1':'周一',
+    'detail.weekday.2':'周二',
+    'detail.weekday.3':'周三',
+    'detail.weekday.4':'周四',
+    'detail.weekday.5':'周五',
+    'detail.weekday.6':'周六',
+    'detail.weekday.7':'周日',
+    'detail.weekday.join':'、',
+    'tool.title.inspectProviders':'检查提供方',
+    'tool.title.queryRuntime':'查询运行时',
+    'tool.title.inspectPlugins':'检查动态插件',
+    'tool.title.workflow':'运行工作流',
+    'tool.title.ralph':'运行循环工作流',
+    'tool.title.readEvent':'读取事件',
+    'tool.title.searchEvents':'搜索事件',
+    'tool.title.traceEvent':'追踪事件',
+    'tool.title.searchSessions':'搜索会话',
+    'tool.title.traceSession':'追踪会话',
+    'tool.title.listModels':'查看可用模型',
+    'tool.title.subagent':'创建子智能体',
+    'tool.title.listAgents':'查看子智能体',
+    'tool.title.sendMessage':'发送消息',
+    'tool.title.interruptAgent':'中断智能体',
+    'tool.title.listJobs':'查看后台任务',
+    'tool.title.readJob':'读取任务输出',
+    'tool.title.killJob':'取消后台任务',
+    'tool.title.openTerminal':'创建终端',
+    'tool.title.readTerminal':'读取终端',
+    'tool.title.listTerminals':'查看终端',
+    'tool.title.signalTerminal':'发送终端信号',
+    'tool.title.closeTerminal':'关闭终端',
+    'tool.title.lsp':'查询代码符号',
+    'tool.title.findDefinition':'查找定义',
+    'tool.title.findReferences':'查找引用',
+    'tool.title.findImplementation':'查找实现',
+    'tool.title.hoverSymbol':'查看符号信息',
+    'tool.title.spawnTeammate':'创建队友',
+    'tool.title.createTeamTask':'创建团队任务',
+    'tool.title.getTeamTask':'读取团队任务',
+    'tool.title.updateTeamTask':'更新团队任务',
+    'tool.title.listTeamTasks':'查看团队任务',
+    'tool.title.waitAgent':'等待子智能体',
+    'detail.recordedResult':'调用结果',
+    'detail.empty':'暂无结果',
+    'detail.none':'无',
+    'detail.yes':'是',
+    'detail.no':'否',
+    'detail.moreInInspect':'另有 {count} 项，可在「查看」中读取',
+    'detail.status.running':'运行中',
+    'detail.status.idle':'空闲',
+    'detail.status.ready':'就绪',
+    'detail.status.inactive':'未运行',
+    'detail.status.provisioning':'准备中',
+    'detail.status.failed':'失败',
+    'detail.status.completed':'已完成',
+    'detail.status.deleted':'已删除',
+    'detail.status.killed':'已取消',
+    'detail.status.accepted':'已接收',
+    'detail.status.queued':'已入队',
+    'detail.status.exited':'已退出',
+    'detail.field.id':'ID',
+    'detail.field.revision':'版本',
+    'detail.field.platform':'平台',
+    'detail.field.provider':'提供方',
+    'detail.field.model':'模型',
+    'detail.field.role':'角色',
+    'detail.field.context':'上下文',
+    'detail.field.owner':'负责人',
+    'detail.field.ready':'可开始',
+    'detail.field.dependencies':'前置任务',
+    'detail.field.writeScopes':'文件范围',
+    'detail.field.warnings':'提示',
+    'detail.field.diagnostics':'诊断',
+    'detail.field.methods':'方法',
+    'detail.field.inputSchema':'输入 Schema',
+    'detail.field.outputSchema':'输出 Schema',
+    'detail.field.currentPackage':'当前包',
+    'detail.field.nextPackage':'待运行的包',
+    'detail.field.latestRun':'最近运行',
+    'detail.field.packages':'版本包',
+    'detail.field.registrations':'注册项',
+    'detail.field.props':'属性',
+    'detail.field.data':'数据',
+    'detail.field.source':'来源',
+    'detail.field.content':'内容',
+    'detail.field.message':'消息',
+    'detail.field.messageId':'消息 ID',
+    'detail.field.root':'根节点',
+    'detail.field.pid':'进程 ID',
+    'detail.field.type':'类型',
+    'detail.field.time':'时间',
+    'detail.field.seq':'事件序号',
+    'detail.field.turn':'轮次',
+    'detail.field.step':'步骤',
+    'detail.field.callId':'调用 ID',
+    'detail.field.agents':'启动智能体数',
+    'detail.field.result':'结果',
+    'detail.field.parent':'父级',
+    'detail.field.depth':'层级',
+    'detail.field.exitCode':'退出码',
+    'detail.field.signal':'信号',
+    'detail.field.previousStatus':'中断前状态',
+    'detail.field.agent':'智能体 ID',
+    'detail.field.job':'任务 ID',
+    'detail.field.task':'任务内容',
+    'detail.field.processGroup':'进程组',
+    'detail.field.availability':'可用状态',
+    'detail.field.bestMatch':'最相关事件',
+    'detail.field.target':'目标事件',
+    'detail.field.surface':'记录状态',
+    'detail.agents.count':'{count} 个智能体',
+    'detail.jobs.count':'{count} 个后台任务',
+    'detail.terminals.count':'{count} 个终端',
+    'detail.tasks.count':'{count} 个团队任务',
+    'detail.tasks.nextPage':'后面还有任务；下一页位置为 {cursor}',
+    'detail.locations.count':'{count} 个位置',
+    'detail.location':'第 {line} 行，第 {column} 列',
+    'detail.receipt.delivered':'消息已送达',
+    'detail.receipt.interrupt':'已请求中断',
+    'detail.receipt.started':'已启动',
+    'detail.receipt.cancel':'已请求取消',
+    'detail.receipt.alreadyFinished':'任务已结束',
+    'detail.receipt.signal':'信号已发送',
+    'detail.receipt.closed':'已关闭',
+    'detail.receipt.closing':'关闭中',
+    'detail.wait.noProgress':'没有正在运行的子智能体',
+    'detail.wait.title':'子智能体状态',
+    'detail.wait.timeout':'等待超时',
+    'detail.wait.changed':'检测到变化',
+    'detail.agent.reply':'智能体回复',
+    'detail.models.title':'可用模型',
+    'detail.output.lines':'第 {begin}–{end} 行，共 {total} 行',
+    'detail.output.truncated':'输出已截断',
+    'detail.providers.count':'{count} 个检查提供方',
+    'detail.plugins.count':'{count} 个动态插件',
+    'detail.workflow.script':'工作流脚本',
+    'detail.ralph.reportedComplete':'智能体报告完成',
+    'detail.ralph.reportedBlocker':'智能体报告受阻',
+    'detail.ralph.limit':'已达到轮次上限',
+    'detail.report.nextSteps':'待完成事项',
+    'detail.trace.replacedBy':'被替换为',
+    'detail.trace.replacementChain':'替换链',
+    'detail.trace.replaces':'替换的事件',
+    'detail.trace.sources':'引用来源',
+    'detail.trace.derived':'派生事件',
+    'detail.trace.ancestors':'祖先会话',
+    'detail.trace.descendants':'后代会话',
+    'detail.matches.count':'{count} 条匹配',
+    'detail.matches.capped':'已达到结果上限，可缩小搜索范围',
+    'detail.event.neighbors':'前后事件',
+    'todo.completed':'{done}/{total} 已完成',
+    'command.attachmentsUnsupported':'/{command} 不接受附件，请先移除附件',
+    'ask.rowTitle':'提问',
+    'ask.waiting':'等待回答',
+    'ask.pending':'已继续工作，仍可回答',
+    'ask.pendingDetail':'等待中的问题仍可在输入框中回答',
+    'ask.reopen':'回答',
+    'ask.review':'查看回答',
+    'ask.closed':'已结束',
+    'ask.closedDetail':'该问题已结束，结果见下方对话',
+    'ask.cancelled':'已取消',
+    'ask.cancelledDetail':'本轮已取消，未提交回答',
+    'ask.interrupted':'已中断',
+    'ask.interruptedDetail':'本轮已中断，未提交回答',
+    'ask.answered':'{answered}/{total} 已回答',
+    'ask.skipped':'未回答',
+    'bash.running':'运行中',
+    'bash.failed':'失败',
+    'bash.stopped':'已停止',
+    'row.running':'运行中',
+    'row.preparing':'正在准备调用',
+    'row.failed':'失败',
+    'row.stopped':'已停止',
+    'row.commandArguments':'命令参数',
+    'row.input':'输入',
+    'row.output':'输出',
+    'row.inspect':'查看',
+    'row.imageSize':'{width}x{height}px，{bytes} 字节',
+    'row.imageSizeDownscaled':'{width}x{height}px（由 {originalWidth}x{originalHeight}px 缩小），{bytes} 字节',
+    'tool.title.search':'搜索',
+    'tool.title.read':'读取',
+    'tool.title.bash':'运行命令',
+    'tool.title.write':'写入',
+    'tool.title.edit':'编辑',
+    'tool.title.code':'代码',
+    'tool.title.generic':'工具调用',
+    'tool.title.inspect':'查询 Cordis 环境',
+    'tool.title.runCordis':'运行 Cordis 插件',
+    'tool.title.stopCordis':'停止 Cordis 插件',
+    'tool.title.removeCordis':'移除 Cordis 插件',
+    'tool.title.pwsh':'运行命令',
+    'tool.title.readImage':'读取图片',
+    'tool.title.grep':'搜索文件内容',
+    'tool.title.glob':'查找文件',
+    'tool.title.webSearch':'网页搜索',
+    'tool.title.webFetch':'网页获取',
+    'tool.autoReviewRejected':'Auto review 已拒绝',
+    'tool.autoReviewNotExecuted':'工具未执行。原因：{reason}',
+    'tool.autoReviewReasonFallback':'Auto review 未授权此次操作',
+    'diff.collapseAria':'收起差异',
+    'diff.expandAria':'展开其余 {count} 行差异',
+    'diff.expandRest':'… 其余 {count} 行',
+    'read.window':'显示 {shown} / {total} 行',
+    'read.collapseAria':'收起内容',
+    'read.expandAria':'展开其余 {count} 行',
+    'read.expandRest':'… 其余 {count} 行',
+    'search.paths':'{shown} 个路径',
+    'search.paths.truncated':'显示 {shown} / 共 {total} 个路径',
+    'search.matches':'{shown} 处匹配 · {files} 个文件',
+    'search.matches.truncated':'显示 {shown} / 共 {total} 处匹配 · {files} 个文件',
+    'search.noResults':'无结果',
+    'search.collapseAria':'收起结果',
+    'search.expandAria':'展开其余 {count} 行结果',
+    'search.expandRest':'… 其余 {count} 行',
+    'web.noResults':'未找到结果',
+    'web.sourcesTruncated':'来源列表已截断',
+    'web.http':'HTTP',
+    'web.contentTruncated':'内容已截断',
+    'details.running':'运行中…',
+    'queue.count':'{n} 条排队消息',
+    'queue.sending':'发送中…',
+    'queue.image':'排队消息图片',
+    'queue.file':'排队文件 {name}',
+    'queue.edit':'编辑排队消息',
+    'queue.edit.unsupported':'包含非文本内容，暂不支持编辑',
+    'queue.save':'保存排队消息',
+    'queue.cancelEdit':'取消编辑',
+    'queue.remove':'删除排队消息',
+    'queue.steer':'插话发送',
+    'queue.steer.unavailable':'仅运行中可插话发送',
+    'error.sessionInUse':'当前会话已被占用，可能是其他正在运行的 DSH 导致的（如其他 dsh web、桌面端），请退出其他正在运行的 DSH 后重试。',
+    'queue.editFailed':'编辑失败：这条消息可能已经开始发送。',
+    'queue.removeFailed':'删除失败：这条消息可能已经开始发送。',
+    'queue.steerFailed':'插话发送失败，请重试。',
+    'terminal.signal':'信号 {signal}',
+    'terminal.exitCode':'退出码 {code}',
+    'terminal.noExitCode':'未正常退出',
+    'terminal.commandLine':'命令第 {n} 行',
+    'terminal.running':'运行中',
+    'terminal.failed':'失败',
+    'terminal.done':'已完成',
+    'terminal.noOutput':'无输出',
+    'terminal.collapseAria':'收起输出',
+    'terminal.expandAria':'展开其余 {n} 行输出',
+    'terminal.expandRest':'… 其余 {n} 行',
+    'terminal.sendInput':'（发送输入）',
+    'terminal.session':'终端 {sessionId}',
+}
 
-英文={#英文词条（键与中文权威源一致）
-    'hint.plan':计划下一步英文,#计划模式输入提示
-    'hint.goal':'describe the objective for a long-running task',#目标模式输入提示
-    'hint.goal.active':'goal active — edit / pause / resume / clear',#活跃目标提示
-    'placeholder.plan':计划下一步英文,#计划模式占位
-    'placeholder.default':'Message or run a task, / commands, @ files or sessions',#默认输入占位
-    'placeholder.unavailable':'Session unavailable',#会话不可用占位
-    'placeholder.parentOffline':'Parent session offline; sending is unavailable but you can still stop the run',#父会话离线占位
-    'placeholder.hero':'Describe what you want to build, / commands, @ files or sessions',#英雄页输入占位
-    'placeholder.workspace':'Choose a workspace to start',#未选工作区占位
-    'placeholder.steerQueue':'Cmd/Ctrl+Enter steers all queued messages',#插话发送占位
-    'input.commands':'Add files or run commands',#添加文件或指令按钮
-    'input.file':'File',#文件动作标题
-    'input.stop':'Stop generating',#停止生成按钮
-    'input.send':'Send message',#发送按钮
-    'copy':'Copy',#复制消息
-    'copied':'Copied',#复制成功
-    'input.send.queue':'Queue message',#排队发送按钮
-    'input.send.steer':'Steer message',#插话发送按钮
-    'attachment.pending':'Pending attachments',#待发附件区
-    'attachment.scrollLeft':'Scroll attachments left',#左滚附件
-    'attachment.scrollRight':'Scroll attachments right',#右滚附件
-    'attachment.dropTitle':'Drag files or images here to add them',#拖放区标题
-    'attachment.dropDesc':'Image limit: up to {count} images, {size} each',#拖放区说明
-    'attachment.dropBlocked':'Files and images cannot be added right now',#拖放被拒
-    'image.pending':'Pending images',#待发图片区
-    'image.openOriginal':'View original',#打开原图
-    'image.openOriginalLabel':'{label}, click to view original',#原图无障碍标签
-    'image.remove':'Remove image {name}',#移除图片
-    'image.original':'Original image',#原图标签
-    'image.label':'Image',#图片通用标签
-    'image.loadFailed':'Image failed to load; click to retry',#加载失败
-    'image.loading':'Loading image…',#加载中
-    'image.preview':'Original image preview',#预览标题
-    'image.closePreview':'Close original image preview',#关闭预览
-    'image.unsupportedType':'Only PNG, JPG, WebP, and GIF images are supported',#格式不支持
-    'image.tooMany':'A message can include up to {count} images',#数量超限
-    'image.fileTooLarge':'Each image must be smaller than {size}',#单张过大
-    'image.totalTooLarge':'Images exceed {size} in total; remove some and try again',#总量过大
-    'image.tooManyPixels':'Image resolution is too high; compress it and try again',#分辨率过大
-    'image.dimensionTooLarge':'Image sides must be at most {size}px; downscale it and try again',#边长过大
-    'image.modelUnsupported':'The current model does not support images; switch to a model that does',#模型不支持图
-    'image.sendFailed':'Sending images failed ({reason}); re-add them and try again',#发送失败
-    'file.pending':'Pending files',#待发文件区
-    'file.remove':'Remove file {name}',#移除文件
-    'file.uploading':'Uploading…',#上传中
-    'file.uploadFailed':'Upload failed; click to retry',#上传失败
-    'file.retry':'Retry uploading {name}',#重试上传
-    'file.stillUploading':'Files are still uploading; send after they finish',#仍在上传提示
-    'file.sessionUnavailable':'Session unavailable; files cannot be uploaded',#会话不可用上传
-    'file.notStaged':'The file has not finished uploading; re-add it and try again',#未暂存
-    'file.label':'File',#文件通用标签
-    'context.aria':'{percent} of context used',#上下文用量无障碍
-    'context.used':'of context used',#上下文已用标签
-    'context.system':'System prompt',#系统提示词分段
-    'context.tools':'Tool definitions',#工具分段
-    'context.messages':'Messages',#消息分段
-    'settings.enter.title':'Send behavior while busy',#Enter 设置标题
-    'settings.enter.description':'What Enter and the Send button do while the agent is running; Cmd/Ctrl+Enter uses the other behavior',#Enter 设置说明
-    'settings.enter.queue':'Queue',#排队选项
-    'settings.enter.steer':'Steer',#插话选项
-    'hero.headline':'Into the Unknown',#英雄页标题
-    'hero.preview':'Preview',#预览版徽章
-    'hero.chooseWorkspace':'Choose workspace',#选工作区按钮
-    'session.hierarchy':'Session hierarchy',#会话层级标题
-    'todo.title':'To-dos',#待办标题
-    'todo.progress.done':'{done} completed',#已完成计数
-    'todo.progress.active':'{active} in progress',#进行中计数
-    'todo.progress.pending':'{pending} pending',#待处理计数
-    'todo.rowTitle':'Update to-do list',#待办行标题
-    'todo.completed':'{done}/{total} completed',#完成进度
-    'command.attachmentsUnsupported':'/{command} does not accept attachments; remove them first',#命令不接受附件
-    'ask.rowTitle':'Ask question',#提问行标题
-    'ask.waiting':'waiting',#等待回答
-    'ask.cancelled':'cancelled',#已取消
-    'ask.cancelledDetail':'This question set was cancelled before answers were submitted.',#取消说明
-    'ask.interrupted':'interrupted',#已中断
-    'ask.interruptedDetail':'This question set was interrupted before answers were submitted.',#中断说明
-    'ask.answered':'{answered}/{total} answered',#已回答进度
-    'ask.skipped':'Not answered',#未回答
-    'bash.running':'Running',#bash 运行中
-    'bash.failed':'Failed',#bash 失败
-    'bash.stopped':'Stopped',#bash 已停止
-    'row.running':'Running',#行运行中
-    'row.failed':'Failed',#行失败
-    'row.stopped':'Stopped',#行停止
-    'row.input':'IN',#行输入
-    'row.output':'OUT',#行输出
-    'row.inspect':'Inspect',#行检视
-    'tool.title.search':'Search',#搜索工具标题
-    'tool.title.read':'Read',#读取工具标题
-    'tool.title.bash':'Bash',#Bash 工具标题
-    'tool.title.write':'Write',#写入工具标题
-    'tool.title.edit':'Edit',#编辑工具标题
-    'tool.title.code':'Code',#代码工具标题
-    'tool.title.generic':'Tool call',#通用工具标题
-    'tool.title.inspect':'Inspect',#检视工具标题
-    'tool.title.runCordis':'Run Cordis Plugin',#运行 Cordis
-    'tool.title.stopCordis':'Stop Cordis Plugin',#停止 Cordis
-    'tool.title.removeCordis':'Remove Cordis Plugin',#移除 Cordis
-    'tool.title.pwsh':'Pwsh',#Pwsh 标题
-    'tool.title.readImage':'Read image',#读图标题
-    'tool.title.grep':'Grep',#Grep 标题
-    'tool.title.glob':'Glob',#Glob 标题
-    'tool.title.webSearch':'Search',#网页搜索标题
-    'tool.title.webFetch':'Fetch',#网页获取标题
-    'tool.autoReviewRejected':'Rejected by Auto review',#自动审查拒绝折叠摘要
-    'tool.autoReviewNotExecuted':'Tool was not executed. Reason: {reason}',#自动审查拒绝展开行
-    'tool.autoReviewReasonFallback':'Auto review did not authorize this action',#无可见原因时的回退
-    'diff.files.one':'{count} file',#diff 文件数单数
-    'diff.files.other':'{count} files',#diff 文件数复数
-    'diff.collapseAria':'Collapse diff',#收起 diff
-    'diff.expandAria':'Expand {count} more diff lines',#展开 diff
-    'diff.expandRest':'… {count} more lines',#展开剩余
-    'read.window':'Showing {shown} of {total} lines',#读卡窗口
-    'read.collapseAria':'Collapse content',#收起读卡
-    'read.expandAria':'Expand {count} more lines',#展开读卡
-    'read.expandRest':'… {count} more lines',#展开剩余
-    'search.paths':'{shown} paths',#检索路径数
-    'search.paths.truncated':'Showing {shown} of {total} paths',#截断路径
-    'search.matches':'{shown} matches · {files} files',#匹配摘要
-    'search.matches.truncated':'Showing {shown} of {total} matches · {files} files',#截断匹配
-    'search.noResults':'No results',#无检索结果
-    'search.collapseAria':'Collapse results',#收起检索
-    'search.expandAria':'Expand {count} more result lines',#展开检索
-    'search.expandRest':'… {count} more lines',#展开剩余
-    'web.noResults':'No results found',#网页无结果
-    'web.sourcesTruncated':'Source list truncated',#来源截断
-    'web.http':'HTTP',#HTTP 标签
-    'web.contentTruncated':'Content truncated',#内容截断
-    'details.running':'Running…',#详情运行中
-    'queue.count':'{n} queued messages',#排队计数
-    'queue.sending':'Sending…',#发送中
-    'queue.image':'Queued message image',#排队图片
-    'queue.file':'Queued file {name}',#排队文件
-    'queue.edit':'Edit queued message',#编辑排队
-    'queue.edit.unsupported':'Contains non-text content; editing is not supported yet',#不可编辑
-    'queue.save':'Save queued message',#保存排队
-    'queue.cancelEdit':'Cancel editing',#取消编辑
-    'queue.remove':'Remove queued message',#删除排队
-    'queue.steer':'Steer queued message',#插话发送
-    'queue.steer.unavailable':'Steering is available only while the agent is running',#插话不可用
-    'error.sessionInUse':'This session is already in use, possibly by another running DSH instance (such as dsh web or the desktop app). Quit other running DSH instances and try again.',#会话占用
-    'queue.editFailed':'Edit failed: this message may have already started sending.',#编辑失败
-    'queue.removeFailed':'Removal failed: this message may have already started sending.',#删除失败
-    'queue.steerFailed':'Steering failed. Try again.',#插话失败
-    'terminal.signal':'signal {signal}',#终端信号
-    'terminal.exitCode':'exit code {code}',#退出码
-    'terminal.noExitCode':'no exit code',#无退出码
-    'terminal.running':'Running',#终端运行中
-    'terminal.failed':'Failed',#终端失败
-    'terminal.done':'Done',#终端完成
-    'terminal.noOutput':'No output',#无输出
-    'terminal.collapseAria':'Collapse output',#收起输出
-    'terminal.expandAria':'Expand the remaining {n} output lines',#展开输出
-    'terminal.expandRest':'… {n} more lines',#展开剩余
-    'terminal.sendInput':'(send input)',#发送输入占位
-    'terminal.session':'Terminal {sessionId}',#终端会话
-}#结束英文
+英文={
+    'shortcut.newline':'New line',
+    'shortcut.complementary':'Use the complementary Queue / Steer action',
+    'shortcut.slash':'Open command menu',
+    'shortcut.mention':'Open reference menu',
+    'hint.plan':计划下一步英文,
+    'hint.goal':'describe the objective for a long-running task',
+    'hint.goal.active':'goal active — edit / pause / resume / clear',
+    'placeholder.plan':计划下一步英文,
+    'placeholder.default':'Message or run a task, / commands, @ files or sessions',
+    'placeholder.unavailable':'Session unavailable',
+    'placeholder.parentOffline':'Parent session offline; sending is unavailable but you can still stop the run',
+    'placeholder.hero':'Describe what you want to build, / commands, @ files or sessions',
+    'placeholder.workspace':'Choose a workspace to start',
+    'placeholder.steerQueue':'Cmd/Ctrl+Enter steers all queued messages',
+    'input.commands':'Add files or run commands',
+    'input.file':'File',
+    'input.stop':'Stop generating',
+    'input.send':'Send message',
+    'input.send.queue':'Queue message',
+    'input.send.steer':'Steer message',
+    'attachment.pending':'Pending attachments',
+    'attachment.scrollLeft':'Scroll attachments left',
+    'attachment.scrollRight':'Scroll attachments right',
+    'attachment.dropTitle':'Drag files or images here to add them',
+    'attachment.dropDesc':'Image limit: up to {count} images, {size} each',
+    'attachment.dropBlocked':'Files and images cannot be added right now',
+    'attachment.directoryDesktopOnly':'Folders can only be added in the desktop app; add individual files in the browser',
+    'attachment.pathUnavailable':'Could not obtain the folder path; drag it in again',
+    'attachment.pathUnsupported':'The path contains characters a reference cannot carry; rename it and try again',
+    'image.pending':'Pending images',
+    'image.openOriginal':'View original',
+    'image.openOriginalLabel':'{label}, click to view original',
+    'image.remove':'Remove image {name}',
+    'image.original':'Original image',
+    'image.label':'Image',
+    'image.loadFailed':'Image failed to load; click to retry',
+    'image.loading':'Loading image…',
+    'image.preview':'Original image preview',
+    'image.closePreview':'Close original image preview',
+    'image.unsupportedType':'Only PNG, JPG, WebP, and GIF images are supported',
+    'image.tooMany':'A message can include up to {count} images',
+    'image.fileTooLarge':'Each image must be smaller than {size}',
+    'image.totalTooLarge':'Images exceed {size} in total; remove some and try again',
+    'image.tooManyPixels':'Image resolution is too high; compress it and try again',
+    'image.dimensionTooLarge':'Image sides must be at most {size}px; downscale it and try again',
+    'image.modelUnsupported':'The current model does not support images; switch to a model that does',
+    'image.sendFailed':'Sending images failed ({reason}); re-add them and try again',
+    'file.pending':'Pending files',
+    'file.remove':'Remove file {name}',
+    'file.uploading':'Uploading…',
+    'file.uploadFailed':'Upload failed; click to retry',
+    'file.retry':'Retry uploading {name}',
+    'file.stillUploading':'Files are still uploading; send after they finish',
+    'file.sessionUnavailable':'Session unavailable; files cannot be uploaded',
+    'file.notStaged':'The file has not finished uploading; re-add it and try again',
+    'file.label':'File',
+    'context.aria':'{percent} of context used',
+    'context.used':'of context used',
+    'context.system':'System prompt',
+    'context.tools':'Tool definitions',
+    'context.messages':'Messages',
+    'settings.enter.title':'Send behavior while busy',
+    'settings.enter.description':'What Enter and the Send button do while the agent is running; Cmd/Ctrl+Enter uses the other behavior',
+    'settings.enter.queue':'Queue',
+    'settings.enter.steer':'Steer',
+    'hero.headline':'Into the Unknown',
+    'hero.preview':'Preview',
+    'hero.chooseWorkspace':'Choose workspace',
+    'session.hierarchy':'Session hierarchy',
+    'todo.title':'To-dos',
+    'todo.progress.done':'{done} completed',
+    'todo.progress.active':'{active} in progress',
+    'todo.progress.pending':'{pending} pending',
+    'todo.status.completed':'Completed',
+    'todo.status.inProgress':'In progress',
+    'todo.status.pending':'Pending',
+    'todo.rowTitle':'Update to-do list',
+    'tool.title.createGoal':'Create goal',
+    'tool.title.getGoal':'View goal',
+    'tool.title.updateGoal':'Update goal',
+    'tool.preparing.content':'{kilobytes}KB',
+    'tool.title.createSchedule':'Create reminder',
+    'tool.title.listSchedules':'List reminders',
+    'tool.title.deleteSchedule':'Delete reminder',
+    'tool.title.updateSchedule':'Update reminder',
+    'detail.state':'Status',
+    'detail.todo.completed':'Completed',
+    'detail.todo.in_progress':'In progress',
+    'detail.todo.pending':'Pending',
+    'detail.todo.empty':'The to-do list is empty',
+    'todo.diff.initial':'Initial list',
+    'todo.diff.compare':'Changes since the previous list',
+    'todo.diff.unavailable':'Previous list unavailable',
+    'todo.diff.noChanges':'No changes to the list',
+    'todo.diff.added':'{count} added',
+    'todo.diff.updated':'{count} updated',
+    'todo.diff.removed':'{count} removed',
+    'todo.diff.unchanged':'{count} unchanged',
+    'todo.diff.addedItem':'Added',
+    'todo.diff.updatedItem':'Status changed',
+    'todo.diff.movedItem':'Reordered',
+    'todo.diff.removedItem':'Removed',
+    'detail.goal.empty':'No goal',
+    'detail.goal.active':'Active',
+    'detail.goal.disarmed':'Awaiting continuation',
+    'detail.goal.paused':'Paused',
+    'detail.goal.blocked':'Blocked',
+    'detail.goal.complete':'Completed',
+    'detail.goal.rounds':'Rounds',
+    'detail.goal.reason':'Blocker',
+    'detail.days':'{count} d',
+    'detail.hours':'{count} h',
+    'detail.minutes':'{count} min',
+    'detail.seconds':'{count} s',
+    'detail.schedule.once':'Once',
+    'detail.schedule.every':'Every {interval}',
+    'detail.schedule.when':'Scheduled for',
+    'detail.schedule.frequency':'Repeat',
+    'detail.schedule.scheduled':'Scheduled',
+    'detail.schedule.overdue':'Overdue, awaiting session resume',
+    'detail.schedule.empty':'No reminders',
+    'detail.schedule.deleted':'Deleted',
+    'detail.schedule.count':'{count} reminders',
+    'detail.schedule.daily':'Every day at {time} ({zone})',
+    'detail.schedule.weekly':'Weekly on {days} at {time} ({zone})',
+    'detail.schedule.cron':'Cron {expression} ({zone})',
+    'detail.weekday.1':'Mon',
+    'detail.weekday.2':'Tue',
+    'detail.weekday.3':'Wed',
+    'detail.weekday.4':'Thu',
+    'detail.weekday.5':'Fri',
+    'detail.weekday.6':'Sat',
+    'detail.weekday.7':'Sun',
+    'detail.weekday.join':', ',
+    'tool.title.inspectProviders':'Inspect providers',
+    'tool.title.queryRuntime':'Query runtime',
+    'tool.title.inspectPlugins':'Inspect plugins',
+    'tool.title.workflow':'Run workflow',
+    'tool.title.ralph':'Run ralph loop',
+    'tool.title.readEvent':'Read event',
+    'tool.title.searchEvents':'Search events',
+    'tool.title.traceEvent':'Trace event',
+    'tool.title.searchSessions':'Search sessions',
+    'tool.title.traceSession':'Trace session',
+    'tool.title.listModels':'List models',
+    'tool.title.subagent':'Create subagent',
+    'tool.title.listAgents':'List subagents',
+    'tool.title.sendMessage':'Send message',
+    'tool.title.interruptAgent':'Interrupt agent',
+    'tool.title.listJobs':'List background jobs',
+    'tool.title.readJob':'Read job output',
+    'tool.title.killJob':'Cancel background job',
+    'tool.title.openTerminal':'Open terminal',
+    'tool.title.readTerminal':'Read terminal',
+    'tool.title.listTerminals':'List terminals',
+    'tool.title.signalTerminal':'Signal terminal',
+    'tool.title.closeTerminal':'Close terminal',
+    'tool.title.lsp':'Query code symbols',
+    'tool.title.findDefinition':'Find definition',
+    'tool.title.findReferences':'Find references',
+    'tool.title.findImplementation':'Find implementation',
+    'tool.title.hoverSymbol':'Inspect symbol',
+    'tool.title.spawnTeammate':'Create teammate',
+    'tool.title.createTeamTask':'Create team task',
+    'tool.title.getTeamTask':'Read team task',
+    'tool.title.updateTeamTask':'Update team task',
+    'tool.title.listTeamTasks':'List team tasks',
+    'tool.title.waitAgent':'Wait for subagent',
+    'detail.recordedResult':'Recorded result',
+    'detail.empty':'No results',
+    'detail.none':'None',
+    'detail.yes':'Yes',
+    'detail.no':'No',
+    'detail.moreInInspect':'{count} more items available in Inspect',
+    'detail.status.running':'Running',
+    'detail.status.idle':'Idle',
+    'detail.status.ready':'Ready',
+    'detail.status.inactive':'Inactive',
+    'detail.status.provisioning':'Provisioning',
+    'detail.status.failed':'Failed',
+    'detail.status.completed':'Completed',
+    'detail.status.deleted':'Deleted',
+    'detail.status.killed':'Cancelled',
+    'detail.status.accepted':'Accepted',
+    'detail.status.queued':'Queued',
+    'detail.status.exited':'Exited',
+    'detail.field.id':'ID',
+    'detail.field.revision':'Revision',
+    'detail.field.platform':'Platform',
+    'detail.field.provider':'Provider',
+    'detail.field.model':'Model',
+    'detail.field.role':'Role',
+    'detail.field.context':'Context',
+    'detail.field.owner':'Owner',
+    'detail.field.ready':'Ready',
+    'detail.field.dependencies':'Dependencies',
+    'detail.field.writeScopes':'Write scopes',
+    'detail.field.warnings':'Warnings',
+    'detail.field.diagnostics':'Diagnostics',
+    'detail.field.methods':'Methods',
+    'detail.field.inputSchema':'Input schema',
+    'detail.field.outputSchema':'Output schema',
+    'detail.field.currentPackage':'Current package',
+    'detail.field.nextPackage':'Next package',
+    'detail.field.latestRun':'Latest run',
+    'detail.field.packages':'Packages',
+    'detail.field.registrations':'Registrations',
+    'detail.field.props':'Props',
+    'detail.field.data':'Data',
+    'detail.field.source':'Source',
+    'detail.field.content':'Content',
+    'detail.field.message':'Message',
+    'detail.field.messageId':'Message ID',
+    'detail.field.root':'Root',
+    'detail.field.pid':'Process ID',
+    'detail.field.type':'Type',
+    'detail.field.time':'Time',
+    'detail.field.seq':'Event sequence',
+    'detail.field.turn':'Turn',
+    'detail.field.step':'Step',
+    'detail.field.callId':'Call ID',
+    'detail.field.agents':'Agents started',
+    'detail.field.result':'Result',
+    'detail.field.parent':'Parent',
+    'detail.field.depth':'Depth',
+    'detail.field.exitCode':'Exit code',
+    'detail.field.signal':'Signal',
+    'detail.field.previousStatus':'Previous status',
+    'detail.field.agent':'Agent ID',
+    'detail.field.job':'Job ID',
+    'detail.field.task':'Task',
+    'detail.field.processGroup':'Process group',
+    'detail.field.availability':'Availability',
+    'detail.field.bestMatch':'Best match',
+    'detail.field.target':'Target event',
+    'detail.field.surface':'Record status',
+    'detail.agents.count':'{count} agents',
+    'detail.jobs.count':'{count} background jobs',
+    'detail.terminals.count':'{count} terminals',
+    'detail.tasks.count':'{count} team tasks',
+    'detail.tasks.nextPage':'More tasks available; next cursor is {cursor}',
+    'detail.locations.count':'{count} locations',
+    'detail.location':'Line {line}, column {column}',
+    'detail.receipt.delivered':'Message delivered',
+    'detail.receipt.interrupt':'Interrupt requested',
+    'detail.receipt.started':'Started',
+    'detail.receipt.cancel':'Cancellation requested',
+    'detail.receipt.alreadyFinished':'Already finished',
+    'detail.receipt.signal':'Signal delivered',
+    'detail.receipt.closed':'Closed',
+    'detail.receipt.closing':'Closing',
+    'detail.wait.noProgress':'No active subagents',
+    'detail.wait.title':'Subagent activity',
+    'detail.wait.timeout':'Wait timed out',
+    'detail.wait.changed':'Change detected',
+    'detail.agent.reply':'Agent response',
+    'detail.models.title':'Available models',
+    'detail.output.lines':'Lines {begin}–{end} of {total}',
+    'detail.output.truncated':'Output truncated',
+    'detail.providers.count':'{count} inspect providers',
+    'detail.plugins.count':'{count} dynamic plugins',
+    'detail.workflow.script':'Workflow script',
+    'detail.ralph.reportedComplete':'Worker reported completion',
+    'detail.ralph.reportedBlocker':'Worker reported a blocker',
+    'detail.ralph.limit':'Round limit reached',
+    'detail.report.nextSteps':'Remaining work',
+    'detail.trace.replacedBy':'Replaced by',
+    'detail.trace.replacementChain':'Replacement chain',
+    'detail.trace.replaces':'Replaced events',
+    'detail.trace.sources':'Source events',
+    'detail.trace.derived':'Derived events',
+    'detail.trace.ancestors':'Ancestor sessions',
+    'detail.trace.descendants':'Descendant sessions',
+    'detail.matches.count':'{count} matches',
+    'detail.matches.capped':'Result limit reached; narrow the search for more',
+    'detail.event.neighbors':'Surrounding events',
+    'todo.completed':'{done}/{total} completed',
+    'command.attachmentsUnsupported':'/{command} does not accept attachments; remove them first',
+    'ask.rowTitle':'Ask question',
+    'ask.waiting':'waiting',
+    'ask.pending':'continued; answer still available',
+    'ask.pendingDetail':'These pending questions remain answerable from the composer.',
+    'ask.reopen':'Answer',
+    'ask.review':'View answers',
+    'ask.closed':'closed',
+    'ask.closedDetail':'This question is closed; its outcome is in the conversation below.',
+    'ask.cancelled':'cancelled',
+    'ask.cancelledDetail':'This question set was cancelled before answers were submitted.',
+    'ask.interrupted':'interrupted',
+    'ask.interruptedDetail':'This question set was interrupted before answers were submitted.',
+    'ask.answered':'{answered}/{total} answered',
+    'ask.skipped':'Not answered',
+    'bash.running':'Running',
+    'bash.failed':'Failed',
+    'bash.stopped':'Stopped',
+    'row.running':'Running',
+    'row.preparing':'Preparing tool call',
+    'row.failed':'Failed',
+    'row.stopped':'Stopped',
+    'row.commandArguments':'Command arguments',
+    'row.input':'IN',
+    'row.output':'OUT',
+    'row.inspect':'Inspect',
+    'row.imageSize':'{width}x{height}px, {bytes} bytes',
+    'row.imageSizeDownscaled':'{width}x{height}px (downscaled from {originalWidth}x{originalHeight}px), {bytes} bytes',
+    'tool.title.search':'Search',
+    'tool.title.read':'Read',
+    'tool.title.bash':'Bash',
+    'tool.title.write':'Write',
+    'tool.title.edit':'Edit',
+    'tool.title.code':'Code',
+    'tool.title.generic':'Tool call',
+    'tool.title.inspect':'Query Cordis environment',
+    'tool.title.runCordis':'Run Cordis Plugin',
+    'tool.title.stopCordis':'Stop Cordis Plugin',
+    'tool.title.removeCordis':'Remove Cordis Plugin',
+    'tool.title.pwsh':'Pwsh',
+    'tool.title.readImage':'Read image',
+    'tool.title.grep':'Grep',
+    'tool.title.glob':'Glob',
+    'tool.title.webSearch':'Search',
+    'tool.title.webFetch':'Fetch',
+    'tool.autoReviewRejected':'Rejected by Auto review',
+    'tool.autoReviewNotExecuted':'Tool was not executed. Reason: {reason}',
+    'tool.autoReviewReasonFallback':'Auto review did not authorize this action',
+    'diff.collapseAria':'Collapse diff',
+    'diff.expandAria':'Expand {count} more diff lines',
+    'diff.expandRest':'… {count} more lines',
+    'read.window':'Showing {shown} of {total} lines',
+    'read.collapseAria':'Collapse content',
+    'read.expandAria':'Expand {count} more lines',
+    'read.expandRest':'… {count} more lines',
+    'search.paths':'{shown} paths',
+    'search.paths.truncated':'Showing {shown} of {total} paths',
+    'search.matches':'{shown} matches · {files} files',
+    'search.matches.truncated':'Showing {shown} of {total} matches · {files} files',
+    'search.noResults':'No results',
+    'search.collapseAria':'Collapse results',
+    'search.expandAria':'Expand {count} more result lines',
+    'search.expandRest':'… {count} more lines',
+    'web.noResults':'No results found',
+    'web.sourcesTruncated':'Source list truncated',
+    'web.http':'HTTP',
+    'web.contentTruncated':'Content truncated',
+    'details.running':'Running…',
+    'queue.count':'{n} queued messages',
+    'queue.sending':'Sending…',
+    'queue.image':'Queued message image',
+    'queue.file':'Queued file {name}',
+    'queue.edit':'Edit queued message',
+    'queue.edit.unsupported':'Contains non-text content; editing is not supported yet',
+    'queue.save':'Save queued message',
+    'queue.cancelEdit':'Cancel editing',
+    'queue.remove':'Remove queued message',
+    'queue.steer':'Steer queued message',
+    'queue.steer.unavailable':'Steering is available only while the agent is running',
+    'error.sessionInUse':'This session is already in use, possibly by another running DSH instance (such as dsh web or the desktop app). Quit other running DSH instances and try again.',
+    'queue.editFailed':'Edit failed: this message may have already started sending.',
+    'queue.removeFailed':'Removal failed: this message may have already started sending.',
+    'queue.steerFailed':'Steering failed. Try again.',
+    'terminal.signal':'signal {signal}',
+    'terminal.exitCode':'exit code {code}',
+    'terminal.noExitCode':'no exit code',
+    'terminal.commandLine':'Command line {n}',
+    'terminal.running':'Running',
+    'terminal.failed':'Failed',
+    'terminal.done':'Done',
+    'terminal.noOutput':'No output',
+    'terminal.collapseAria':'Collapse output',
+    'terminal.expandAria':'Expand the remaining {n} output lines',
+    'terminal.expandRest':'… {n} more lines',
+    'terminal.sendInput':'(send input)',
+    'terminal.session':'Terminal {sessionId}',
+}

@@ -3,5 +3,10 @@
     "network":"网络",
     "service":"服务",
     "validation":"校验",
-    "identity":"身份"
+    "identity":"身份",
+    "web":"网页",
+    "dispose":"处置",
+    "json":"json",
+    "cordis":"cordis",
+    "cdp":"cdp"
 }

@@ -2,7 +2,7 @@ from .......基础设施.js特性 import PromiseEX as 期约扩展#后端方法�
 from .....异常 import 检查器错误#包内错误
 from ...协议 import cdp错误,响应cdp请求#协议
 from .cdp参数 import (#参数解析
-    解析求值,解析取属性,解析调函数,解析等Promise,
+    解析求值,解析获取属性,解析调函数,解析等Promise,
     解析释放对象,解析释放对象组,解析全局词法作用域名,
 )
 from .对象表 import Runtime对象表#对象表
@@ -37,8 +37,8 @@ class Runtime域会话:#Runtime域会话
                 return 自身._求值(请求['params'])#求值
             自身._响应(请求,求值)#响应
             return True#已拥有
-        if 方法=='Runtime.getProperties':#取属性
-            return 自身._取属性(请求)#委托
+        if 方法=='Runtime.getProperties':#获取属性
+            return 自身._获取属性(请求)#委托
         if 方法=='Runtime.callFunctionOn':#调函数
             return 自身._调函数(请求)#委托
         if 方法=='Runtime.awaitPromise':#等Promise
@@ -182,7 +182,7 @@ class Runtime域会话:#Runtime域会话
             return 自身._对象.完成(领域,完成,解析['request'].get('objectGroup'))#投影
         return 运行时后端(领域).求值({**解析['request'],**自身._后端上下文(领域,解析,'contextId')}).然后(投影结果)#求值完成后再投影
 
-    def _取属性(自身,请求):#取属性
+    def _获取属性(自身,请求):#获取属性
         'Runtime.getProperties'
         对象id=请求['params'].get('objectId')#对象id
         if not isinstance(对象id,str):#类型
@@ -191,12 +191,12 @@ class Runtime域会话:#Runtime域会话
         if 路由 is None:#未知
             return False#未拥有
         def 操作():#响应体
-            '取属性并投影，返回期约'
-            解析=解析取属性(请求['params'])#解析
-            def 投影结果(属性):#取属性完成后调用
+            '获取属性并投影，返回期约'
+            解析=解析获取属性(请求['params'])#解析
+            def 投影结果(属性):#获取属性完成后调用
                 '经对象表投影'
                 return 自身._对象.投影属性(路由['realm'],属性,路由['group'])#投影
-            return 运行时后端(路由['realm']).取属性({**解析['request'],'handle':路由['handle']}).然后(投影结果)#取属性完成后再投影
+            return 运行时后端(路由['realm']).获取属性({**解析['request'],'handle':路由['handle']}).然后(投影结果)#获取属性完成后再投影
         自身._响应(请求,操作)#响应
         return True#已拥有
 

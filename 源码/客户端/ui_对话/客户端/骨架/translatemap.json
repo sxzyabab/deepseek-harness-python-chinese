@@ -4,5 +4,19 @@
     "HeroShell":"英雄壳",
     "InputBar":"输入栏",
     "TodoPanel":"待办面板",
-    "control-row-layout":"控件行布局"
+    "control-row-layout":"控件行布局",
+    "ConversationContent":"会话体",
+    "ConversationMainPanel":"主面板",
+    "ConversationSession":"会话",
+    "ConversationHeader":"会话报头",
+    "ConversationPanel":"会话面板",
+    "DefaultConversationViews":"默认视图",
+    "ConversationWidthControls":"宽度控件",
+    "EmptyHero":"空主视觉",
+    "safari":"Safari",
+    "ContextMeter.module":"上下文仪表.module",
+    "ConversationRoot.module":"会话根.module",
+    "InputBar.module":"输入栏.module",
+    "TodoPanel.module":"待办面板.module",
+    "HeroShell.module":"英雄壳.module"
 }

@@ -1,52 +1,79 @@
+'sidebarRight 文案表。界面直接取中文表，英文表只登记不显示'
 
-__all__=['中文','英文','右侧侧栏文案键']#仅中文公开名
+中文={
+    'command.close':'关闭当前页面／窗口',
+    'command.refresh':'刷新当前页面',
+    'command.noRefresh':'当前页面不支持刷新',
+    'command.toggle':'展开／收起右侧栏',
+    'command.fullscreen':'面板全屏／退出全屏',
+    'command.noSession':'请先选择会话',
+    'command.noFocus':'请先聚焦右侧面板',
+    'command.stale':'页面已切换，请重新聚焦',
+    'command.collapsed':'请先展开右侧栏',
+    'command.float':'浮动面板不支持此操作',
+    'command.empty':'请先打开页面',
+    'command.budget':'已达两格上限',
+    'command.width':'栏宽不足，拖宽侧边栏后再分栏',
+    'chrome.expand':'打开侧边栏',
+    'chrome.expandAria':'打开右侧边栏',
+    'chrome.collapse':'收起侧边栏',
+    'chrome.collapseAria':'收起右侧边栏',
+    'chrome.toFullscreen':'全屏',
+    'chrome.exitFullscreen':'退出全屏',
+    'dock.emptyPane':'空面板',
+    'dock.splitPane':'分栏',
+    'dock.splitPaneDisabled':'已达两格上限',
+    'dock.splitPaneNarrow':'栏宽不足，拖宽侧边栏后再分栏',
+    'dock.closeTab':'关闭',
+    'dock.addTab':'新标签页',
+    'dock.dockFloat':'收回到侧边栏',
+    'dock.closeFloat':'关闭',
+    'dock.drop.center':'移到这里',
+    'dock.drop.left':'左分栏',
+    'dock.drop.right':'右分栏',
+    'dock.drop.top':'上分栏',
+    'dock.drop.bottom':'下分栏',
+    'tab.guide.title':'开始',
+    'tab.unavailable':'这类内容还没有可用的查看方式。',
+}
 
-中文={#简体中文词条（键集合的权威源）
-    'chrome.expand':'打开侧边栏',#展开
-    'chrome.expandAria':'打开右侧边栏',#展开无障碍名
-    'chrome.collapse':'收起侧边栏',#收起
-    'chrome.collapseAria':'收起右侧边栏',#收起无障碍名
-    'chrome.toFullscreen':'全屏',#进全屏
-    'chrome.exitFullscreen':'退出全屏',#退全屏
-    'dock.emptyPane':'空面板',#空窗
-    'dock.splitPane':'分栏',#分栏
-    'dock.splitPaneDisabled':'已达两格上限',#已满
-    'dock.splitPaneNarrow':'栏宽不足，拖宽侧边栏后再分栏',#过窄
-    'dock.closeTab':'关闭',#关签
-    'dock.addTab':'新标签页',#加签
-    'dock.dockFloat':'收回到侧边栏',#收回
-    'dock.closeFloat':'关闭',#关浮
-    'dock.drop.center':'移到这里',#投放中心
-    'dock.drop.left':'左分栏',#投放左
-    'dock.drop.right':'右分栏',#投放右
-    'dock.drop.top':'上分栏',#投放上
-    'dock.drop.bottom':'下分栏',#投放下
-    'tab.guide.title':'开始',#向导标题
-    'tab.unavailable':'这类内容还没有可用的查看方式。',#无查看器
-}#中文词典结束
+英文={
+    'command.close':'Close current page or window',
+    'command.refresh':'Refresh current page',
+    'command.noRefresh':'This page cannot be refreshed',
+    'command.toggle':'Toggle right sidebar',
+    'command.fullscreen':'Toggle panel fullscreen',
+    'command.noSession':'Select a session first',
+    'command.noFocus':'Focus a right sidebar pane first',
+    'command.stale':'The page changed; focus it again',
+    'command.collapsed':'Expand the right sidebar first',
+    'command.float':'This action is unavailable in a floating panel',
+    'command.empty':'Open a page first',
+    'command.budget':'Two panes is the limit',
+    'command.width':'Not enough width to split, widen the sidebar',
+    'chrome.expand':'Open sidebar',
+    'chrome.expandAria':'Open right sidebar',
+    'chrome.collapse':'Collapse sidebar',
+    'chrome.collapseAria':'Collapse right sidebar',
+    'chrome.toFullscreen':'Fullscreen',
+    'chrome.exitFullscreen':'Exit fullscreen',
+    'dock.emptyPane':'Empty pane',
+    'dock.splitPane':'Split',
+    'dock.splitPaneDisabled':'Two panes is the limit',
+    'dock.splitPaneNarrow':'Not enough width to split, widen the sidebar',
+    'dock.closeTab':'Close',
+    'dock.addTab':'New tab',
+    'dock.dockFloat':'Send back to the sidebar',
+    'dock.closeFloat':'Close',
+    'dock.drop.center':'Move here',
+    'dock.drop.left':'Add left split',
+    'dock.drop.right':'Add right split',
+    'dock.drop.top':'Add top split',
+    'dock.drop.bottom':'Add bottom split',
+    'tab.guide.title':'Start',
+    'tab.unavailable':'Nothing here can view this kind of content yet.',
+}
 
-英文={#英文词条，对照中文权威源核验键齐全
-    'chrome.expand':'Open sidebar',#展开
-    'chrome.expandAria':'Open right sidebar',#展开无障碍名
-    'chrome.collapse':'Collapse sidebar',#收起
-    'chrome.collapseAria':'Collapse right sidebar',#收起无障碍名
-    'chrome.toFullscreen':'Fullscreen',#进全屏
-    'chrome.exitFullscreen':'Exit fullscreen',#退全屏
-    'dock.emptyPane':'Empty pane',#空窗
-    'dock.splitPane':'Split',#分栏
-    'dock.splitPaneDisabled':'Two panes is the limit',#已满
-    'dock.splitPaneNarrow':'Not enough width to split, widen the sidebar',#过窄
-    'dock.closeTab':'Close',#关签
-    'dock.addTab':'New tab',#加签
-    'dock.dockFloat':'Send back to the sidebar',#收回
-    'dock.closeFloat':'Close',#关浮
-    'dock.drop.center':'Move here',#投放中心
-    'dock.drop.left':'Add left split',#投放左
-    'dock.drop.right':'Add right split',#投放右
-    'dock.drop.top':'Add top split',#投放上
-    'dock.drop.bottom':'Add bottom split',#投放下
-    'tab.guide.title':'Start',#向导标题
-    'tab.unavailable':'Nothing here can view this kind of content yet.',#无查看器
-}#英文词典结束
+右侧侧栏文案键=tuple(中文.keys())
 
-右侧侧栏文案键=tuple(中文.keys())#由中文词典键推导的键域
+__all__=['中文','英文','右侧侧栏文案键']

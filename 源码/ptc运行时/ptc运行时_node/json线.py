@@ -2,7 +2,7 @@
 import math#有限数判定
 from .异常 import 节点ptc错误#本包异常
 
-__all__=['快照ptcjson值','编码ptcjson线','解码ptcjson线']#仅中文公开名
+__all__=['快照ptcJson值','编码ptcJson线','解码ptcJson线']#仅中文公开名
 
 原生列表=list#模块捕获的 list
 原生字典=dict#模块捕获的 dict
@@ -39,7 +39,7 @@ def 键含有(键列表,期望):#精确键表是否含某键
             return True#含有
     return False#不含
 
-def 快照ptcjson值(值):#校验并分离进程边界值
+def 快照ptcJson值(值):#校验并分离进程边界值
     """校验并分离一个进程边界值，不加载另一工作区包。
     镜像会话拥有的规范 JSON 边界。
     迭代遍历不加调用栈深度限制。
@@ -120,7 +120,7 @@ def 快照ptcjson值(值):#校验并分离进程边界值
             下标-=1#推进
     return 根[0]#分离根
 
-def 编码ptcjson线(值):#把已校验 JSON 压成扁平线
+def 编码ptcJson线(值):#把已校验 JSON 压成扁平线
     """把一个已校验 JSON 值压成进程控制通道用的前序记号流。
     值是无损 JSON。
     返回自身嵌套有界的前序记号流
@@ -180,7 +180,7 @@ def 容器标记(值):#精确容器标记
         return {'kind':'object','keys':规范化}#对象标记
     return None#未知 kind
 
-def 解码ptcjson线(输入):#从扁平线重建无损 JSON
+def 解码ptcJson线(输入):#从扁平线重建无损 JSON
     """从扁平进程线格式重建一个无损 JSON 值。
     畸形或不完整流量返回空；遍历迭代，因此与应用嵌套深度无关。
     输入是未信任的报文。

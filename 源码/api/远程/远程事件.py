@@ -1,12 +1,21 @@
 '本应用转发宿主事件白名单的唯一出处'
+
+def 会话标识资源(会话标识):
+    '载荷就是会话标识'
+    return 会话标识#原样交回
+
+def 提要会话标识(提要):
+    '从新增会话提要取会话标识'
+    return 提要['sessionId']#提要上的身份
+
 远程转发事件=(#宿主事件转发白名单：event 为线名，mode 为 emit 或 waterfall
     {'event':'agent-preset/selected','mode':'emit'},#智能体预设已选定
     {'event':'approval/request','mode':'waterfall'},#审批请求瀑布
-    {'event':'api-session/activity','mode':'emit'},#会话活动
-    {'event':'api-session/added','mode':'emit'},#会话已添加
-    {'event':'api-session/error','mode':'emit'},#会话错误
-    {'event':'api-session/removed','mode':'emit'},#会话已移除
-    {'event':'api-session/status','mode':'emit'},#会话状态
+    {'event':'api-session/activity','mode':'emit','resources':{'session':会话标识资源}},#会话活动
+    {'event':'api-session/added','mode':'emit','resources':{'session':提要会话标识}},#会话已添加
+    {'event':'api-session/error','mode':'emit','resources':{'session':会话标识资源}},#会话错误
+    {'event':'api-session/removed','mode':'emit','resources':{'session':会话标识资源}},#会话已移除
+    {'event':'api-session/status','mode':'emit','resources':{'session':会话标识资源}},#会话状态
     {'event':'commands/change','mode':'emit'},#命令表已变更
     {'event':'deepseek-account/session-expired','mode':'emit'},#账号会话已过期
     {'event':'deepseek-account/model-sign-in-required','mode':'emit'},#模型登录仍需要
@@ -24,9 +33,10 @@
     {'event':'plugin-manager/changed','mode':'emit'},#插件装载已变更
     {'event':'plugin-manager/install-log','mode':'emit'},#插件安装日志
     {'event':'plugin-manager/install-state','mode':'emit'},#插件安装状态
+    {'event':'plugin-market/changed','mode':'emit'},#插件市场已变更
     {'event':'settings/document-updated','mode':'emit'},#设置文档已更新
     {'event':'schedule/changed','mode':'emit'},#日程已变更
     {'event':'user-questions/request','mode':'waterfall'},#用户提问瀑布
 )#只读元组
 
-__all__=['远程转发事件']#公开面
+__all__=['远程转发事件','会话标识资源','提要会话标识']#公开面

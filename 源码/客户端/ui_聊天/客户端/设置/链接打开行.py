@@ -1,86 +1,66 @@
-from nicegui import ui as 界面
-from ...异常 import 页面失败文案
-from ..聊天.消息项 import 打开列
+from ..文案 import 中文
+from .偏好行 import 偏好行
 
 __all__=['链接打开行']
 
-链接打开选项=(
-    {'id':'sidebar','label':'settings.links.sidebar'},
-    {'id':'new-tab','label':'settings.links.newTab'},
-)
 
-def 恒等翻译(键,参数=None):
-    '无文案表时返回键本身'
-    return 键
-
-def 取当前(值):
-    '选择器原样返回'
+def 原样(值):
+    '整份快照'
     return 值
 
-def 读快照(存储):
-    '字典面或对象面都读当前值'
-    if 存储 is None:
-        return None
-    取=存储['getSnapshot'] if isinstance(存储,dict) and 'getSnapshot' in 存储 else getattr(存储,'getSnapshot',None)
-    return 取() if 取 is not None else None
 
 class 链接打开行:
-    '内建浏览器可用时，选择对话链接打开位置'
-    def __init__(自身,属性=None):
-        '记下 props'
-        自身.属性=属性 if 属性 is not None else {}
+    '对话里网页链接的默认打开位置。内置浏览器没登记时这一行不出现'
+    def __init__(自身,属性):
+        '记下设置槽属性并画出。没有浏览器就不留节点'
+        自身.属性=属性
+        自身.行=None
         自身.根=None
+        自身.已订=False
+        自身.退订表=[]
         自身.渲染()
 
-    def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性 if 属性 is not None else {}
+    def 选中(自身,值):
+        '改默认打开位置'
+        自身.属性['setLinkOpening'](值)
 
     def 渲染(自身):
-        '无内建浏览器则不画'
+        '浏览器不在时拆掉已画出的行'
         属性=自身.属性
-        可用=属性['browserAvailable'] if 'browserAvailable' in 属性 else None
-        钩=属性['hooks'] if 'hooks' in 属性 and 属性['hooks'] is not None else {}
-        if 可用 is None and 'browserAvailable' in 钩:
-            可用=钩['browserAvailable']
-        有浏览器=可用() if callable(可用) else 可用 is True
-        if 有浏览器 is not True:
+        窗口=属性['window']
+        目的地=属性['useLinkOpening'](原样)
+        有浏览器=属性['useBrowserAvailable'](原样)
+        if not 有浏览器:
             if 自身.根 is not None:
-                try:
-                    自身.根.clear()
-                    自身.根.set_visibility(False)
-                except Exception as 错误:
-                    自身.根=None
-                    界面.label(页面失败文案(错误))
-            return
-        翻译=属性['t'] if 't' in 属性 else 恒等翻译
-        用=属性['useLinkOpening'] if 'useLinkOpening' in 属性 else None
-        存储=钩['linkOpening'] if 'linkOpening' in 钩 else None
-        去向='sidebar'
-        选出=None
-        if 用 is not None:
-            选出=用(取当前)
-        elif 存储 is not None:
-            选出=读快照(存储)
-        if isinstance(选出,str) and 选出!='':
-            去向=选出
-        选项表={}
-        for 项 in 链接打开选项:
-            选项表[项['id']]=翻译(项['label'])
-        写入=属性['setLinkOpening'] if 'setLinkOpening' in 属性 else None
-        def 改(事件):
-            '写回打开位置'
-            if 写入 is None:
-                return
-            写入(事件.value)
-        with 打开列(自身,'链接打开行'):
-            自身.根.set_visibility(True)
-            界面.label(翻译('settings.links.title')).classes('标题')
-            界面.label(翻译('settings.links.description')).classes('设置说明')
-            界面.select(选项表,value=去向,on_change=改).classes('链接打开')
-
-    def __call__(自身,属性=None):
-        '对齐 React'
-        if 属性 is not None:
-            自身.更新(属性)
-        自身.渲染()
+                自身.根.remove()
+                自身.根=None
+                自身.行=None
+            return None
+        侧栏=目的地=='sidebar'
+        行属性={
+            'window':窗口,
+            'title':中文['settings.links.title'],
+            'description':中文['settings.links.description'],
+            'value':目的地,
+            'selectedLabel':中文['settings.links.sidebar'] if 侧栏 else 中文['settings.links.newTab'],
+            'options':[
+                {'id':'sidebar','label':中文['settings.links.sidebar']},
+                {'id':'new-tab','label':中文['settings.links.newTab']},
+            ],
+            'onSelect':自身.选中,
+        }
+        if 自身.行 is None:
+            if 'parent' in 属性:
+                行属性['parent']=属性['parent']
+            自身.行=偏好行(行属性)
+            自身.根=自身.行.根
+        else:
+            自身.行.属性=行属性
+            自身.行.渲染()
+        if not 自身.已订:
+            for 钩 in (属性['useLinkOpening'],属性['useBrowserAvailable']):
+                订=getattr(钩,'_subscribe',None)
+                if callable(订):
+                    自身.退订表.append(订(自身.渲染))
+            自身.已订=True
+        return 自身.根

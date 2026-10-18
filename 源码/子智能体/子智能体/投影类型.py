@@ -1,30 +1,30 @@
 from typing import Literal,NotRequired,TypedDict#字面量、可选字段与结构类型
 
-class 子智能体目录一次性条目(TypedDict):#一次性直接子发现行
+class 子智能体名录一次性条目(TypedDict):#一次性直接子发现行
     id:str#子会话 id
     createdAt:int#创建时刻
     mode:Literal['one-shot']#一次性
     label:NotRequired[str]#可选标签
 
-class 子智能体目录外部条目(TypedDict):#没有本地子会话的外部执行
+class 子智能体名录外部条目(TypedDict):#没有本地子会话的外部执行
     id:str#提供方身份
     createdAt:int#创建时刻
     mode:Literal['external']#外部
     label:NotRequired[str]#可选标签
 
-class 子智能体目录可续跑条目(TypedDict):#可续跑直接子发现行
+class 子智能体名录可续运行条目(TypedDict):#可续运行直接子发现行
     id:str#子会话 id
     createdAt:int#创建时刻
-    mode:Literal['continuable']#可续跑
+    mode:Literal['continuable']#可续运行
     label:str#标签
 
-class 子智能体目录未知条目(TypedDict):#无法识别的目录模式
+class 子智能体名录未知条目(TypedDict):#无法识别的目录模式
     id:str#子身份
     createdAt:int#创建时刻
     mode:Literal['unknown']#未知
     label:NotRequired[str]#可选标签
 
-子智能体目录条目=子智能体目录一次性条目|子智能体目录外部条目|子智能体目录可续跑条目|子智能体目录未知条目#目录条目联合
+子智能体名录条目=子智能体名录一次性条目|子智能体名录外部条目|子智能体名录可续运行条目|子智能体名录未知条目#目录条目联合
 
 class 子智能体计时活动(TypedDict):#当前未到达 turn/end 的开放回合的同一切片边界
     since:int#开放回合的起点
@@ -40,14 +40,14 @@ class 子智能体一次性身份投影(TypedDict):#终态一次性子体的耐�
     label:NotRequired[str]#来自子描述符的可选耐久创建标签
     seq:int#折叠出本身份的 subagent/descriptor 事件的 seq
 
-class 子智能体可续跑身份投影(TypedDict):#可恢复对话的耐久身份
+class 子智能体可续运行身份投影(TypedDict):#可恢复对话的耐久身份
     mode:Literal['continuable']#可恢复对话
     label:str#来自子描述符的耐久创建标签
     seq:int#折叠出的描述符事件 seq；自身后缀证明见一次性臂
 
-子智能体身份投影=子智能体一次性身份投影|子智能体可续跑身份投影#身份投影联合（mode 判别）
+子智能体身份投影=子智能体一次性身份投影|子智能体可续运行身份投影#身份投影联合（mode 判别）
 
 # 会话投影图扩充（仅文档；SessionProjectionMap）：
-# subagentCatalog: 子智能体目录条目[] — 按父目录事件顺序的直接子体。
+# subagentCatalog: 子智能体名录条目[] — 按父目录事件顺序的直接子体。
 # subagentTiming: 子智能体计时投影 — 有描述符的子智能体会话的活动回合时长。
 # subagent: 子智能体身份投影 | None — null 哨兵 ⟺ 没有合法描述符（缺失、畸形或无法识别版本）；故意可序列化。

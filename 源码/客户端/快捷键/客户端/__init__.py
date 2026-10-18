@@ -1,137 +1,177 @@
-'浏览器命令服务；每个插件寿命一个键盘适配器'
+'浏览器命令服务。每个插件寿命一个键盘适配器'
+from ...模块.客户端.通告 import 取握手窗口
+import pywebbridge#当前页面
 from ....依赖.cordis.服务 import 服务#服务基类
+from ..异常 import 快捷键错误,抛出桌面键盘桥不可用#桌面桥缺失
 from ..协议 import (#协议
     绑定问题,
     初始快捷键配置,
     规范化绑定,
     绑定重叠,
     呈现绑定,
-)#协议
+)
+from ..配置 import 配置 as 校验配置#页面注入的时序
+from . import (
+    类型,
+    注册表,
+    存储,
+    dom,
+    原生,
+)
 from .注册表 import 快捷键注册表#注册表
 from .dom import 探测环境,安装键盘#DOM
 from .存储 import Web快捷键存储,桌面快捷键存储#存储
 from .原生 import 安装原生键盘#原生
-from . import (
-    类型,
-)
 
-__all__=[#仅中文公开名
-    '依赖','快捷键服务',
-]#公开面结束
+__all__=[#同目录模块，以及本文件的服务
+    '依赖','快捷键服务','类型','注册表','存储','dom','原生',
+]
 
+未定义=pywebbridge.基础.undefined#页面上没有该属性
 依赖=['locale']#硬依赖本地化
 
 class 快捷键服务(服务):
-    'Cordis 键盘提供方；Desktop 启动需要原生键盘桥'
-    inject=依赖#框架槽
-
+    'Cordis 键盘提供方。Desktop 启动需要原生键盘桥'
+    inject=依赖
     def __init__(自身,上下文):
-        '探测环境、挂注册表与适配器'
-        文档=document#文档
-        导航=navigator#导航
-        窗口=window#窗口
-        环境=探测环境(文档,导航)#环境
+        '探测环境，挂上注册表和适配器'
+        窗口=取握手窗口()#当前页
+        环境=探测环境(窗口.document,窗口.navigator)#访问设备
         键盘=None#原生键盘桥
         if 环境['runtime']=='desktop':#桌面
-            桌面=getattr(窗口,'dshDesktop',None)#preload
-            键盘=getattr(桌面,'keyboard',None) if 桌面 is not None else None#键盘
-            if 键盘 is None:#缺桥
-                raise RuntimeError('Desktop 键盘桥不可用')#拒绝
+            桌面=窗口['dshDesktop']#preload
+            if 桌面 is 未定义 or 桌面 is None:#没有桌面面
+                桥键=未定义#无键盘
+            else:#有桌面面
+                桥键=桌面['keyboard']#键盘桥
+            if 桥键 is 未定义 or 桥键 is None:#缺桥
+                抛出桌面键盘桥不可用()#启动失败
+            键盘=桥键#留下
         super().__init__(上下文,'shortcuts')#登记服务
-        自身.keyboard=键盘#桥
+        自身.键盘=键盘#桥
         自身.runtime=环境['runtime']#壳
         自身.platform=环境['platform']#平台
-        try:#宿主注入
-            注入=__DSH_SHORTCUTS_CONFIG__#Host 注入
-        except NameError:#未注入
-            注入=None#无
-        表={} if 注入 is None else dict(注入)#表
-        if 'stopSequenceMs' in 表 and 表['stopSequenceMs'] is not None:#有显式
-            自身.stopSequenceMs=表['stopSequenceMs']#采用
-        else:#缺省
-            自身.stopSequenceMs=500#与 Host 默认一致
-        自身.注册表=快捷键注册表(自身.runtime,自身.platform,初始快捷键配置())#注册表
+        注入=窗口['__DSH_SHORTCUTS_CONFIG__']#宿主注入
+        if 注入 is 未定义 or 注入 is None:#没有注入
+            注入={}#用默认
+        自身.stopSequenceMs=校验配置(注入)['stopSequenceMs']#已校验间隔
+        自身.注册表=快捷键注册表(自身.runtime,自身.platform,初始快捷键配置())#先是 loading
         自身.catalog=自身.注册表.catalog#目录
         自身.config=自身.注册表.config#配置
         自身.fixedCatalog=自身.注册表.fixedCatalog#固定目录
         自身.固定监听=set()#固定输入监听
         自身.活跃=True#寿命
         自身.已连接=False#适配器已回
+
         def 发布(快照):
             '适配器推送已接受快照'
             if 自身.活跃 and 自身.已连接 and 快照['sequence']>=自身.config.getSnapshot()['sequence']:#有序
                 自身.注册表.configure(快照)#配置
-        Web面=None#Web 适配
+
+        网页存储=None#Web 适配
         if 自身.runtime=='web':#Web
-            Web面=Web快捷键存储(窗口,自身.platform,发布)#建
-        自身.适配器=Web面 if Web面 is not None else 桌面快捷键存储(窗口)#适配器
+            网页存储=Web快捷键存储(窗口,自身.platform,发布)#建
+        自身.适配器=网页存储 if 网页存储 is not None else 桌面快捷键存储(窗口)#适配器
         if 键盘 is not None:#原生键盘
+
             def 挂原生():
                 '安装原生键盘'
-                return 安装原生键盘(
-                    窗口,键盘,自身.注册表,
-                    lambda:自身.config.getSnapshot(),
-                    lambda:自身.投递固定({'type':'reset'}),
-                )#拆除器
+
+                def 取快照():
+                    '当前已接受配置'
+                    return 自身.config.getSnapshot()#快照
+
+                def 重置固定():
+                    '原生输入绕过 DOM 时清掉固定序列'
+                    自身.投递固定({'type':'reset'})#重置
+
+                return 安装原生键盘(窗口,键盘,自身.注册表,取快照,重置固定)#拆除器
+
             上下文.副作用(挂原生,'shortcuts: native keyboard')#寿命
+
         def 挂偏好():
-            '订阅偏好并在拆除时停'
+            '订阅偏好，拆除时停掉'
             卸=自身.适配器.subscribe(发布) if 自身.适配器 is not None else None#订阅
+
             def 拆除():
-                '停活跃并卸'
-                自身.活跃=False
-                if 卸 is not None:
-                    卸()#卸订阅
-                if Web面 is not None:#Web
-                    Web面.dispose()#拆除
+                '停掉活跃，卸订阅，并拆掉 Web 存储监听'
+                自身.活跃=False#先停
+                if 卸 is not None:#有订阅
+                    卸()#卸
+                if 网页存储 is not None:#Web
+                    网页存储.dispose()#拆除
+
             return 拆除#拆除器
+
         上下文.副作用(挂偏好,'shortcuts: preferences')#寿命
         自身.同步定义()#首同步
+
         def 挂键盘():
             '安装 DOM 键盘'
-            用原生=键盘 is not None and (自身.platform=='macos' or 自身.platform=='windows')#原生拥有绑定
-            卸=安装键盘(窗口,自身.注册表,lambda 输入:自身.投递固定(输入),用原生)#安装
+            用原生=键盘 is not None and (自身.platform=='macos' or 自身.platform=='windows')#原生拥有可配置绑定
+
+            def 固定输入(输入):
+                'DOM 固定序列'
+                自身.投递固定(输入)#投递
+
+            卸=安装键盘(窗口,自身.注册表,固定输入,用原生)#安装
+
             def 拆除():
-                '卸键盘与固定监听'
+                '卸键盘并清掉固定监听'
                 卸()#卸
-                自身.固定监听.clear()
+                自身.固定监听.clear()#清
+
             return 拆除#拆除器
+
         上下文.副作用(挂键盘,'shortcuts: keyboard')#寿命
+
         def 挂语言():
-            '语言变更刷新标签'
-            return 上下文.locale.subscribe(lambda:自身.注册表.refreshLabels())#订阅
+            '语言变更时刷新标签'
+
+            def 刷新():
+                '按当前配置重算标签'
+                自身.注册表.refreshLabels()#刷新
+
+            return 上下文.locale.subscribe(刷新)#退订器
+
         上下文.副作用(挂语言,'shortcuts: locale')#寿命
 
     def register(自身,命令):
         '注册可编辑命令'
         卸=自身.注册表.register(命令)#登记
         自身.同步定义()#同步
+
         def 拆除():
             '拆除并再同步'
             卸()#卸
             自身.同步定义()#同步
+
         return 拆除#拆除器
 
     def registerFixed(自身,命令):
         '注册固定命令'
         卸=自身.注册表.registerFixed(命令)#登记
         自身.同步定义()#同步
+
         def 拆除():
             '拆除并再同步'
             卸()#卸
             自身.同步定义()#同步
+
         return 拆除#拆除器
 
     def observeFixedInput(自身,监听):
         '观察固定序列输入'
         自身.固定监听.add(监听)#加
+
         def 拆除():
             '退订'
             自身.固定监听.discard(监听)#删
+
         return 拆除#拆除器
 
     def 投递固定(自身,输入):
-        '扇出固定输入；先消费者优先'
+        '扇出固定输入。先登记的先看到，已消费的键不再触发后面的动作'
         已消费=False#是否已消费
         for 监听 in list(自身.固定监听):#复制后派发
             if 监听 not in 自身.固定监听:#中途退订
@@ -140,18 +180,20 @@ class 快捷键服务(服务):
                 if 输入['type']=='reset':#重置
                     监听(输入)#直传
                 else:#keydown
+
                     def 消费(原消费=输入['consume']):
-                        '包装消费'
+                        '记消费并调用原来的阻止默认'
                         nonlocal 已消费#写
                         已消费=True#记
                         原消费()#原
+
                     手势={**输入['gesture'],'defaultPrevented':输入['gesture']['defaultPrevented'] or 已消费}#手势
                     监听({'type':'keydown','gesture':手势,'context':输入['context'],'consume':消费})#投递
             except Exception as 错误:#处理器失败
-                print('固定快捷键处理器失败',错误)#诊断
+                取握手窗口().console.error('Fixed shortcut handler failed',错误)#诊断
 
     def describeBinding(自身,绑定):
-        '按设备物理键与预留规则描述候选'
+        '按设备物理键和预留规则描述候选'
         规范=None if 绑定 is None else 规范化绑定(绑定,自身.platform)#规范
         冲突=[]#冲突 id
         if 规范 is not None:#有候选
@@ -162,13 +204,13 @@ class 快捷键服务(服务):
                 for 项 in 行['bindings']:#逐绑定
                     if 绑定重叠(项,规范):#重叠
                         冲突.append(行['id'])#记
-                        break#止本行
-        return {#描述
+                        break#这一行只记一次
+        return {
             'binding':规范,
             'keys':呈现绑定(规范,自身.platform)['keys'],
             'issue':None if 规范 is None else 绑定问题(规范,自身.runtime,自身.platform),
             'conflicts':冲突,
-        }#描述结束
+        }
 
     def 同步定义(自身):
         '把当前目录交给适配器'
@@ -191,14 +233,14 @@ class 快捷键服务(服务):
             自身.注册表.configure({**自身.config.getSnapshot(),'status':'unreadable','error':'read'})#诊断
 
     def edit(自身,编辑,修订):
-        '持久化一次已核对操作；失败保留已接受绑定'
+        '持久化一次已核对操作。失败保留已接受绑定'
         if 自身.适配器 is None:#无适配器
             return {'status':'unreadable','snapshot':自身.config.getSnapshot()}#不可读
         try:#保存
             结果=自身.适配器.edit(编辑,修订)#结果
         except Exception as 错误:#写失败
             if 自身.活跃:#仍活
-                print('快捷键偏好保存失败',错误)#诊断
+                取握手窗口().console.error('Shortcut preference save failed',错误)#诊断
             return {'status':'write-failed','snapshot':自身.config.getSnapshot()}#写失败
         if 自身.活跃 and 结果['snapshot']['sequence']>=自身.config.getSnapshot()['sequence']:#有序
             自身.注册表.configure(结果['snapshot'])#配置
@@ -207,14 +249,14 @@ class 快捷键服务(服务):
     def recording(自身,活跃):
         '录制层占用键盘时抑制原生菜单加速器'
         if 自身.适配器 is None:#无
-            raise RuntimeError('Desktop 快捷键桥不可用')#拒绝
+            raise 快捷键错误('Desktop shortcuts bridge unavailable')#拒绝
         自身.适配器.recording(活跃)#同步完成
 
     def closeWindow(自身):
-        '用当前已接受快捷键 revision 请求关闭 Desktop 窗口'
-        if 自身.keyboard is None:#无桥
-            raise RuntimeError('Desktop 键盘桥不可用')#拒绝
-        自身.keyboard.closeWindow(自身.config.getSnapshot()['revision'])#关闭
+        '用当前已接受的快捷键 revision 请求关闭 Desktop 窗口'
+        if 自身.键盘 is None:#无桥
+            抛出桌面键盘桥不可用()#拒绝
+        自身.键盘.closeWindow(自身.config.getSnapshot()['revision'])#关闭
 
 inject=依赖#框架槽
 default=快捷键服务#默认导出

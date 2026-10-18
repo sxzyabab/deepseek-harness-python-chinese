@@ -1,0 +1,7 @@
+{
+    "journal-stream": "日志流",
+    "remote-events": "远程事件",
+    "remote-stream": "远程流",
+    "snapshot-stream": "快照流",
+    "stream-client": "客户端"
+}

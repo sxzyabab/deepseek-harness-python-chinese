@@ -1,37 +1,43 @@
-'Turn 与 Step 的 start/end 区间只补祖先，不发明也不重排日志记录'
-
-__all__=['会话日志分组']
+'回合和步骤的开始结束只补充祖先，不新造日志，也不改顺序'
 
 class 会话日志分组:
-    '对已加载日志走一遍；缺失的 start 不制造合成表头'
+    '沿当前已加载日志走一遍。缺了开始事件就不造标题行'
     def __init__(自身):
-        '当前打开的 Turn 和 Step'
-        自身.回合=None
-        自身.步=None
+        '还没有打开的回合或步骤'
+        自身.回合=None#当前回合头
+        自身.步=None#当前步骤头
 
     def 追加(自身,行,事件):
-        '把记录放进打开的 Step 或 Turn，end 记录留在最后的子行'
-        类型=事件['type'] if isinstance(事件,dict) else 事件.type
-        if 类型=='turn/start':
-            自身.步=None
-            自身.回合={**行,'disclosure':'open'}
-            return 自身.回合
-        if 类型=='step/start':
-            自身.步={**自身._子行(行,自身.回合),'disclosure':'open'}
-            return 自身.步
-        if 类型=='step/end':
-            结果=自身._子行(行,自身.步 if 自身.步 is not None else 自身.回合)
-            自身.步=None
-            return 结果
-        if 类型=='turn/end':
-            结果=自身._子行(行,自身.回合)
-            自身.步=None
-            自身.回合=None
-            return 结果
-        return 自身._子行(行,自身.步 if 自身.步 is not None else 自身.回合)
+        '把记录放进还开着的步骤或回合。结束记录是该范围的最后一个子行'
+        类型=事件.get('type')#事件类型
+        if 类型=='turn/start':#回合开始
+            自身.步=None#步骤范围结束
+            头=dict(行)#同一行身份
+            头['disclosure']='open'#回合头默认展开
+            自身.回合=头#记住
+            return 头#作为回合头
+        if 类型=='step/start':#步骤开始
+            头=自身.子行(行,自身.回合)#落在回合里
+            头=dict(头)#再标展开
+            头['disclosure']='open'#步骤头默认展开
+            自身.步=头#记住
+            return 头#作为步骤头
+        if 类型=='step/end':#步骤结束
+            结果=自身.子行(行,自身.步 if 自身.步 is not None else 自身.回合)#结束行留在范围内
+            自身.步=None#步骤关闭
+            return 结果#结束行
+        if 类型=='turn/end':#回合结束
+            结果=自身.子行(行,自身.回合)#留在回合里
+            自身.步=None#步骤一并结束
+            自身.回合=None#回合关闭
+            return 结果#结束行
+        return 自身.子行(行,自身.步 if 自身.步 is not None else 自身.回合)#其余事件继承当前范围
 
-    def _子行(自身,行,父):
-        '没有父级时保持原行'
-        if 父 is None:
-            return 行
-        return {**行,'parent':父['key'],'depth':父['depth']+1}
+    def 子行(自身,行,父):
+        '没有父就保持原行，有父则加上父键和更深一层'
+        if 父 is None:#没有打开的范围
+            return 行#原行
+        子=dict(行)#不改调用方的行
+        子['parent']=父['key']#父键
+        子['depth']=父['depth']+1#加深
+        return 子#带祖先的行

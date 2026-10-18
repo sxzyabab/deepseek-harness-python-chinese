@@ -4,7 +4,7 @@ import functools,re,uuid,weakref#偏应用、正则、标记与弱表
 from ..工具_bash持久化 import (
     保留滚回,#拼滚回
     渲染已抽,#抽出输出渲染
-    渲染壳退出状态,#壳退出渲染
+    渲染命令解释器退出状态,#壳退出渲染
     暂停,#轮询间隔
 )#共用滚回与渲染
 from ...依赖.schemastery import 字符串字段,数字字段#配置字段
@@ -16,11 +16,11 @@ from .异常 import 持久pwsh错误#本包异常基类
 
 __all__=['名称','依赖','配置','应用']#公开面
 
-壳提示符='__DSH_PERSISTENT_PWSH_PROMPT__ '#pwsh 提示符
+命令解释器提示符='__DSH_PERSISTENT_PWSH_PROMPT__ '#pwsh 提示符
 超时码='PERSISTENT_PWSH_TIMEOUT'#超时码
-壳重置说明='The persistent pwsh shell was reset; the next pwsh call starts from the workspace with a fresh current directory and environment.'#重置说明
+命令解释器重置说明='The persistent pwsh shell was reset; the next pwsh call starts from the workspace with a fresh current directory and environment.'#重置说明
 默认描述='Run commands in a persistent PowerShell shell. State, including the current directory and exported environment variables, persists across calls for this agent.'#默认描述
-pwsh提示符安装="function prompt { [Console]::Write([char]27 + ']133;D;' + [int]$LASTEXITCODE + [char]7); '"+壳提示符+"' }"#初始化
+pwsh提示符安装="function prompt { [Console]::Write([char]27 + ']133;D;' + [int]$LASTEXITCODE + [char]7); '"+命令解释器提示符+"' }"#初始化
 名称='tool-pwsh-persistent'#Cordis 插件名
 依赖=['tools','terminals','workingDirectory']#依赖工具、终端与工作目录
 配置={#配置模式
@@ -54,8 +54,8 @@ def 包装命令(命令,标记):#把用户命令包进打印标记与退出码�
 def 剥提示符(文本):#剥掉末尾提示符和尾换行
     '剥掉末尾提示符和尾换行'
     结果=末尾换行模式.sub('',文本,count=1)#去尾换行
-    while 结果.endswith(壳提示符):#末尾还是提示符
-        结果=结果[:-len(壳提示符)]#剥提示符
+    while 结果.endswith(命令解释器提示符):#末尾还是提示符
+        结果=结果[:-len(命令解释器提示符)]#剥提示符
     if 结果.endswith('\n'):#再去换行
         return 结果[:-1]#去掉尾换行
     return 结果#返回
@@ -79,11 +79,11 @@ def 命令输出(快照,标记):#从滚回抽出完整命令输出
 def 提示符已完成(结果):#视口是否停在提示符
     '视口是否停在提示符'
     视口=结果['viewport']#视口
-    if 视口.endswith(壳提示符):#裸提示符
+    if 视口.endswith(命令解释器提示符):#裸提示符
         return True#完成
-    if 视口.endswith(壳提示符+'\r\n'):#提示符加CRLF
+    if 视口.endswith(命令解释器提示符+'\r\n'):#提示符加CRLF
         return True#完成
-    if 视口.endswith(壳提示符+'\n'):#提示符加LF
+    if 视口.endswith(命令解释器提示符+'\n'):#提示符加LF
         return True#完成
     return False#未完成
 
@@ -102,7 +102,7 @@ def 部分输出(快照,标记,回退,回退已截=False):#命令未完时尽量
         结束前=开始后#整段
     else:#结束前
         结束前=开始后[:回退结束]#截断
-    return {'text':剥提示符(结束前.replace(壳提示符,'')),'incomplete':回退已截 or 回退开始<0}#返回
+    return {'text':剥提示符(结束前.replace(命令解释器提示符,'')),'incomplete':回退已截 or 回退开始<0}#返回
 
 def 执行命令(上下文,壳表,所有者,命令,配置值,上游):#在持久壳里跑一条命令
     '返回期约：在持久壳里跑一条命令，兑现面向模型的文本；命令截止在期约落定后释放'
@@ -130,7 +130,7 @@ def 执行命令(上下文,壳表,所有者,命令,配置值,上游):#在持久�
             else:
                 状态['回退']=结果['viewport']
             状态['回退已截']=状态['回退已截'] or 增量['truncated'] is True or 结果['truncated'] is True
-            最新=上下文.terminals.读取(所有者,状态['会话编号'],{'offset':0,'count':滚回页行数})
+            最新=上下文.terminals.读取回滚(所有者,状态['会话编号'],{'offset':0,'count':滚回页行数})
             已超时=取超时(命令截止.信号,超时码)
             if 已超时 is not None:
                 快照=保留滚回(上下文,所有者,状态['会话编号'],最新)
@@ -140,7 +140,7 @@ def 执行命令(上下文,壳表,所有者,命令,配置值,上游):#在持久�
                 收尾成功('\n'.join([
                     'Your command timed out after '+str(秒数)+' seconds or experienced an OOM error. Below is partial output:',
                     部分,
-                    壳重置说明,
+                    命令解释器重置说明,
                 ]))
                 return
             if 已中止(命令截止.信号):
@@ -155,12 +155,12 @@ def 执行命令(上下文,壳表,所有者,命令,配置值,上游):#在持久�
             if 会话状态['kind']=='exited':
                 快照=保留滚回(上下文,所有者,状态['会话编号'],最新)
                 壳表['reset'](所有者,'persistent pwsh shell exited')
-                段=渲染壳退出状态(
+                段=渲染命令解释器退出状态(
                     渲染已抽(部分输出(快照,状态['标记'],状态['回退'],状态['回退已截']),配置值['maxOutputChars']),
                     会话状态['exitCode'] if 'exitCode' in 会话状态 else None,
                     会话状态['signal'] if 'signal' in 会话状态 else None,
                 )
-                收尾成功('\n'.join([段,壳重置说明]))
+                收尾成功('\n'.join([段,命令解释器重置说明]))
                 return
             if 提示符已完成(结果):
                 快照=保留滚回(上下文,所有者,状态['会话编号'],最新)
@@ -200,7 +200,7 @@ def 执行命令(上下文,壳表,所有者,命令,配置值,上游):#在持久�
         收尾失败(错误)#拒绝
     return 执行结果#交给调用方继续链式
 
-def 持久pwsh壳表(上下文,配置值):#按所有者缓存 pwsh 壳
+def 持久pwsh命令解释器表(上下文,配置值):#按所有者缓存 pwsh 壳
     """按所有者缓存持久壳。
     所有者按对象身份认
     """
@@ -310,7 +310,7 @@ def 持久pwsh壳表(上下文,配置值):#按所有者缓存 pwsh 壳
 
 def 登记持久pwsh(上下文,配置值):#注册工具
     '注册面向模型的持久 pwsh 工具'
-    壳表=持久pwsh壳表(上下文,配置值)#壳管家
+    壳表=持久pwsh命令解释器表(上下文,配置值)#壳管家
     队列=weakref.WeakKeyDictionary()#串行队列
 
     def 放行后来者(所有者,尾巴):

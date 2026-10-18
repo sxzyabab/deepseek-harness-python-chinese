@@ -1,8 +1,11 @@
-__all__=[]#槽位约定仅作类型契约说明，运行时无导出
+__all__=[]
 
-#主栏 plugins.*：plugins.add.actions、plugins.item、plugins.bundle.activation、
-#plugins.bundle.config、plugins.row.config、plugins.detail.actions、
-#plugins.detail.badge、plugins.detail.section。
-#登记方以类型合并契约，经 slots 登记，运行时不导入本包。
-#view 为 summary 或 page。行没有说明时，说明位置回退到 plugins.row.config 的 summary。
-#槽里没有登记时渲染结果为空，本页不再另写产品文案。
+#本文件对应上游 slot-contract。运行时没有值。
+#别的插件用类型合并这份约定，经 slots 登记，运行时不导入本包。
+#plugins.add.actions：添加菜单里安装项之后的行，业主 onDismiss。
+#plugins.tab：已安装之后的页，label 与 order；业主 install、openPackage。
+#plugins.bundle.activation：按包名，启用后的引导。
+#plugins.item：官方插件卡片。view 为 summary 或 page。
+#plugins.bundle.config：按包名，只画 page。
+#plugins.row.config：键为 包名#行 id。
+#plugins.detail.actions、plugins.detail.badge、plugins.detail.section：按打开页的 subject。

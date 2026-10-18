@@ -1,38 +1,42 @@
-'不可预览文档空态上的文件打开动作'
-from .打开路径动作 import 文件打开目标,路径键齐#文件适配
+'不能预览的文档空态上，用更大的带字按钮打开文件。'
+from .打开路径动作 import 文件打开目标
 
-__all__=['打开路径空动作']#仅中文公开名
+__all__=['打开路径空动作']
 
-class 打开路径空动作:#不可预览空态贡献
-    '更大带标签主钮的共享文件打开菜单'
 
-    def __init__(自身,属性):
-        '记下 props，强制 empty。槽位只调用构造，键齐才画。文件目标构造时不画。'
-        面=dict(属性) if isinstance(属性,dict) else {}#拷贝
-        面['empty']=True#空态大钮
-        自身.属性=面#props
-        自身.目标=None#文件适配
-        if 路径键齐(面):#键齐
-            自身.渲染()#末尾画一次
+class 打开路径空动作:
+    '空态上的文件打开菜单，主钮更大并带文字'
+    def __init__(自身,属性=None):
+        '强制 empty，其余交给文件打开目标'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.目标=None
+        自身.根=None
+        if 'window' in 自身.属性:
+            自身.渲染()
 
     def 更新(自身,属性):
-        '刷新并保持 empty。不在这里再画。'
-        面=dict(属性) if isinstance(属性,dict) else {}#拷贝
-        面['empty']=True#空态
-        自身.属性=面#最新
-        if 自身.目标 is not None:#已有
-            自身.目标.更新(面)#透传
+        '换上新的 props，并保持 empty'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 面(自身):
+        '带上 empty 的 props'
+        面=dict(自身.属性)
+        面['empty']=True
+        return 面
 
     def 渲染(自身):
-        '共享文件打开动作。子组件构造时不画，这里画一次。没有桌面时返回 None。'
-        if not 路径键齐(自身.属性):#键未齐
-            return None#空槽留给主人
-        if 自身.目标 is None:#初建
-            自身.目标=文件打开目标(自身.属性)#构造不画
-        return 自身.目标.渲染()#画一次
+        '画出更大的文件打开按钮'
+        面=自身.面()
+        if 自身.目标 is None:
+            自身.目标=文件打开目标(面)
+        else:
+            自身.目标.更新(面)
+            自身.目标.渲染()
+        自身.根=自身.目标.根
+        return 自身.根
 
     def __call__(自身,属性=None):
-        '刷新后渲染'
-        if 属性 is not None:#有新
-            自身.更新(属性)#刷新
-        return 自身.渲染()#渲染
+        '再次交给槽位时刷新'
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()

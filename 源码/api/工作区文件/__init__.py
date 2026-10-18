@@ -1,314 +1,283 @@
-'工作区文件服务：只读预览、工作区目录列举与观察变更流'
-import base64#字节窗线路编码
-import os#路径解析
-from ...基础设施.通用工具 import 路径转正斜杠,utf8字节数
-import re#相对路径校验
-from urllib.parse import unquote as 百分号解码,urlparse as 解析网址
-from ...依赖.schemastery import 正整数字段
-from ...类型化远程调用.协议 import 远程服务,远程 as _远程
-from .变更 import 工作区变更供给
-from .类型 import 已中止
-from .异常 import 远程错误#本包异常
-from . import (
-    远程,
-    客户端,
-)
+'工作区文件：只读预览、工作区目录列举，以及按目标的文件观察流'
+import ntpath,posixpath,re#按执行世界选择路径库，并识别路径里的方案
+from urllib.parse import unquote as 百分号解码,urlparse as 解析网址#file URI 还原工作区相对路径
+from ...依赖.schemastery import 正整数字段#部署上限
+from ...基础设施.通用工具 import utf8字节数#页的 UTF-8 字节
+from ...类型化远程调用.协议 import 远程,远程服务#Remote 标记与服务基类
+from . import 变更,类型,异常,客户端#同目录模块。客户端只作为包导出
+from .异常 import 远程错误#本包失败
+from .变更 import 工作区变更供给#changes 的生产者
 
-__all__=['包名','名称','依赖','应用','默认','配置','工作区文件']
+__all__=['工作区文件','默认','变更','类型','异常','客户端']#不转发客户端里的类
 
-包名='@deepseek-ai/dsh-api-workspace-files'
-名称='workspace-files'
-依赖=['fs','sandboxPolicy','sessions','typert']
-
-配置={#部署页/列举上限
-    'maxBytes':正整数字段(默认值=2*1024*1024,最小=1),#单页与单窗字节上限（含）
-    'maxFileBytes':正整数字段(默认值=32*1024*1024,最小=1),#整文件字节上限（含）
-    'maxLines':正整数字段(默认值=5000,最小=1),#页行数缺省与上限
-    'maxEntries':正整数字段(默认值=2000,最小=1),#目录条目上限
-}
-
-空字节=chr(0)#页上出现则视为二进制
-安全整数上限=9007199254740991#JSON 入口安全整数
-绝对或方案模式=re.compile(r'^[a-z][a-z\d+.-]*:',re.IGNORECASE|re.UNICODE)#URL 方案前缀
+安全整数上限=9007199254740991#JSON 能精确表示的最大整数
+空字节=chr(0)#页里出现就视为二进制
+方案模式=re.compile(r'^[a-z][a-z\d+.-]*:',re.IGNORECASE)#带方案的路径
 
 
-def _至少整数(值,最小,名):
-    '拒绝线协议承认但窗口不能用的数：仅安全整数可索引文件'
-    if isinstance(值,bool) or not isinstance(值,(int,float)):#非数
+def 至少整数(值,最小,名):
+    '拒绝线协议承认、但窗口不能用来索引文件的数'
+    if isinstance(值,bool) or not isinstance(值,int) or 值<最小 or 值>安全整数上限:#非安全整数或太小
         raise 远程错误('gateway/bad-request',名+' must be a safe integer of at least '+str(最小),{})#拒绝
-    if 值!=int(值) or 值<最小 or 值>安全整数上限 or 值<-安全整数上限:#非安全整数
-        raise 远程错误('gateway/bad-request',名+' must be a safe integer of at least '+str(最小),{})#拒绝
-    return int(值)#整数
+    return 值#整数
 
 
-def _切页(块序列,偏移,限额,最大字节,路径):
-    '从已解码块切出行窗 `偏移`..`偏移+限额-1`，在页后首字符处停，使文件其余部分永不读入'
-    末行=偏移+限额-1#末行号
-    行列表=[]#页内行
-    当前=''#未完成行
-    字节数=0#页累计 UTF-8 字节
-    行号=1#当前行
-
-    def 验收(增量):
-        '页字节超上限则失败，不截短'
-        nonlocal 字节数#累计
-        字节数+=增量#加
-        if 字节数>最大字节:#超限
-            raise 远程错误(
-                'workspace-file/too-large',
-                'lines '+str(偏移)+'-'+str(末行)+' of "'+路径+'" exceed the '+str(最大字节)+' byte cap',
-                {'path':路径,'limit':最大字节},
-            )#拒绝
-
-    def 完成一行():
-        '收一行；行间换行计入字节'
-        nonlocal 当前#缓冲
-        if len(行列表)>0:#非首行
-            验收(1)#`\n` 连接字节
-        行列表.append(当前)#收下
-        当前=''#清空
-
-    for 块 in 块序列:#逐块
-        位置=0#块内游标
-        while 位置<len(块):#扫块
-            if 行号>末行:#页已满
-                return {'text':'\n'.join(行列表),'lines':len(行列表),'eof':False}#未到 EOF
-            换行=块.find('\n',位置)#下一换行
-            片段=块[位置:] if 换行==-1 else 块[位置:换行]#本段
-            if 行号>=偏移:#页内
-                验收(utf8字节数(片段))#UTF-8 字节
-                当前+=片段#追加
-            if 换行==-1:#块尽
-                break#下一块
-            if 行号>=偏移:#页内成行
-                完成一行()#收行
-            行号+=1#下一行
-            位置=换行+1#越过 `\n`
-    if len(当前)>0:#尾部无换行的页内行
-        完成一行()#收行
-    return {'text':'\n'.join(行列表),'lines':len(行列表),'eof':True}#到 EOF
-
-
-def _工作区相对路径(根网址,目标网址):
-    '由两条规范 `file:` URI 推导相对工作区路径；根自身为空串'
-    根=解析网址(根网址).path.rstrip('/')
-    目标=解析网址(目标网址).path
-    if 目标==根:#即根
-        return ''#空
-    return '/'.join(百分号解码(段) for 段 in 目标[len(根)+1:].split('/'))
-
-
-def _目录条目(子项):
-    '剥离子目标：线路只带名与元数据。子项为跨包 dict'
-    条目={'name':子项['name'],'type':子项['type']}#基础
-    if 'size' in 子项:#有大小
+def 目录条目(子项):
+    '剥掉子目标，线路只留名字和元数据'
+    条目={'name':子项['name'],'type':子项['type']}#基名和种类
+    if 'size' in 子项 and 子项['size'] is not None:#后端报了大小
         条目['size']=子项['size']#带上
     return 条目#条目
 
 
-def _是否非文本拒绝(错误):
-    '按 code 识别后端非文本拒绝；类身份不跨包边界共享'
-    return getattr(错误,'code',None)=='FS_NOT_TEXT'#结构化码
+class 工作区文件配置:
+    '一页、一整文件、一行窗和一次列举的部署上限'
+    def __init__(自身):
+        '四个上限都是正整数，整文件另有安全整数上界'
+        自身.字段={#键到字段
+            'maxBytes':正整数字段(默认值=2*1024*1024,最小=1),#单页和单窗字节，含上限
+            'maxFileBytes':正整数字段(默认值=32*1024*1024,最小=1,最大=安全整数上限-1),#整文件字节，含上限
+            'maxLines':正整数字段(默认值=5000,最小=1),#页行数的缺省和上限
+            'maxEntries':正整数字段(默认值=2000,最小=1),#目录条目上限
+        }#字段结束
 
-
-def _读字节窗口(文件系统,目标,偏移,长度,信号):
-    '读普通文件的原始字节窗'
-    if 已中止(信号):#取消
-        raise 远程错误('gateway/cancelled','aborted',{})#取消
-    if hasattr(文件系统,'读字节范围'):#后端有缝
-        return 文件系统.读字节范围(目标,{'offset':偏移,'length':长度},信号)#委托
-    if 长度==0:#空窗
-        return b''#空
-    键=目标['targetKey']#稳定键即本地绝对路径
-    with open(键,'rb') as 文件:#二进制
-        文件.seek(偏移)#定位
-        数据=文件.read(长度)#至多 length
-    if 已中止(信号):#读后
-        raise 远程错误('gateway/cancelled','aborted',{})#取消
-    return 数据#窗口
+    def 校验数据(自身,数据=None):
+        '缺的键填缺省。不是整数或超出上限就拒绝，并交回四个数字'
+        if 数据 is None:#没给配置
+            数据={}#全用缺省
+        if not isinstance(数据,dict):#不是对象
+            raise TypeError('workspace-files config must be an object')#拒绝
+        结果={}#归一化后的上限
+        for 键,字段 in 自身.字段.items():#逐项
+            if 键 in 数据:#调用方给了
+                值=数据[键]#用给的
+            else:#省略
+                值=字段.默认值#缺省
+            if isinstance(值,bool) or not isinstance(值,int) or 值<字段.最小 or 值>安全整数上限:#不是可用整数
+                raise TypeError(键+' must be an integer within its cap')#拒绝
+            if 字段.最大 is not None and 值>字段.最大:#超过该字段上界
+                raise TypeError(键+' must be an integer within its cap')#拒绝
+            结果[键]=值#收下
+        return 结果#交给构造
 
 
 class 工作区文件(远程服务):
-    '经组合文件系统的宿主 Remote 文件读取与工作区目录观察'
-    inject=依赖#框架槽
-    Config=配置#框架槽：Cordis 配置
-
-    def __init__(自身,上下文,配置值=None):
-        '挂载 `workspaceFiles` 命名空间、变更供给与 workspaceFileScope 查找。配置值为 dict'
+    '经组合文件系统做宿主远程读取，以及工作区目录观察'
+    inject=['fs','sandboxPolicy','sessions','typert']#文件系统、沙箱回落根、会话、查找
+    Config=工作区文件配置()#加载器先校验再构造
+    name='workspace-files'#插件显示名
+    def __init__(自身,上下文,配置):
+        '挂上 workspaceFiles，并在会话与查找就绪后登记 workspaceFileScope'
         super().__init__(上下文,'workspaceFiles')#服务键即命名空间
-        if 配置值 is None:#缺省
-            配置值={}#空
-        自身._配置={#合并缺省
-            'maxBytes':配置值['maxBytes'] if 'maxBytes' in 配置值 and 配置值['maxBytes'] is not None else 2*1024*1024,
-            'maxFileBytes':配置值['maxFileBytes'] if 'maxFileBytes' in 配置值 and 配置值['maxFileBytes'] is not None else 32*1024*1024,
-            'maxLines':配置值['maxLines'] if 'maxLines' in 配置值 and 配置值['maxLines'] is not None else 5000,
-            'maxEntries':配置值['maxEntries'] if 'maxEntries' in 配置值 and 配置值['maxEntries'] is not None else 2000,
-        }
-        自身._供给=工作区变更供给(上下文)#变更供给
-        def 登记查找(子上下文):
-            '登记 workspaceFileScope 查找'
+        自身._配置=配置#已填好缺省的上限
+        自身._供给=工作区变更供给(上下文)#按目标的变更流
+
+        def 登记查找(子上下文,*位置参数):
+            '等 sessions 和 typert 之后登记查找'
             def 解析(会话标识):
-                '解析 Session 工作区根，不激活 Agent'
-                存活=子上下文.sessions.get(会话标识)#存活会话
-                头=存活.header if 存活 is not None else None#存活头
-                if 头 is None:#冷读
-                    持久化=子上下文.获取服务('sessionPersistence')#可选持久化
-                    快照=持久化.观察(会话标识) if 持久化 is not None else None#轻量观察
-                    头=快照['header'] if isinstance(快照,dict) and 'header' in 快照 else None#冷头
-                if 头 is None:#无会话
-                    return None#缺席
-                根=头['cwd'] if isinstance(头,dict) and 'cwd' in 头 and 头['cwd'] is not None else 子上下文.sandboxPolicy.workspaceRoot#根
+                '解析会话的工作区根，不读事件正文，也不激活智能体'
+                存活=子上下文.sessions.获取(会话标识)#在线会话
+                头=存活.header if 存活 is not None else None#在线头
+                if 头 is None:#不在线
+                    持久化=子上下文.获取服务('sessionPersistence',False)#可选持久化
+                    快照=None if 持久化 is None else 持久化.观察(会话标识)#轻量观察
+                    头=None if 快照 is None else 快照['header']#冷头
+                if 头 is None:#没有这份会话
+                    return None#查找缺席
+                if 'cwd' in 头 and 头['cwd'] is not None:#头里有工作目录
+                    根=头['cwd']#用它
+                else:#没有 cwd
+                    根=子上下文.sandboxPolicy.workspaceRoot#部署回落根
                 return {'sessionId':会话标识,'workspaceRoot':根}#作用域
-            子上下文.typert.lookups.register('workspaceFileScope',{
+            子上下文.typert.lookups.register('workspaceFileScope',{#查找
                 'parameter':'workspaceFileScope',#参数名
                 'wire':'workspaceFileScopeId',#线路字段
+                'resource':'session',#资源种类
                 'hostTypeSymbol':'@deepseek-ai/dsh-api-workspace-files#WorkspaceFileScope',#宿主类型
                 'wireTypeSymbol':'@deepseek-ai/dsh-session/types#SessionId',#线路类型
                 'resolve':解析,#解析
             })#登记结束
-        上下文.依赖启动(['sessions','typert'],登记查找)#等依赖
+        上下文.依赖启动(['sessions','typert'],登记查找)#等这两项
 
-    @_远程
+    @远程
     def read(自身,工作区文件作用域,路径,范围,信号):
-        '读 UTF-8 文本文件的一行页。作用域与范围为线协议 dict'
-        偏移,限额=自身._解析页(范围 if 范围 is not None else {})#页窗
-        目标,信息=自身._定位文件(工作区文件作用域,路径,信号)#定位
-        页=自身._切页于(目标,偏移,限额,信号,路径)#切页
-        if 空字节 in 页['text']:#NUL
-            raise 远程错误('workspace-file/not-text','"'+路径+'" contains NUL bytes',{'path':路径})#拒绝
-        结果=自身._状态于(目标,信息)#stat
-        结果['offset']=偏移#窗起点
-        结果['text']=页['text']#正文
+        '读 UTF-8 文件的一页行。工作区外的文件也可以读'
+        页窗=自身._解析页(范围)#行窗
+        目标,信息=自身._定位文件(工作区文件作用域,路径,信号)#普通文件
+        页=自身._切页(目标,页窗['offset'],页窗['limit'],信号,路径)#切页
+        if 空字节 in 页['text']:#含 NUL
+            raise 远程错误('workspace-file/not-text','"'+路径+'" contains NUL bytes',{'path':路径})#不是文本
+        结果=自身._状态于(目标,信息)#版本和大小
+        结果['offset']=页窗['offset']#请求的起始行
+        结果['text']=页['text']#页文本
         结果['lines']=页['lines']#行数
-        结果['eof']=页['eof']#是否到末行
-        return 结果#页
+        结果['eof']=页['eof']#是否含最后一行
+        return 结果#一页
 
-    @_远程
-    def readBytes(自身,工作区文件作用域,路径,范围,信号):
-        '读普通文件的原始字节窗；不解码、不拒二进制。范围为 dict'
-        偏移,长度=自身._解析窗(范围 if 范围 is not None else {},路径)#字节窗
-        目标,信息=自身._定位文件(工作区文件作用域,路径,信号)#定位
-        数据=_读字节窗口(自身.ctx.fs,目标,偏移,长度,信号)#字节窗
-        if 'size' not in 信息:#后端未报大小
-            到末=len(数据)<长度#短于请求则到末
-        else:
-            到末=偏移+len(数据)>=信息['size']#含末字节
-        结果=自身._状态于(目标,信息)#stat
-        结果['offset']=偏移#窗起点
-        结果['data']=base64.b64encode(数据).decode('ascii')#base64
-        结果['eof']=到末#是否到末字节
-        return 结果#窗
-
-    @_远程
-    def readAll(自身,工作区文件作用域,路径,信号):
-        '按整文件上限读完整常规文件字节'
-        目标,信息=自身._定位文件(工作区文件作用域,路径,信号)#定位
-        上限=自身._配置['maxFileBytes']#上限
-        try:
-            数据=自身.ctx.fs.读字节(目标,信号,上限)#整文件
-        except BaseException as 原因:
-            if getattr(原因,'code',None)=='FS_TOO_LARGE':#过大
-                raise 远程错误('workspace-file/too-large','"'+路径+'" exceeds the '+str(上限)+' byte full-file cap',{'path':路径,'limit':上限},原因=原因)#拒绝
-            raise#原样
-        结果=自身._状态于(目标,信息)#stat
-        结果['offset']=0#起点
-        结果['data']=base64.b64encode(bytes(数据)).decode('ascii')#base64
+    @远程
+    def readBytes(自身,工作区文件作用域,路径,选项,信号):
+        '读原始字节。给了 range 就读窗口，否则按整文件上限读完'
+        if 'range' in 选项:#有窗口
+            窗口=自身._解析窗(选项['range'],路径)#字节窗
+        else:#整文件
+            窗口=None#用整文件上限
+        if 'baseFile' in 选项:#相对另一个文件的目录
+            已解析=自身._相对路径(工作区文件作用域,选项['baseFile'],路径,信号)#绝对路径
+        else:#路径自己就是目标
+            已解析=路径#原样
+        目标,信息=自身._定位文件(工作区文件作用域,已解析,信号)#普通文件
+        if 窗口 is not None:#窗口
+            偏移=窗口['offset']#起点
+            长度=窗口['length']#请求长度
+            数据=自身.ctx.fs.读取字节范围(目标,窗口,信号)#至多 length 字节
+            if 'size' not in 信息 or 信息['size'] is None:#后端没报大小
+                到末=len(数据)<长度#短于请求则到末
+            else:#有大小
+                到末=偏移+len(数据)>=信息['size']#含最后一字节
+            结果=自身._状态于(目标,信息)#版本和大小
+            结果['offset']=偏移#起点
+            结果['data']=数据#原始字节
+            结果['eof']=到末#是否到末
+            return 结果#窗口
+        上限=自身._配置['maxFileBytes']#整文件上限
+        try:#整文件
+            数据=自身.ctx.fs.读取字节(目标,信号,上限)#不超过上限
+        except BaseException as 原因:#后端拒绝
+            if getattr(原因,'code',None)=='FS_TOO_LARGE':#超过整文件上限
+                raise 远程错误(
+                    'workspace-file/too-large',
+                    '"'+路径+'" exceeds the '+str(上限)+' byte full-file cap',
+                    {'path':路径,'limit':上限},
+                    原因=原因,
+                )#拒绝，不截断
+            raise#其他原样
+        结果=自身._状态于(目标,信息)#版本和大小
+        结果['offset']=0#从文件头
+        结果['data']=数据#全部字节
         结果['eof']=True#整文件
-        return 结果#窗
+        return 结果#整文件
 
-    @_远程
-    def readRelated(自身,工作区文件作用域,路径,相对路径,信号):
-        '相对另一文件目录读完整相关文件'
-        相对=路径转正斜杠(相对路径)#归一
-        if 相对=='' or 相对.startswith('/') or 绝对或方案模式.match(相对) is not None or 空字节 in 相对:#非法
-            raise 远程错误('gateway/bad-request','relativePath must be a relative filesystem path',{})#拒绝
-        目标,_信息=自身._定位文件(工作区文件作用域,路径,信号)#定位基准
-        绝对=自身.ctx.fs.进程路径(目标)#绝对路径
-        相关=os.path.normpath(os.path.join(os.path.dirname(绝对),相对.replace('/',os.sep)))#解析相关
-        return 自身.readAll(工作区文件作用域,相关,信号)#读整文件
-
-    @_远程
+    @远程
     def stat(自身,工作区文件作用域,路径,信号):
-        '报告普通文件身份、版本与大小，不含内容'
+        '报告普通文件的绝对路径、版本和大小，不含内容'
         目标,信息=自身._定位文件(工作区文件作用域,路径,信号)#定位
-        return 自身._状态于(目标,信息)#stat
+        return 自身._状态于(目标,信息)#状态
 
-    @_远程
+    @远程
     def list(自身,工作区文件作用域,路径,信号):
-        '列举 Session 工作区内一目录的直接子项'
-        根,工作区根,条目=自身._检视(工作区文件作用域,路径,信号)#检视
-        if 条目['type']!='directory':#非目录
+        '列举会话工作区里一个目录的直接子项。符号链接要解析成目录才列'
+        根,工作区根,条目=自身._检视(工作区文件作用域,路径,信号)#路径自身
+        if 条目['type']!='directory' and 条目['type']!='symlink':#不能列
             raise 远程错误(
                 'workspace-file/not-directory',
                 '"'+路径+'" is a '+str(条目['type']),
                 {'path':路径,'kind':条目['type']},
             )#拒绝
-        目标=自身._围栏(根,工作区根,路径,信号)#包含判定
-        子项列表=自身.ctx.fs.列目录(目标,信号)#列举
+        目标=自身._围栏(根,工作区根,路径,信号)#必须在工作区内
+        if 条目['type']=='symlink':#末段是链接
+            信息=自身.ctx.fs.状态(目标,信号)#跟随之后的种类
+            if 信息 is None or 信息['type']!='directory':#不是目录
+                raise 远程错误(
+                    'workspace-file/not-directory',
+                    '"'+路径+'" does not resolve to a directory',
+                    {'path':路径,'kind':'symlink'},
+                )#拒绝
+        子项列表=自身.ctx.fs.列目录(目标,信号)#稳定名字顺序
         上限=自身._配置['maxEntries']#条目上限
+        根网址=自身.ctx.fs.文件网址(根)#根的 file URI
+        目标网址=自身.ctx.fs.文件网址(目标)#目录的 file URI
+        根路径名=解析网址(根网址).path.rstrip('/')#去掉尾部斜杠
+        目标路径名=解析网址(目标网址).path#目标路径
+        if 目标路径名==根路径名:#就是根
+            相对=''#空路径
+        else:#根下
+            片段=目标路径名[len(根路径名)+1:]#去掉根和分隔斜杠
+            相对='/'.join(百分号解码(段) for 段 in 片段.split('/'))#按段解码
         return {#列举
-            'path':_工作区相对路径(自身.ctx.fs.文件网址(根),自身.ctx.fs.文件网址(目标)),#相对路径
-            'entries':[_目录条目(项) for 项 in 子项列表[:上限]],#截断
-            'truncated':len(子项列表)>上限,#是否截断
+            'path':相对,#工作区相对路径
+            'entries':list(map(目录条目,子项列表[:上限])),#截到上限
+            'truncated':len(子项列表)>上限,#是否丢掉了后面的
         }#结束
 
-    @_远程
-    def changes(自身,工作区文件作用域,信号):
-        '流式推送工作区内每一次 `fs/observed` 观察'
-        yield from 自身._供给.跟随(工作区文件作用域['workspaceRoot'],信号)#委托供给
+    @远程({'mode':'stream'})
+    def changes(自身,工作区文件作用域,路径,信号):
+        '监视一个文件，或一个目录的直接子项。目录仍限制在工作区内'
+        return 自身._供给.跟随(工作区文件作用域['workspaceRoot'],路径,信号)#帧迭代器
+
+    def _相对路径(自身,作用域,基准文件,路径,信号):
+        '有 baseFile 时，路径必须是相对它目录的路径'
+        相对=路径.replace('\\','/')#统一斜杠
+        if 相对=='' or 相对.startswith('/') or 方案模式.match(相对) is not None or 空字节 in 相对:#不是相对路径
+            raise 远程错误('gateway/bad-request','path must be relative when baseFile is provided',{})#拒绝
+        目标,_信息=自身._定位文件(作用域,基准文件,信号)#基准文件
+        绝对=自身.ctx.fs.进程路径(目标)#基准的绝对路径
+        路径库=posixpath if 绝对.startswith('/') else ntpath#执行世界的路径库
+        return 路径库.normpath(路径库.join(路径库.dirname(绝对),相对))#解析后的绝对路径
 
     def _解析页(自身,范围):
-        '应用页缺省与上限；请求不得隐式携带它们。范围为 dict'
-        偏移=1 if 'offset' not in 范围 else _至少整数(范围['offset'],1,'offset')#缺省 1
-        限额=自身._配置['maxLines'] if 'limit' not in 范围 else _至少整数(范围['limit'],1,'limit')#缺省 maxLines
-        if 限额>自身._配置['maxLines']:#超上限
+        '补上页的缺省，并拒绝超过 maxLines 的请求'
+        if 'offset' in 范围:#给了起点
+            偏移=至少整数(范围['offset'],1,'offset')#至少 1
+        else:#省略
+            偏移=1#第一行
+        if 'limit' in 范围:#给了行数
+            限额=至少整数(范围['limit'],1,'limit')#至少 1
+        else:#省略
+            限额=自身._配置['maxLines']#缺省即上限
+        if 限额>自身._配置['maxLines']:#超过配置
             raise 远程错误('gateway/bad-request','limit must be at most '+str(自身._配置['maxLines']),{})#拒绝
-        return 偏移,限额#页窗
+        return {'offset':偏移,'limit':限额}#页窗
 
     def _解析窗(自身,范围,路径):
-        '应用字节窗缺省与上限；更大窗口拒绝而非截短。范围为 dict'
-        偏移=0 if 'offset' not in 范围 else _至少整数(范围['offset'],0,'offset')#缺省 0
-        长度=自身._配置['maxBytes'] if 'length' not in 范围 else _至少整数(范围['length'],1,'length')#缺省 maxBytes
-        if 偏移+长度>安全整数上限:#和越界
+        '补上字节窗的缺省。超过 maxBytes 的窗口拒绝，不截短'
+        if 'offset' in 范围:#给了起点
+            偏移=至少整数(范围['offset'],0,'offset')#可以为 0
+        else:#省略
+            偏移=0#文件头
+        if 'length' in 范围:#给了长度
+            长度=至少整数(范围['length'],1,'length')#至少 1
+        else:#省略
+            长度=自身._配置['maxBytes']#缺省即上限
+        if 偏移+长度>安全整数上限:#和不再是安全整数
             raise 远程错误('gateway/bad-request','offset plus length must stay a safe integer',{})#拒绝
-        if 长度>自身._配置['maxBytes']:#超上限
+        if 长度>自身._配置['maxBytes']:#超过单窗上限
             raise 远程错误(
                 'workspace-file/too-large',
                 str(长度)+' bytes of "'+路径+'" exceed the '+str(自身._配置['maxBytes'])+' byte cap',
                 {'path':路径,'limit':自身._配置['maxBytes']},
             )#拒绝
-        return 偏移,长度#字节窗
+        return {'offset':偏移,'length':长度}#窗口
 
     def _检视(自身,工作区文件作用域,路径,信号):
-        '门禁到路径自身类型已知为止'
+        '在跟随最后一段之前，先看路径自己的种类'
         if len(路径)==0:#空路径
             raise 远程错误('gateway/bad-request','path is required',{})#拒绝
-        工作区根=工作区文件作用域['workspaceRoot']#根路径
-        根=自身.ctx.fs.解析(工作区根,{'signal':信号})#解析根目标
-        条目=自身.ctx.fs.链接状态(路径,{'cwd':工作区根},信号)#路径级 lstat
-        if 条目 is None:#不存在
+        工作区根=工作区文件作用域['workspaceRoot']#会话根
+        根=自身.ctx.fs.解析(工作区根,{'signal':信号})#根目标
+        条目=自身.ctx.fs.链接状态(路径,{'cwd':工作区根},信号)#不跟随末段
+        if 条目 is None:#没有
             raise 远程错误('workspace-file/not-found','no entry at "'+路径+'"',{'path':路径})#拒绝
-        return 根,工作区根,条目#三元组
+        return 根,工作区根,条目#后续使用
 
     def _围栏(自身,根,工作区根,路径,信号):
-        '解析已检视路径；工作区不含则拒绝'
-        目标=自身.ctx.fs.解析(路径,{'cwd':工作区根,'signal':信号})#解析
+        '解析路径。工作区不含它就拒绝'
+        目标=自身.ctx.fs.解析(路径,{'cwd':工作区根,'signal':信号})#目标
         if not 自身.ctx.fs.包含(根,目标):#根外
             raise 远程错误('workspace-file/outside-workspace','"'+路径+'" is outside the workspace',{'path':路径})#拒绝
         return 目标#目标
 
     def _定位文件(自身,工作区文件作用域,路径,信号):
-        '普通文件的全部关，止于命名版本与大小的那次 stat；读路径允许根外'
-        _根,工作区根,条目=自身._检视(工作区文件作用域,路径,信号)#检视
-        if 条目['type']!='file':#非普通文件
+        '确认是普通文件，再 stat 一次拿到版本和大小。允许工作区外'
+        _根,工作区根,条目=自身._检视(工作区文件作用域,路径,信号)#先看路径自身
+        if 条目['type']!='file':#不是普通文件
             raise 远程错误(
                 'workspace-file/not-regular-file',
                 '"'+路径+'" is a '+str(条目['type']),
                 {'path':路径,'kind':条目['type']},
             )#拒绝
-        目标=自身.ctx.fs.解析(路径,{'cwd':工作区根,'signal':信号})#解析（允许根外）
-        信息=自身.ctx.fs.状态(目标,信号)#再 stat
-        if 信息 is None:#已消失
+        目标=自身.ctx.fs.解析(路径,{'cwd':工作区根,'signal':信号})#允许根外
+        信息=自身.ctx.fs.状态(目标,信号)#再确认
+        if 信息 is None:#两次之间消失了
             raise 远程错误('workspace-file/not-found','no entry at "'+路径+'"',{'path':路径})#拒绝
         if 信息['type']!='file':#种类变了
             raise 远程错误(
@@ -319,37 +288,68 @@ class 工作区文件(远程服务):
         return 目标,信息#定位结果
 
     def _状态于(自身,目标,信息):
-        '投影为线路 stat。信息为跨包 dict'
-        状态={'absolutePath':自身.ctx.fs.进程路径(目标),'version':信息['version']}#必填
-        if 'size' in 信息:#有大小
-            状态['bytes']=信息['size']#带上
-        return 状态#stat
+        '收成线路上的 stat。没有大小就不带 bytes'
+        状态={'absolutePath':自身.ctx.fs.进程路径(目标),'version':信息['version']}#必有
+        if 'size' in 信息 and 信息['size'] is not None:#后端报了大小
+            状态['bytes']=信息['size']#整文件字节
+        return 状态#状态
 
-    def _切页于(自身,目标,偏移,限额,信号,路径):
-        '流式读文本并切页；把后端非文本拒绝归类'
-        try:
-            return _切页(自身.ctx.fs.流文本(目标,信号),偏移,限额,自身._配置['maxBytes'],路径)#切页
-        except 远程错误:
-            raise#本包错误原样
-        except BaseException as 错误:
-            if _是否非文本拒绝(错误):#后端非文本
-                raise 远程错误('workspace-file/not-text','"'+路径+'" is not UTF-8 text',{'path':路径},原因=错误)#映射
-            raise#其他原样
+    def _切页(自身,目标,偏移,限额,信号,路径):
+        '流式读文本并切出这一页。后端拒绝非 UTF-8 时改成 not-text'
+        try:#读和切
+            块序列=自身.ctx.fs.流文本(目标,信号)#已解码块
+            末行=偏移+限额-1#本页最后一行
+            行列表=[]#页内行
+            当前=''#尚未换行的一段
+            字节数=0#本页 UTF-8 字节
+            行号=1#文件中的行号
+
+            def 验收(增量):
+                '加上这段字节。超过 maxBytes 就失败，不截短'
+                nonlocal 字节数#累计
+                字节数=字节数+增量#加上
+                if 字节数>自身._配置['maxBytes']:#超限
+                    raise 远程错误(
+                        'workspace-file/too-large',
+                        'lines '+str(偏移)+'-'+str(末行)+' of "'+路径+'" exceed the '+str(自身._配置['maxBytes'])+' byte cap',
+                        {'path':路径,'limit':自身._配置['maxBytes']},
+                    )#拒绝
+
+            def 完成一行():
+                '收下当前行。行与行之间的换行也算一个字节'
+                nonlocal 当前#缓冲
+                if len(行列表)>0:#不是页内第一行
+                    验收(1)#连接用的换行
+                行列表.append(当前)#收下
+                当前=''#清空
+
+            for 块 in 块序列:#逐块
+                位置=0#块内位置
+                while 位置<len(块):#扫这块
+                    if 行号>末行:#页已经满
+                        return {'text':'\n'.join(行列表),'lines':len(行列表),'eof':False}#还没到文件尾
+                    换行=块.find('\n',位置)#下一个换行
+                    if 换行==-1:#这块剩余没有换行
+                        片段=块[位置:]#剩下部份
+                    else:#有换行
+                        片段=块[位置:换行]#换行之前
+                    if 行号>=偏移:#落在页内
+                        验收(utf8字节数(片段))#这段的字节
+                        当前=当前+片段#接上
+                    if 换行==-1:#块用完了
+                        break#下一块
+                    if 行号>=偏移:#页内的一行结束
+                        完成一行()#收下
+                    行号=行号+1#下一行
+                    位置=换行+1#越过换行
+            if len(当前)>0:#文件末尾没有换行
+                完成一行()#收下最后一行
+            return {'text':'\n'.join(行列表),'lines':len(行列表),'eof':True}#读到文件尾
+        except BaseException as 错误:#读或切失败
+            if getattr(错误,'code',None)=='FS_NOT_TEXT':#后端拒绝非文本
+                raise 远程错误('workspace-file/not-text','"'+路径+'" is not UTF-8 text',{'path':路径},原因=错误)#改码
+            raise#页超限和其他失败原样
 
 
-def 应用(上下文,配置值=None):
-    '挂载工作区文件 Remote 拥有者'
-    工作区文件(上下文,配置值)#构造即登记
-
-
-# changes 为 stream 模式 Remote
-_变更标记=getattr(工作区文件.changes,'_typert_remote_marker',None)
-if isinstance(_变更标记,dict):
-    _变更标记['mode']='stream'
-
-默认=工作区文件
-name=名称#框架槽
-inject=依赖#框架槽
-apply=应用#框架槽
-Config=配置#框架槽
+默认=工作区文件#插件类
 default=默认#框架槽

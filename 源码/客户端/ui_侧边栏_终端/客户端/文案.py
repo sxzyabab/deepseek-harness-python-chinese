@@ -3,6 +3,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
 命名空间='sidebarTerminal'#词表命名空间
 
 中文={#简体中文词条
+    'shortcut.noSession':'请先选择会话',#没有会话
     'recoveryFailed':'恢复终端失败：{message}',#恢复失败
     'retryRecovery':'重试恢复终端',#重试恢复
     'shell':'选择 Shell',#选壳
@@ -33,6 +34,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
 }#中文结束
 
 英文={#英文词条
+    'shortcut.noSession':'Select a session first',#没有会话
     'recoveryFailed':'Terminal recovery failed: {message}',#恢复失败
     'retryRecovery':'Retry terminal recovery',#重试恢复
     'shell':'Choose shell',#选壳

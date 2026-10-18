@@ -1,128 +1,133 @@
-from ....基础设施.通用工具 import 观察者集合
-from ..异常 import 失败说明#观察失败文案
+'无界面的作业名册与观察态。传输在客户端服务里，界面只读这份快照'
+from ....客户端.存储 import 通知订阅者#一个订阅者失败不挡住其余
 
 __all__=['客户端作业模型']
 
-渲染尾上限=128*1024
-
-def 按字节裁尾(文本,上限):
-    '保留末尾上限字节，切点落在 UTF-8 字符边界'
-    字节=文本.encode('utf-8')
-    if len(字节)<=上限:
-        return 文本,False
-    切=len(字节)-上限
-    while 切<len(字节) and (字节[切]&0xC0)==0x80:
-        切+=1
-    return 字节[切:].decode('utf-8'),True
+渲染尾上限=128*1024#渲染尾的 UTF-16 码元上限
 
 class 客户端作业模型:
-    '无 UI 的作业名册与观察态'
+    '每个被监视会话一份名册，每条被观察作业一份有界输出'
     def __init__(自身):
         '空快照'
-        自身._会话表行={}
-        自身._观察态={}
-        自身._监听者=观察者集合()
-        自身._快照缓存={'rows':{},'observed':{}}
-        自身._快照脏=False
+        自身._会话表行={}#会话 id → 作业行
+        自身._观察态={}#作业 id → 视图与游标
+        自身._监听者=set()#同一回调只留一次
+        自身._快照缓存={'rows':{},'observed':{}}#未变时交回同一份
+        自身._快照脏=False#缓存是否过期
 
     def 获取快照(自身):
-        '身份稳定的当前快照'
-        if 自身._快照脏:
-            表行={}
-            for 标识,作业列表 in 自身._会话表行.items():
-                表行[标识]=作业列表
-            观察={}
-            for 标识,状态 in 自身._观察态.items():
-                观察[标识]=状态['view']
-            自身._快照缓存={'rows':表行,'observed':观察}
-            自身._快照脏=False
-        return 自身._快照缓存
+        '身份稳定的当前快照。脏了才重造'
+        if 自身._快照脏:#需要重造
+            表行={}#名册
+            for 标识,作业列表 in 自身._会话表行.items():#逐个会话
+                表行[标识]=作业列表#原列表
+            观察={}#观察视图
+            for 标识,状态 in 自身._观察态.items():#逐个作业
+                观察[标识]=状态['view']#视图
+            自身._快照缓存={'rows':表行,'observed':观察}#换一份
+            自身._快照脏=False#缓存已新
+        return 自身._快照缓存#未变则同一对象
 
     def 订阅(自身,监听者):
-        '登记失效回调'
-        return 自身._监听者.订阅(监听者)
+        '登记失效回调，返回退订函数'
+        自身._监听者.add(监听者)#登记
+        def 退订():
+            '撤销这一次登记'
+            自身._监听者.discard(监听者)#去掉
+        return 退订#交给调用方
 
     def 替换表行(自身,会话标识,作业列表):
-        '用整表替换一名册；空表去掉键'
-        键=str(会话标识)
-        if len(作业列表)==0:
-            if 键 not in 自身._会话表行:
-                return
-            del 自身._会话表行[键]
-        else:
-            自身._会话表行[键]=作业列表
-        自身._已变()
+        '用整表替换一名册。空表去掉键，调用方读到的是没有这名册'
+        键=str(会话标识)#字典键
+        if len(作业列表)==0:#空集
+            if 键 not in 自身._会话表行:#本来就没有
+                return#不通知
+            del 自身._会话表行[键]#去掉
+        else:#有行
+            自身._会话表行[键]=作业列表#整表替换
+        自身._已变()#通知
 
     def 丢弃表行(自身,会话标识):
-        '最后一名监视者离开或流出失败'
-        if 自身._会话表行.pop(str(会话标识),None) is None:
-            return
-        自身._已变()
+        '最后一名监视者离开，或名册流失败'
+        if 自身._会话表行.pop(str(会话标识),None) is None:#本来就没有
+            return#不通知
+        自身._已变()#通知
 
     def 游标(自身,标识):
-        '下一代观察的 from；新观察为 None'
-        状态=自身._观察态.get(str(标识))
-        if 状态 is None:
-            return None
-        return 状态['cursor']
+        '下一代观察的 from。没有观察过则为 None'
+        状态=自身._观察态.get(str(标识))#已有
+        if 状态 is None:#没有
+            return None#从头
+        return 状态['cursor']#上次接受的 next
 
     def 观察已打开(自身,标识,帧):
-        '开口锚到达时安装或重置观察态'
-        已有=自身._观察态.get(str(标识))
-        已有文本='' if 已有 is None else 已有['view']['text']
-        已有缺口=False if 已有 is None else 已有['view']['gapBefore']
-        新过零=(已有 is None or 已有文本=='') and 帧['from']>0
-        缺口=已有缺口 or 帧['from']<帧['job']['output']['earliest'] or 新过零
-        视图={'jobId':标识,'text':已有文本,'gapBefore':缺口,'streaming':True}
-        自身._观察态[str(标识)]={'view':视图,'cursor':帧['from']}
-        自身._已变()
+        '开口锚到达时安装或接上观察态。成功的锚替换掉锚前的失败视图'
+        已有=自身._观察态.get(str(标识))#已有
+        已有文本='' if 已有 is None else 已有['view']['text']#已积累的尾
+        已有缺口=False if 已有 is None else 已有['view']['gapBefore']#已记下的缺口
+        新过零=(已有 is None or 已有文本=='') and 帧['from']>0#空尾却不是从零开始
+        缺口=已有缺口 or 帧['from']<帧['job']['output']['earliest'] or 新过零#头已被丢掉
+        视图={'jobId':标识,'text':已有文本,'gapBefore':缺口,'streaming':True}#重新开流
+        自身._观察态[str(标识)]={'view':视图,'cursor':帧['from']}#游标停在锚
+        自身._已变()#通知
 
     def 观察输出(自身,标识,帧):
-        '把一帧输出追加到有界渲染尾'
-        状态=自身._观察态.get(str(标识))
-        if 状态 is None:
-            return
-        文本=状态['view']['text']+''.join(块['text'] for 块 in 帧['chunks'])
-        缺口=状态['view']['gapBefore'] or 帧.get('lossy') is True
-        for 块 in 帧['chunks']:
-            if 块.get('gapBefore') is True:
-                缺口=True
-        文本,裁过=按字节裁尾(文本,渲染尾上限)
-        if 裁过:
-            缺口=True
-        状态['view']={**状态['view'],'text':文本,'gapBefore':缺口}
-        状态['cursor']=帧['next']
-        自身._已变()
+        '把一帧输出追加到有界渲染尾，并记下续读游标'
+        状态=自身._观察态.get(str(标识))#已有
+        if 状态 is None:#锚还没到
+            return#丢掉
+        文本=状态['view']['text']#已有尾
+        for 块 in 帧['chunks']:#按帧内顺序接上
+            文本=文本+块['text']#追加
+        缺口=状态['view']['gapBefore'] or 帧.get('lossy') is True#帧本身有损
+        if not 缺口:#还要看块上的缺口
+            for 块 in 帧['chunks']:#逐块
+                if 块.get('gapBefore') is True:#这块前面丢过
+                    缺口=True#记下
+                    break#够了
+        编码=文本.encode('utf-16-le')#按 UTF-16 码元量尾
+        单元数=len(编码)//2#码元个数
+        if 单元数>渲染尾上限:#超出渲染尾
+            切=单元数-渲染尾上限#留下末尾这么多码元
+            单元=int.from_bytes(编码[切*2:切*2+2],'little')#切点上的码元
+            if 单元>=0xDC00 and 单元<=0xDFFF:#落在代理对的低位
+                切=切+1#整对丢掉，不劈开
+            文本=编码[切*2:].decode('utf-16-le')#留下的尾
+            缺口=True#前面被裁掉
+        状态['view']={**状态['view'],'text':文本,'gapBefore':缺口}#换视图
+        状态['cursor']=帧['next']#下一代从这里续
+        自身._已变()#通知
 
     def 观察已结算(自身,标识):
-        '终态帧到达后关闭直播'
-        状态=自身._观察态.get(str(标识))
-        if 状态 is None:
-            return
-        状态['view']={**状态['view'],'streaming':False}
-        自身._已变()
+        '终态帧到达后关掉直播。名册行上已经有结算投影'
+        状态=自身._观察态.get(str(标识))#已有
+        if 状态 is None:#没有
+            return#丢掉
+        状态['view']={**状态['view'],'streaming':False}#不再直播
+        自身._已变()#通知
 
     def 观察失败(自身,标识,错误):
-        '记下观察流异常结束'
-        状态=自身._观察态.get(str(标识))
-        if 状态 is None:
+        '记下观察流异常结束。锚前失败也留一条空视图，后来的锚会换掉它'
+        状态=自身._观察态.get(str(标识))#已有
+        说明=str(错误)#给人看的失败
+        if 状态 is None:#锚还没到
             自身._观察态[str(标识)]={
-                'view':{'jobId':标识,'text':'','gapBefore':False,'streaming':False,'error':失败说明(错误)},
-                'cursor':None,
-            }
-            自身._已变()
-            return
-        状态['view']={**状态['view'],'streaming':False,'error':失败说明(错误)}
-        自身._已变()
+                'view':{'jobId':标识,'text':'','gapBefore':False,'streaming':False,'error':说明},
+                'cursor':None,#下次成功的锚不带 from
+            }#空视图
+            自身._已变()#通知
+            return#结束
+        状态['view']={**状态['view'],'streaming':False,'error':说明}#停在当前尾上
+        自身._已变()#通知
 
     def 观察已停止(自身,标识):
         '最后一名观察者离开'
-        if str(标识) not in 自身._观察态:
-            return
-        del 自身._观察态[str(标识)]
-        自身._已变()
+        if str(标识) not in 自身._观察态:#本来就没有
+            return#不通知
+        del 自身._观察态[str(标识)]#去掉
+        自身._已变()#通知
 
     def _已变(自身):
-        '标脏并通知'
-        自身._快照脏=True
-        自身._监听者.通知()
+        '标脏并通知订阅者'
+        自身._快照脏=True#下次读取重造
+        通知订阅者(自身._监听者,'jobs')#失败的订阅者记到控制台

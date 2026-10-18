@@ -108,7 +108,7 @@ def 应用(上下文,配置值):
     def 通知(通知载荷):
         '不让已断开的客户端把智能体回合打失败'
         try:
-            连接盒['conn'].会话更新(通知载荷)#写更新
+            连接盒['conn'].发送会话更新(通知载荷)#写更新
         except BaseException as 错误:
             日志器.警告('acp: session/update failed: '+str(错误))#传输写失败
 
@@ -383,7 +383,7 @@ def 应用(上下文,配置值):
             子智能体=上下文.获取服务('subagents')#可选子智能体服务
             if 子智能体 is not None:#存在则可抽干
                 try:
-                    子智能体.排空后代([记录['agent'] for 记录 in 记录列表])#子先序抽干
+                    子智能体.排空可续运行后代([记录['agent'] for 记录 in 记录列表])#子先序抽干
                 except BaseException as 错误:
                     日志器.警告('acp: continuable subagent teardown failed: '+str(错误))#不阻断顶层拆除
             失败列表=[]#收集拆除失败

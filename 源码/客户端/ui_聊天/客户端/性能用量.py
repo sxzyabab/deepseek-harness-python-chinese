@@ -1,31 +1,34 @@
 from ...存储 import 创建快照存储
+from ..聊天设置 import 默认性能用量
 
-__all__=['性能用量策略','默认性能用量']
+__all__=['性能用量策略']
 
-默认性能用量='detailed'#与设置缺省一致
 
 class 性能用量策略:
-    '设置行与聊天统计共用的现场偏好；作用域可写则持久化'
+    '性能与用量档位。选择立刻生效，并与宿主已接受的设置对齐'
     def __init__(自身,宿主):
-        '有已接受宿主设置则对齐'
+        '先订已接受值，再采纳当前快照'
         自身.宿主=宿主
-        自身.模式=创建快照存储(默认性能用量)
+        自身.mode=创建快照存储(默认性能用量)
+
         def 采纳():
-            '已接受值写入现场'
+            '宿主已接受的档位写回本地。没有值就保持现状'
             快照=宿主.getSnapshot()
-            分区=快照['value'] if 'value' in 快照 else None
-            if 分区 is not None and 'performanceUsage' in 分区:
-                自身.模式.set(分区['performanceUsage'])
+            值=快照['value'] if isinstance(快照,dict) else None
+            已接受=值['performanceUsage'] if isinstance(值,dict) else None
+            if 已接受 is not None:
+                自身.mode.set(已接受)
+
         自身.退订=宿主.subscribe(采纳)
         采纳()
 
-    def 拆除(自身):
-        '释放已接受值订阅'
+    def dispose(自身):
+        '拆掉已接受值的订阅'
         自身.退订()
 
-    def 设模式(自身,模式):
-        '立即发布选择；作用域支持写入时持久化'
-        if 模式==自身.模式.getSnapshot():
+    def setMode(自身,模式):
+        '立刻公布选择，并把宿主写入排进队列'
+        if 模式==自身.mode.getSnapshot():
             return
-        自身.模式.set(模式)
+        自身.mode.set(模式)
         自身.宿主.set('performanceUsage',模式)

@@ -2,7 +2,7 @@ import json,os,re,yaml#JSON、路径、正则与 YAML
 from ....基础设施.通用工具.序列化编码 import 紧凑json编码
 from ....依赖.include import 应用插件补丁,插件列表读取器#补丁应用与条目列表方言
 from ....客户端.模块 import 解析客户端声明#dsh.client 声明解析
-from ....客户端.模块.清单 import 精确包说明符#精确包说明符
+from ....客户端.模块.客户端.清单 import 精确包说明符#精确包说明符
 from .名册 import 客户端名册,客户端名册行#名册
 from ..异常 import 客户端测试运行时错误#本包异常
 
@@ -15,7 +15,7 @@ def 组合捆绑名册(捆绑表,锚点=None):#组合捆绑名册
     '按应用顺序组合捆绑表的浏览器名册'
     if 锚点 is None:#缺省本文件
         锚点=os.path.abspath(__file__)#本文件
-    层表=[读一层(名,锚点) for 名 in 捆绑表]#读每层
+    层表=[读取一层(名,锚点) for 名 in 捆绑表]#读每层
     def 补丁失败(消息,*参数):#补丁失败即抛
         '把 include 警告收成组装错误'
         raise 客户端测试运行时错误('client-test-runtime: bundle patch '+描述补丁(消息,参数))#英文诊断
@@ -33,7 +33,7 @@ def 组合捆绑名册(捆绑表,锚点=None):#组合捆绑名册
         清单路径=定位清单(锚点表,包名)#定位 package.json
         if 清单路径 is None:#解析不到
             raise 客户端测试运行时错误('client-test-runtime: cannot resolve plugin package '+包名+' from '+', '.join(捆绑表))#英文诊断
-        清单=读清单(清单路径)#读清单
+        清单=读取清单(清单路径)#读取清单
         清单名=清单['name'] if 'name' in 清单 else None#清单包名
         if 清单名!=包名:#包名不符
             raise 客户端测试运行时错误('client-test-runtime: package.json names '+紧凑json编码(清单名)+', expected '+包名)#英文诊断
@@ -49,12 +49,12 @@ def 组合捆绑名册(捆绑表,锚点=None):#组合捆绑名册
         行表.append(客户端名册行(包名,依赖,立即))
     return 客户端名册.从行表(行表)#建造名册
 
-def 读一层(捆绑,锚点):#读一层捆绑
+def 读取一层(捆绑,锚点):#读取一层捆绑
     '定位捆绑 package.json 并解析其补丁列表'
     清单路径=定位清单([锚点],捆绑)#定位捆绑 package.json
     if 清单路径 is None:#解析不到
         raise 客户端测试运行时错误('client-test-runtime: cannot resolve bundle '+捆绑)#英文诊断
-    清单=读清单(清单路径)#读清单
+    清单=读取清单(清单路径)#读取清单
     dsh=清单['dsh'] if 'dsh' in 清单 else None#dsh 字段
     捆绑字段=dsh['bundle'] if isinstance(dsh,dict) and 'bundle' in dsh else None#bundle 字段
     补丁=捆绑字段['patch'] if isinstance(捆绑字段,dict) and 'patch' in 捆绑字段 else None#补丁路径字段
@@ -80,7 +80,7 @@ def 摊平组(条目列表,继承=None):#摊平组
         行表.append({'entry':条目,'disabled':禁用})#收下插件行
     return 行表#返回
 
-def 读清单(路径):#读 package.json
+def 读取清单(路径):#读 package.json
     '解析包清单'
     with open(路径,'r',encoding='utf-8') as 文件:#读
         return json.load(文件)#解析

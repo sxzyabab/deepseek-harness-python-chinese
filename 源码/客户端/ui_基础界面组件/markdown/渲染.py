@@ -2,12 +2,11 @@ import html as 超文本#文本转义
 import re#语言 id 截断
 from urllib.parse import urlparse as 解析URL#协议检查
 from .katex import 渲染TeX到树#TeX→树
-from nicegui import ui as 界面
 from .代码块 import 代码块#围栏
 
 __all__=[#仅中文公开名
     '净化链接','远端图片地址','建引用目标','收集引用目标',
-    '渲染块列表','包块子节点','渲染脚注区','行内代码Http地址','画出视图',
+    '渲染块列表','包块子节点','渲染脚注区','行内代码Http地址','画出视图','处理画出视图',
 ]#公开面结束
 
 def 净化链接(网址):#协议白名单
@@ -409,110 +408,146 @@ def 渲染脚注区(上下文):#文末脚注 section
         {'type':'element','tag':'ol','children':项列表},#有序列表
     ]}#section
 
-def 画出视图(节点):
-    '把结构节点画成控件；组件节点自己画'
-    if 节点 is None:#空
-        return
-    if isinstance(节点,(list,tuple)):#多项
-        for 项 in 节点:#逐项
-            画出视图(项)#递归
-        return
-    if isinstance(节点,str):#字面
-        if 节点!='':
-            界面.html('<span style="white-space:pre-wrap">'+超文本.escape(节点)+'</span>',sanitize=False)#文本
-        return
-    if isinstance(节点,dict) is False:#组件
-        if hasattr(节点,'渲染'):#能画
-            节点.渲染()#自画
-        return
-    种=节点['type'] if 'type' in 节点 else None#种
-    if 种=='widget':#延迟组件
-        体=节点['body'] if 'body' in 节点 else None#体
-        if hasattr(体,'渲染'):#能画
-            体.渲染()#自画
-        return
-    if 种=='fragment':#片
-        画出视图(节点['children'] if 'children' in 节点 else None)#子
-        return
-    if 种!='element':#其余
-        return
-    标=节点['tag'] if 'tag' in 节点 and 节点['tag'] is not None else 'span'#标签
-    属性=节点['props'] if 'props' in 节点 and isinstance(节点['props'],dict) else {}#属性
-    子=节点['children'] if 'children' in 节点 else None#子
-    if 标=='br':#换行
-        界面.html('<br/>',sanitize=False)#换行
-        return
-    if 标=='hr':#分隔
-        界面.separator()#线
-        return
-    if 标=='img':#图
-        源=属性['src'] if 'src' in 属性 else None#源
-        if isinstance(源,str) and 源!='':
-            图=界面.image(源)#图
-            替=属性['alt'] if 'alt' in 属性 else None#替代
-            if isinstance(替,str) and 替!='':
-                图.props('alt="'+替.replace('"','')+'"')#替代
+def 处理画出视图(window,属性):
+    '把结构节点画进 parent。没有 parent 时包一层再返回'
+    return 画出视图(属性['节点'] if '节点' in 属性 else None,window,属性['parent'] if 'parent' in 属性 else None)
+
+def 画出视图(节点,window,父=None):
+    '把结构节点画成控件；组件节点自己画。返回父节点或新建的包装'
+    文档=window.document
+    宿主=父
+    if 宿主 is None:
+        宿主=文档.createElement('div')
+    def 画(项,容器):
+        '画进容器'
+        if 项 is None:#空
+            return
+        if isinstance(项,(list,tuple)):#多项
+            for 子项 in 项:#逐项
+                画(子项,容器)#递归
+            return
+        if isinstance(项,str):#字面
+            if 项!='':
+                标=文档.createElement('span')
+                标.style.cssText='white-space:pre-wrap'
+                标.textContent=项
+                容器.appendChild(标)
+            return
+        if isinstance(项,dict) is False:#组件
+            if hasattr(项,'渲染'):#能画
+                if hasattr(项,'属性') and isinstance(项.属性,dict):
+                    项.属性['window']=window
+                节点出=项.渲染()
+                if 节点出 is not None and hasattr(节点出,'tagName'):
+                    容器.appendChild(节点出)
+            return
+        种=项['type'] if 'type' in 项 else None#种
+        if 种=='widget':#延迟组件
+            体=项['body'] if 'body' in 项 else None#体
+            画(体,容器)
+            return
+        if 种=='fragment':#片
+            画(项['children'] if 'children' in 项 else None,容器)#子
+            return
+        if 种!='element':#其余
+            return
+        标=项['tag'] if 'tag' in 项 and 项['tag'] is not None else 'span'#标签
+        属性=项['props'] if 'props' in 项 and isinstance(项['props'],dict) else {}#属性
+        子=项['children'] if 'children' in 项 else None#子
+        if 标=='br':#换行
+            容器.appendChild(文档.createElement('br'))
+            return
+        if 标=='hr':#分隔
+            容器.appendChild(文档.createElement('hr'))
+            return
+        if 标=='img':#图
+            源=属性['src'] if 'src' in 属性 else None#源
+            if isinstance(源,str) and 源!='':
+                图=文档.createElement('img')
+                图.src=源
+                替=属性['alt'] if 'alt' in 属性 else None#替代
+                if isinstance(替,str) and 替!='':
+                    图.setAttribute('alt',替)
+                类名=属性['className'] if 'className' in 属性 else None#类
+                if isinstance(类名,str) and 类名!='':
+                    图.className=类名
+                容器.appendChild(图)
+            return
+        if 标=='button':#按钮
+            文=''#文案
+            纯文=False
+            if isinstance(子,str):#字面
+                文=子#用
+                纯文=True
+            elif isinstance(子,(list,tuple)) and all(isinstance(片,str) for 片 in 子):#全是字
+                文=''.join(子)#拼
+                纯文=True
+            点=属性['onClick'] if 'onClick' in 属性 else None#点击
+            钮=文档.createElement('button')
+            钮.type='button'
+            if 纯文:
+                钮.textContent=文 if 文!='' else ' '
             类名=属性['className'] if 'className' in 属性 else None#类
             if isinstance(类名,str) and 类名!='':
-                图.classes(类名)#类
-        return
-    if 标=='button':#按钮
-        文=''#文案
-        if isinstance(子,str):#字面
-            文=子#用
-        elif isinstance(子,(list,tuple)) and all(isinstance(项,str) for 项 in 子):#全是字
-            文=''.join(子)#拼
-        点=属性['onClick'] if 'onClick' in 属性 else None#点击
-        def 点下(回调=点):
-            '有点击就调用'
-            if callable(回调):
-                回调()#调用
-        钮=界面.button(文 if 文!='' else ' ',on_click=点下 if callable(点) else None)#按钮
+                钮.className=类名
+            题=属性['title'] if 'title' in 属性 else None#题注
+            if isinstance(题,str) and 题!='':
+                钮.setAttribute('title',题)
+            if callable(点):
+                def 点下(事件,回调=点):
+                    '有点击就调用'
+                    回调()
+                钮.addEventListener('click',点下)
+            if 纯文 is False:#复合子
+                画(子,钮)
+            容器.appendChild(钮)
+            return
+        if 标=='a':#链接
+            址=属性['href'] if 'href' in 属性 else ''#址
+            文=''#文案
+            纯文=False
+            if isinstance(子,str):#字面
+                文=子#用
+                纯文=True
+            elif isinstance(子,(list,tuple)) and all(isinstance(片,str) for 片 in 子):#全是字
+                文=''.join(子)#拼
+                纯文=True
+            if 纯文 and 文!='' and isinstance(址,str) and 址!='':#纯文字链
+                链=文档.createElement('a')
+                链.href=址
+                链.textContent=文
+                if 属性.get('target')=='_blank':
+                    链.target='_blank'
+                类名=属性['className'] if 'className' in 属性 else None#类
+                if isinstance(类名,str) and 类名!='':
+                    链.className=类名
+                容器.appendChild(链)
+                return
+        元=文档.createElement(标)#元素
         类名=属性['className'] if 'className' in 属性 else None#类
         if isinstance(类名,str) and 类名!='':
-            钮.classes(类名)#类
-        题=属性['title'] if 'title' in 属性 else None#题注
-        if isinstance(题,str) and 题!='':
-            钮.tooltip(题)#题
-        if isinstance(子,str) is False and not (isinstance(子,(list,tuple)) and all(isinstance(项,str) for 项 in 子)):#复合子
-            with 钮:#内容
-                画出视图(子)#子
-        return
-    if 标=='a':#链接
-        址=属性['href'] if 'href' in 属性 else ''#址
-        文=''#文案
-        if isinstance(子,str):#字面
-            文=子#用
-        elif isinstance(子,(list,tuple)) and all(isinstance(项,str) for 项 in 子):#全是字
-            文=''.join(子)#拼
-        if 文!='' and isinstance(址,str) and 址!='':#纯文字链
-            链=界面.link(文,址,new_tab=属性.get('target')=='_blank')#链
-            类名=属性['className'] if 'className' in 属性 else None#类
-            if isinstance(类名,str) and 类名!='':
-                链.classes(类名)#类
-            return
-    元=界面.element(标)#元素
-    类名=属性['className'] if 'className' in 属性 else None#类
-    if isinstance(类名,str) and 类名!='':
-        元.classes(类名)#类
-    样式=属性['style'] if 'style' in 属性 else None#样式
-    if isinstance(样式,dict):#字典
-        元.style(';'.join(str(键名)+':'+str(值) for 键名,值 in 样式.items()))#行内
-    elif isinstance(样式,str) and 样式!='':#串
-        元.style(样式)#行内
-    附加=[]#属性
-    for 键名 in ('id','href','target','rel','type','alt','src'):#透传
-        if 键名 in 属性 and 属性[键名] is not None:
-            附加.append(键名+'="'+str(属性[键名]).replace('"','')+'"')#写
-    if 属性.get('disabled') is True:#禁用
-        附加.append('disabled')#禁
-    if 属性.get('checked') is True:#勾选
-        附加.append('checked')#勾
-    if 'aria-label' in 属性 and 属性['aria-label'] is not None:#无障碍名
-        附加.append('aria-label="'+str(属性['aria-label']).replace('"','')+'"')#名
-    if 属性.get('data-footnotes') is True:#脚注区
-        附加.append('data-footnotes')#标记
-    if len(附加)>0:
-        元.props(' '.join(附加))#写
-    with 元:#内容
-        画出视图(子)#子
+            元.className=类名
+        样式=属性['style'] if 'style' in 属性 else None#样式
+        if isinstance(样式,dict):#字典
+            元.style.cssText=';'.join(str(键名)+':'+str(值) for 键名,值 in 样式.items())
+        elif isinstance(样式,str) and 样式!='':#串
+            元.style.cssText=样式
+        for 键名 in ('id','href','target','rel','alt','src'):#透传
+            if 键名 in 属性 and 属性[键名] is not None:
+                元.setAttribute(键名,str(属性[键名]))
+        if 标=='button':
+            元.type='button'
+        elif 'type' in 属性 and 属性['type'] is not None:
+            元.setAttribute('type',str(属性['type']))
+        if 属性.get('disabled') is True:#禁用
+            元.disabled=True
+        if 属性.get('checked') is True:#勾选
+            元.checked=True
+        if 'aria-label' in 属性 and 属性['aria-label'] is not None:#无障碍名
+            元.setAttribute('aria-label',str(属性['aria-label']))
+        if 属性.get('data-footnotes') is True:#脚注区
+            元.setAttribute('data-footnotes','')
+        画(子,元)
+        容器.appendChild(元)
+    画(节点,宿主)
+    return 宿主

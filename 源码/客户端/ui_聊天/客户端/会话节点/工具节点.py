@@ -1,302 +1,486 @@
-from .....基础设施.通用工具 import 紧凑json编码
-from ..约定.聊天节点 import 是已结算工具#已结算判断
-from ...异常 import 聊天错误#本包异常
-from .节点工厂 import 聊天合成序号偏移,聊天节点#公共
-from .事件面 import 是追加面事件#面辅助
+import json
+from .....内核.会话.表面 import 是否追加表面事件
+from ...异常 import 聊天错误
+from .节点工厂 import 上下文位置,聊天合成序号偏移,聊天节点
 
-__all__=['工具定义','登记工具会话节点']#仅中文公开名
+__all__=['工具定义','登记工具会话节点','最大工具深度']
 
-最大深度=256#父子边最大嵌套深度
-投影缓存={}#源块 id → 上次投影
+最大工具深度=256
+投影缓存={}
 
-def 同引用(左,右):#两列表是否同长度且逐项同一对象
-    '长度与每项 is 都成立'
-    return len(左)==len(右) and all(甲 is 乙 for 甲,乙 in zip(左,右))#引用相等
 
-def 参数原文(值):#未知参数 → JSON 字符串
-    '序列化'
-    return 紧凑json编码(值)#原文
+def 取部分参数():
+    '参数增量视图。工具.值 里还没有 PartialArguments 时，调用处报缺'
+    try:
+        from .....工具.值 import PartialArguments
+    except ImportError:
+        raise 聊天错误('缺少 工具.值 的 PartialArguments')
+    return PartialArguments
 
-def 根调用(匹配项):#从 tool/call 建运行中根调用
-    '起始必须是 tool/call'
-    事件=匹配项['event']#事件
-    if 事件['type']!='tool/call':#必须
-        raise 聊天错误('tool-call start requires tool/call')#硬失败
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    视图=匹配项['view'] if 'view' in 匹配项 else None#视图
-    调用面=视图['view'] if 视图 is not None and 'for' in 视图 and 视图['for']=='call' else None#调用面
-    return {#运行中根
-        'callId':str(数据['callId']),#身份
-        'name':数据['name'] if 'name' in 数据 else None,#名
-        'argsRaw':数据['arguments'] if 'arguments' in 数据 else None,#参数
-        'turn':数据['turn'] if 'turn' in 数据 else None,'step':数据['step'] if 'step' in 数据 else None,#坐标
-        'time':事件['time'] if 'time' in 事件 else None,#时间
-        'callView':调用面,#调用面
-        'subCalls':[],#尚无子
-    }#结束
 
-def 根结果(匹配项,先前=None):#从 tool/result 建根结果节点
-    '非结果事件则 None'
-    事件=匹配项['event']#事件
-    if 事件['type']!='tool/result':#非
-        return None#无
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    消息=数据['message'] if 'message' in 数据 and 数据['message'] is not None else {}#消息
-    内容=消息['content'] if 'content' in 消息 and 消息['content'] is not None else []#内容
-    首=内容[0] if len(内容)>0 else {}#第一块
-    来源=消息['source'] if 'source' in 消息 and 消息['source'] is not None else {}#来源
-    视图=匹配项['view'] if 'view' in 匹配项 else None#视图
-    结果={#已结算根
-        'kind':'tool-result',#结果
-        'seq':事件['seq'],#序号
-        'time':事件['time'] if 'time' in 事件 else None,#时间
-        'callId':str(来源['callId'] if 'callId' in 来源 else ''),#调用身份
-        'call':None if 先前 is None else {'name':先前['name'] if 'name' in 先前 else None,'argsRaw':先前['argsRaw'] if 'argsRaw' in 先前 else None},#名与参数
-        'callTime':先前['time'] if 先前 is not None and 'time' in 先前 else None,#调用时间
-        'content':首['content'] if 'content' in 首 else None,#正文
-        'isError':('isError' in 首 and 首['isError'] is True),#错误否
-        'meta':数据['meta'] if 'meta' in 数据 else None,#元数据
-        'callView':先前['callView'] if 先前 is not None and 'callView' in 先前 else None,#调用面
-        'resultView':视图['view'] if 视图 is not None and 'for' in 视图 and 视图['for']=='result' else None,#结果面
-        'subCalls':[],#投影时再填
-    }#结束
-    if 'error' in 数据 and 数据['error'] is not None:#有错误对象
-        结果['error']=数据['error']#带上
-    return 结果#根结果
+def 引用相同(左,右):
+    '长度和每一项身份都一样'
+    if len(左)!=len(右):
+        return False
+    下标=0
+    for 项 in 左:
+        if 项 is not 右[下标]:
+            return False
+        下标+=1
+    return True
 
-def 位置回合(匹配项):#从匹配位置读回合号
-    '步骤或回合位置才有'
-    位=匹配项['location'] if 'location' in 匹配项 and 匹配项['location'] is not None else {}#位置
-    if 'kind' in 位 and 位['kind'] in ('step','turn'):
-        回合=位['turn'] if 'turn' in 位 else None#回合
-        return 回合['turn'] if 回合 is not None and 'turn' in 回合 else 0#回合
-    return 0#无
 
-def 位置步(匹配项):#从匹配位置读步骤号
-    '仅步骤位置'
-    位=匹配项['location'] if 'location' in 匹配项 and 匹配项['location'] is not None else {}#位置
-    if 'kind' in 位 and 位['kind']=='step':#步骤
-        步=位['step'] if 'step' in 位 else None#步
-        return 步['step'] if 步 is not None and 'step' in 步 else 0#步
-    return 0#无
+def 根调用(匹配项,先前=None):
+    'tool/call 变成已开始的根'
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else None
+    if not isinstance(事件,dict) or 事件.get('type')!='tool/call':
+        raise 聊天错误('tool-call start requires tool/call')
+    数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+    参数类=取部分参数()
+    if 先前 is None:
+        参数=参数类.fromText(数据.get('arguments'))
+    else:
+        参数=先前.get('args').settle(数据.get('arguments'))
+    return {
+        'phase':'start',
+        'callId':str(数据.get('callId')),
+        'name':数据.get('name'),
+        'argsRaw':数据.get('arguments'),
+        'args':参数,
+        'turn':数据.get('turn'),
+        'step':数据.get('step'),
+        'time':事件.get('time'),
+        'subCalls':[],
+    }
 
-def 子调用(匹配项,数据):#从分发起始建运行中子调用
-    '运行中子调用'
-    return {#子
-        'callId':数据['subCallId'] if 'subCallId' in 数据 else None,#子身份
-        'name':数据['name'] if 'name' in 数据 else None,#名
-        'argsRaw':参数原文(数据['arguments'] if 'arguments' in 数据 else None),#参数
-        'turn':位置回合(匹配项),'step':位置步(匹配项),#坐标
-        'time':匹配项['event']['time'] if 'time' in 匹配项['event'] else None,#时间
-        'callView':None,'subCalls':[],#无独立面
-    }#结束
 
-def 子结果(匹配项,数据,先前=None):#从分发结算建子结果
-    '已结算子结果'
-    return {#子结果
-        'kind':'tool-result',#结果
-        'seq':匹配项['event']['seq'],#序号
-        'time':匹配项['event']['time'] if 'time' in 匹配项['event'] else None,#时间
-        'callId':数据['subCallId'] if 'subCallId' in 数据 else None,#子身份
-        'call':{'name':数据['name'] if 'name' in 数据 else None,'argsRaw':参数原文(数据['arguments'] if 'arguments' in 数据 else None)},#名参
-        'callTime':先前['time'] if 先前 is not None and 'time' in 先前 else None,#先前时间
-        'content':数据['content'] if 'content' in 数据 and 数据['content'] is not None else [],#正文
-        'isError':('isError' in 数据 and 数据['isError'] is True),#错误
-        'callView':None,'resultView':None,'subCalls':[],#无独立面
-    }#结束
+def 应用增量(状态,匹配项):
+    '把参数碎片留在具名调用上。无名增量先跳过'
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else None
+    if not isinstance(事件,dict) or 事件.get('type')!='assistant/live-chunk':
+        return 状态
+    数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+    块=数据.get('chunk') if isinstance(数据.get('chunk'),dict) else {}
+    根=状态.get('root')
+    if 块.get('type')=='block-end' and isinstance(块.get('block'),dict) and 块['block'].get('type')=='tool-call':
+        if not isinstance(根,dict) or 'kind' in 根 or 根.get('phase')!='preparing':
+            return 状态
+        下一=dict(状态)
+        下一根=dict(根)
+        下一根['name']=块['block'].get('name')
+        下一根['args']=根.get('args').settle(块['block'].get('arguments'))
+        下一['root']=下一根
+        return 下一
+    if 块.get('type')!='tool-call-delta':
+        return 状态
+    if 根 is None:
+        if not 块.get('name'):
+            return 状态
+        参数类=取部分参数()
+        参数=参数类()
+        参数.append(块.get('argumentsDelta'))
+        下一=dict(状态)
+        下一['root']={
+            'phase':'preparing',
+            'callId':str(块.get('id')),
+            'name':块.get('name'),
+            'turn':数据.get('turn'),
+            'step':数据.get('step'),
+            'time':事件.get('time'),
+            'subCalls':[],
+            'args':参数,
+        }
+        return 下一
+    if not isinstance(根,dict) or 'kind' in 根 or 根.get('phase')!='preparing' or getattr(根.get('args'),'isSealed',False):
+        return 状态
+    根['args'].append(块.get('argumentsDelta'))
+    return 状态
 
-def 接受边(态,父,子):#是否允许 parent→child 边
-    '自环/已有父/成环/超深则拒绝'
-    父表=态['parents'] if 'parents' in 态 and 态['parents'] is not None else {}#父表
-    if 父==子 or 子 in 父表:#自环或已有父
-        return False#拒
-    游标=父#沿父链
-    父深=0#深度
-    祖先=set()#已走
-    while 游标 is not None:#尚未到根
-        if 游标==子 or 游标 in 祖先:#成环
-            return False#拒
-        祖先.add(游标)#记
-        父深+=1#加深
-        游标=父表[游标] if 游标 in 父表 else None#上一层
-    待=[{'callId':子,'depth':1}]#子树队列
-    后代=set()#已见
-    子深=0#最大深度
-    子表=态['children'] if 'children' in 态 and 态['children'] is not None else {}#子表
-    甲=0#游标
-    while 甲<len(待):#广度
-        候=待[甲]#候选
-        甲+=1#前进
-        if 候['callId'] in 后代:#成环
-            return False#拒
-        后代.add(候['callId'])#记
-        子深=max(子深,候['depth'])#刷新
-        for 嵌 in (子表[候['callId']] if 候['callId'] in 子表 and 子表[候['callId']] is not None else []):#直接子
-            待.append({'callId':嵌['callId'],'depth':候['depth']+1})#入队
-    return 父深+子深<=最大深度#不超深
 
-def 折分发(态,匹配项):#把代码分发事件折进子树
-    'start 挂运行中；dispatch 结算'
-    事件=匹配项['event']#事件
-    种=事件['type']#种
-    if 种 not in ('tool/ptc-dispatch-start','tool/ptc-dispatch'):#非
-        return 态#原样
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    父标识=str(数据['parentCallId'])#父
-    子标识=str(数据['subCallId'])#子
-    子表=dict(态['children'] if 'children' in 态 and 态['children'] is not None else {})#拷贝子表
-    父表=dict(态['parents'] if 'parents' in 态 and 态['parents'] is not None else {})#拷贝父表
-    兄弟=list(子表[父标识] if 父标识 in 子表 and 子表[父标识] is not None else [])#同父子
-    下标=-1#是否已有
-    for 甲,候 in enumerate(兄弟):#扫
-        if 'callId' in 候 and 候['callId']==子标识:#命中
-            下标=甲
+def 准备块(根,当前):
+    '刷新参数视图。没变就留原对象'
+    变了=根.get('args').refresh() if hasattr(根.get('args'),'refresh') else False
+    if not 变了 and isinstance(当前,dict) and 'kind' not in 当前 and 当前.get('phase')=='preparing' and 当前.get('name')==根.get('name') and 当前.get('args') is 根.get('args'):
+        return 当前
+    if 变了:
+        return dict(根)
+    return 根
+
+
+def 根结果(匹配项,先前=None):
+    'tool/result 收成结果节点'
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else None
+    if not isinstance(事件,dict) or 事件.get('type')!='tool/result':
+        return None
+    数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+    消息=数据.get('message') if isinstance(数据.get('message'),dict) else {}
+    来源=消息.get('source') if isinstance(消息.get('source'),dict) else {}
+    参数类=取部分参数()
+    结果={
+        'kind':'tool-result',
+        'seq':事件.get('seq'),
+        'time':事件.get('time'),
+        'callId':str(来源.get('callId')),
+        'name':先前.get('name') if isinstance(先前,dict) and 先前.get('name') else '',
+        'args':先前.get('args') if isinstance(先前,dict) and 先前.get('args') is not None else 参数类.EMPTY,
+        'call':None if not isinstance(先前,dict) else {'name':先前.get('name'),'argsRaw':先前.get('argsRaw')},
+        'callTime':None if not isinstance(先前,dict) else 先前.get('time'),
+        'content':消息.get('content'),
+        'isError':消息.get('isError') is True,
+        'meta':数据.get('meta'),
+        'subCalls':[],
+    }
+    if 数据.get('error') is not None:
+        结果['error']=数据['error']
+    return 结果
+
+
+def 位置回合(匹配项):
+    '匹配所在回合。没有就 0'
+    位置=匹配项.get('location') if isinstance(匹配项,dict) else None
+    if isinstance(位置,dict) and 位置.get('kind') in ('step','turn') and isinstance(位置.get('turn'),dict):
+        return 位置['turn'].get('turn') or 0
+    return 0
+
+
+def 位置步(匹配项):
+    '匹配所在步骤。没有就 0'
+    位置=匹配项.get('location') if isinstance(匹配项,dict) else None
+    if isinstance(位置,dict) and 位置.get('kind')=='step' and isinstance(位置.get('step'),dict):
+        return 位置['step'].get('step') or 0
+    return 0
+
+
+def 子调用(匹配项,数据):
+    'PTC 派发开始'
+    参数类=取部分参数()
+    return {
+        'phase':'start',
+        'callId':数据.get('subCallId'),
+        'parentCallId':数据.get('parentCallId'),
+        'name':数据.get('name'),
+        'argsRaw':json.dumps(数据.get('arguments'),ensure_ascii=False),
+        'args':参数类.fromObject(数据.get('arguments')),
+        'turn':位置回合(匹配项),
+        'step':位置步(匹配项),
+        'time':匹配项.get('event',{}).get('time') if isinstance(匹配项.get('event'),dict) else None,
+        'subCalls':[],
+    }
+
+
+def 子结果(匹配项,数据,先前=None):
+    'PTC 派发结算'
+    参数类=取部分参数()
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else {}
+    结果={
+        'kind':'tool-result',
+        'seq':事件.get('seq'),
+        'time':事件.get('time'),
+        'callId':数据.get('subCallId'),
+        'parentCallId':数据.get('parentCallId'),
+        'name':数据.get('name'),
+        'args':先前.get('args') if isinstance(先前,dict) and 'kind' not in 先前 else 参数类.fromObject(数据.get('arguments')),
+        'call':{'name':数据.get('name'),'argsRaw':json.dumps(数据.get('arguments'),ensure_ascii=False)},
+        'callTime':None if not isinstance(先前,dict) else 先前.get('time'),
+        'content':数据.get('content') if 数据.get('content') is not None else [],
+        'meta':数据.get('meta'),
+        'isError':数据.get('isError') is True,
+        'subCalls':[],
+    }
+    if 数据.get('error') is not None:
+        结果['error']=数据['error']
+    return 结果
+
+
+def 接受边(状态,父标识,子标识):
+    '成环或深度超过上限的边丢掉'
+    父母=状态.get('parents') if isinstance(状态.get('parents'),dict) else {}
+    子女=状态.get('children') if isinstance(状态.get('children'),dict) else {}
+    if 父标识==子标识 or 子标识 in 父母:
+        return False
+    游标=父标识
+    父深=0
+    祖先=set()
+    while 游标 is not None:
+        if 游标==子标识 or 游标 in 祖先:
+            return False
+        祖先.add(游标)
+        父深+=1
+        游标=父母.get(游标)
+    待定=[{'callId':子标识,'depth':1}]
+    后代=set()
+    子树深=0
+    for 候选 in list(待定):
+        if 候选['callId'] in 后代:
+            return False
+        后代.add(候选['callId'])
+        if 候选['depth']>子树深:
+            子树深=候选['depth']
+        for 嵌套 in 子女.get(候选['callId']) or []:
+            if isinstance(嵌套,dict):
+                待定.append({'callId':嵌套.get('callId'),'depth':候选['depth']+1})
+    return 父深+子树深<=最大工具深度
+
+
+def 更新派发(状态,匹配项):
+    '挂上或结算一条 PTC 子调用'
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else None
+    if not isinstance(事件,dict) or 事件.get('type') not in ('tool/ptc-dispatch-start','tool/ptc-dispatch'):
+        return 状态
+    数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+    父标识=str(数据.get('parentCallId'))
+    子标识=str(数据.get('subCallId'))
+    数据=dict(数据)
+    数据['parentCallId']=父标识
+    数据['subCallId']=子标识
+    子女=dict(状态.get('children') or {})
+    父母=dict(状态.get('parents') or {})
+    兄弟=list(子女.get(父标识) or [])
+    处=-1
+    下标=0
+    for 子 in 兄弟:
+        if isinstance(子,dict) and 子.get('callId')==子标识:
+            处=下标
             break
-    if 种=='tool/ptc-dispatch-start':#分发起始
-        if 下标>=0 or not 接受边({'children':子表,'parents':父表},父标识,子标识):#已存在或非法
-            return 态#不改
-        子表[父标识]=兄弟+[子调用(匹配项,数据)]#追加
-        父表[子标识]=父标识#记父
-        return {**态,'children':子表,'parents':父表}#新态
-    if 下标<0 and not 接受边({'children':子表,'parents':父表},父标识,子标识):#尚无且非法
-        return 态#不改
-    先前=兄弟[下标] if 下标>=0 else None#先前
-    结算=子结果(匹配项,数据,先前)#结算
-    if 下标<0:#追加
-        子表[父标识]=兄弟+[结算]#追加
-        父表[子标识]=父标识#记父
-    else:#替换
-        子表[父标识]=[结算 if 甲==下标 else 候 for 甲,候 in enumerate(兄弟)]#替换
-    return {**态,'children':子表,'parents':父表}#新态
+        下标+=1
+    if 事件.get('type')=='tool/ptc-dispatch-start':
+        if 处>=0 or not 接受边(状态,父标识,子标识):
+            return 状态
+        兄弟.append(子调用(匹配项,数据))
+        子女[父标识]=兄弟
+        父母[子标识]=父标识
+        下一=dict(状态)
+        下一['children']=子女
+        下一['parents']=父母
+        return 下一
+    if 处<0 and not 接受边(状态,父标识,子标识):
+        return 状态
+    先前=None if 处<0 else 兄弟[处]
+    结算=子结果(匹配项,数据,先前)
+    if 处<0:
+        兄弟.append(结算)
+        父母[子标识]=父标识
+    else:
+        兄弟[处]=结算
+    子女[父标识]=兄弟
+    下一=dict(状态)
+    下一['children']=子女
+    下一['parents']=父母
+    return 下一
 
-def 投影块(块,态,打断于,已访=None,深度=1):#把一块及其子投影成展示树
-    '成环或超深则截断'
-    if 已访 is None:#无路径
-        已访=set()#空
-    标识=块['callId'] if 'callId' in 块 else None#callId
-    if 标识 in 已访 or 深度>最大深度:#截断
-        return {**块,'subCalls':[]}#空子
-    下访=set(已访)#拷
-    下访.add(标识)#计入
-    子表=态['children'] if 'children' in 态 else {}#子表
-    原子=子表[标识] if 标识 in 子表 else None#状态子
-    if 原子 is None:#无
-        原子=块['subCalls'] if 'subCalls' in 块 and 块['subCalls'] is not None else []#块自带
-    子块列表=[投影块(子,态,打断于,下访,深度+1) for 子 in 原子]#递归
-    已结算='kind' in 块#已结算
-    打断序号=None if 已结算 else (打断于['seq'] if 打断于 is not None and 'seq' in 打断于 else None)#打断序号
-    打断时间=None if 已结算 else (打断于['time'] if 打断于 is not None and 'time' in 打断于 else None)#打断时间
-    键=id(块)#缓存键
-    缓存=投影缓存[键] if 键 in 投影缓存 else None#上次
-    if 缓存 is not None and 缓存['interruptionSeq']==打断序号 and 缓存['interruptionTime']==打断时间 and 同引用(缓存['children'],子块列表):#命中
-        return 缓存['value']#复用
-    原子子=块['subCalls'] if 'subCalls' in 块 and 块['subCalls'] is not None else []#原子子
-    if 已结算 or 打断于 is None:#只换子
-        投影=块 if 同引用(原子子,子块列表) else {**块,'subCalls':子块列表}#复用或换
-    else:#运行中且打断：合成错误结果
-        投影={#打断结果
-            'kind':'tool-result',#结果
-            'seq':打断于['seq']+聊天合成序号偏移['interruptedFollowup'],#合成
-            'time':打断于['time'] if 'time' in 打断于 else None,#时间
-            'callId':标识,#身份
-            'call':{'name':块['name'] if 'name' in 块 else None,'argsRaw':块['argsRaw'] if 'argsRaw' in 块 else None},#原名参
-            'callTime':块['time'] if 'time' in 块 else None,#原时间
-            'content':[],#无正文
-            'isError':True,#错误
-            'error':{'name':'Interrupted','code':'interrupted'},#打断
-            'callView':块['callView'] if 'callView' in 块 else None,#沿用
-            'resultView':None,#无结果面
-            'subCalls':子块列表,#子
-        }#结束
-    投影缓存[键]={'children':子块列表,'interruptionSeq':打断序号,'interruptionTime':打断时间,'value':投影}#写缓存
-    return 投影#本次
 
-def 打断边界(上下文):#关闭位置上的打断边界
-    '步骤/回合关闭'
-    起点=上下文['start'] if 'start' in 上下文 else None#起点
-    位置=起点['location'] if 起点 is not None and 'location' in 起点 else None#位置
-    if 位置 is None:#无
-        return None#无
-    种=位置['kind'] if 'kind' in 位置 else None#种
-    if 种=='step':#步骤
-        步=位置['step'] if 'step' in 位置 else None#步
-        if 步 is not None and 'status' in 步 and 步['status']=='closed':#步骤关
-            return 步['end'] if 'end' in 步 else None#步骤结束
-    if 种 in ('step','turn'):#回合
-        回合=位置['turn'] if 'turn' in 位置 else None#回合
-        if 回合 is not None and 'status' in 回合 and 回合['status']=='closed':#回合关
-            return 回合['end'] if 'end' in 回合 else None#回合结束
-    return None#开放
+def 投影块(块,状态,中断于,已访=None,深度=1):
+    '递归挂子调用。超过深度上限就不再往下'
+    if not isinstance(块,dict):
+        return 块
+    if 'kind' not in 块 and 块.get('phase')=='preparing':
+        return 块
+    if 已访 is None:
+        已访=set()
+    if 块.get('callId') in 已访 or 深度>最大工具深度:
+        截=dict(块)
+        截['subCalls']=[]
+        return 截
+    下一访=set(已访)
+    下一访.add(块.get('callId'))
+    子女表=状态.get('children') if isinstance(状态.get('children'),dict) else {}
+    子源=子女表.get(块.get('callId'),块.get('subCalls') or [])
+    子=[投影块(子项,状态,中断于,下一访,深度+1) for 子项 in 子源]
+    中断序=None if 'kind' in 块 else (None if 中断于 is None else 中断于.get('seq'))
+    中断时=None if 'kind' in 块 else (None if 中断于 is None else 中断于.get('time'))
+    缓存=投影缓存.get(id(块))
+    if isinstance(缓存,dict) and 缓存.get('source') is 块 and 缓存.get('interruptionSeq')==中断序 and 缓存.get('interruptionTime')==中断时 and 引用相同(缓存.get('children') or [],子):
+        return 缓存['value']
+    if 'kind' in 块 or 中断于 is None:
+        if 引用相同(块.get('subCalls') or [],子):
+            值=块
+        else:
+            值=dict(块)
+            值['subCalls']=子
+    else:
+        值={
+            'kind':'tool-result',
+            'seq':中断于.get('seq',0)+聊天合成序号偏移['interruptedFollowup'],
+            'time':中断于.get('time'),
+            'callId':块.get('callId'),
+            'name':块.get('name'),
+            'args':块.get('args'),
+            'call':{'name':块.get('name'),'argsRaw':块.get('argsRaw')},
+            'callTime':块.get('time'),
+            'content':[],
+            'isError':True,
+            'error':{'name':'Interrupted','code':'interrupted'},
+            'subCalls':子,
+        }
+        if 块.get('parentCallId') is not None:
+            值['parentCallId']=块['parentCallId']
+    投影缓存[id(块)]={'source':块,'children':子,'interruptionSeq':中断序,'interruptionTime':中断时,'value':值}
+    return 值
 
-def 回放工具(上下文):#无增量时从匹配重放
-    '找根结果再折分发'
-    匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
-    根匹配=None#根结果
-    for 候 in 匹配列表:#扫
-        if 候['event']['type']=='tool/result':#命中
-            根匹配=候
+
+def 中断点(上下文):
+    '步骤或回合已经结束时的终节点'
+    起点=上下文.get('start') if isinstance(上下文.get('start'),dict) else None
+    位置=起点.get('location') if isinstance(起点,dict) else None
+    if isinstance(位置,dict) and 位置.get('kind')=='step' and isinstance(位置.get('step'),dict) and 位置['step'].get('status')=='closed':
+        return 位置['step'].get('end')
+    if isinstance(位置,dict) and 位置.get('kind') in ('step','turn') and isinstance(位置.get('turn'),dict) and 位置['turn'].get('status')=='closed':
+        return 位置['turn'].get('end')
+    return None
+
+
+def 回退状态(上下文):
+    '没有状态时，用结果匹配和派发重建'
+    匹配=上下文.get('matches') if isinstance(上下文.get('matches'),list) else []
+    根=None
+    for 候选 in 匹配:
+        if isinstance(候选,dict) and isinstance(候选.get('event'),dict) and 候选['event'].get('type')=='tool/result':
+            根=根结果(候选)
             break
-    根=根结果(根匹配) if 根匹配 is not None else None#建成
-    if 根 is None:#无
-        return None#无法回放
-    态={'root':根,'children':{},'parents':{}}#空子树
-    for 候 in 匹配列表:#按序
-        态=折分发(态,候)#折
-    return 态#重放
+    if 根 is None:
+        return None
+    状态={'root':根,'children':{},'parents':{}}
+    for 候选 in 匹配:
+        状态=更新派发(状态,候选)
+    return 状态
 
-def 工具匹配(事件):#按事件认领本根调用
-    'call 开；result/分发 更新'
-    种=事件['type']#种
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    if 种=='tool/call':#调用开始
-        return {'id':str(数据['callId']),'role':'start'}
-    if 种=='tool/result' and 是追加面事件(事件):#追加面结果
-        消息=数据['message'] if 'message' in 数据 else None#消息
-        来源=消息['source'] if 消息 is not None and 'source' in 消息 else None#来源
-        来源标识=来源['callId'] if 来源 is not None and 'callId' in 来源 else None#来源
-        return {'id':str(来源标识),'role':'update'}#更新
-    if 种 in ('tool/ptc-dispatch-start','tool/ptc-dispatch'):#分发
-        根标识=数据['rootCallId'] if 'rootCallId' in 数据 else None#根
-        if isinstance(根标识,str) and 根标识!='':#合法
-            return {'id':根标识,'role':'update'}#挂根
-        return None#不认领
-    return None#其它
 
-def 工具开始(_上下文,匹配项):#从 tool/call 开空子树
-    '根调用'
-    return {'root':根调用(匹配项),'children':{},'parents':{}}#空子树
+def 工具匹配(事件):
+    '实时块、工具调用、追加结果，以及挂在根调用上的 PTC 派发'
+    if not isinstance(事件,dict):
+        return None
+    if 事件.get('type')=='assistant/live-chunk':
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+        块=数据.get('chunk') if isinstance(数据.get('chunk'),dict) else {}
+        if 块.get('type')=='block-end' and isinstance(块.get('block'),dict) and 块['block'].get('type')=='tool-call':
+            return {'id':str(块['block'].get('id')),'role':'start'}
+        if 块.get('type')=='tool-call-delta':
+            return {'id':str(块.get('id')),'role':'start'}
+        return None
+    if 事件.get('type')=='tool/call':
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+        return {'id':str(数据.get('callId')),'role':'start'}
+    if 事件.get('type')=='tool/result' and 是否追加表面事件(事件):
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+        消息=数据.get('message') if isinstance(数据.get('message'),dict) else {}
+        来源=消息.get('source') if isinstance(消息.get('source'),dict) else {}
+        return {'id':str(来源.get('callId')),'role':'update'}
+    if 事件.get('type') in ('tool/ptc-dispatch-start','tool/ptc-dispatch'):
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+        根=数据.get('rootCallId')
+        if isinstance(根,str) and 根!='':
+            return {'id':根,'role':'update'}
+        return None
+    return None
 
-def 工具更新(上下文,匹配项):#折一条更新事件
-    'result 换根；其余当分发'
-    事件=匹配项['event']#事件
-    态=上下文['state']#态
-    if 事件['type']=='tool/result':#根结果
-        运行=None if 是已结算工具(态['root']) else 态['root']#仍运行才取
-        结果=根结果(匹配项,运行)#建成
-        return 态 if 结果 is None else {**态,'root':结果}#换根
-    return 折分发(态,匹配项)#分发
 
-def 工具建视图(上下文):#造聊天视图节点
-    '投影含子调用与打断'
-    态=上下文['state'] if 'state' in 上下文 else None#态
-    if 态 is None:#无
-        态=回放工具(上下文)#回放
-    if 态 is None:#无
-        return None#无
-    投影=投影块(态['root'],态,打断边界(上下文))#投影
-    起点=上下文['start'] if 'start' in 上下文 else None#起点
-    锚=起点['event']['seq'] if 起点 is not None and 'event' in 起点 else None#起始序号
-    if 锚 is None:#无
-        根=态['root']#根
-        匹配列表=上下文['matches'] if 'matches' in 上下文 and 上下文['matches'] is not None else []#匹配
-        锚=根['seq'] if 是已结算工具(根) else (匹配列表[0]['event']['seq'] if len(匹配列表)>0 else 0)#回退
-    return 聊天节点(上下文,'tool-call',锚,{'root':投影})#节点
+def 工具开始(上下文,匹配项):
+    'tool/call 直接成为根。实时块先进入准备或吃增量'
+    状态={'root':None,'children':{},'parents':{}}
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else None
+    if isinstance(事件,dict) and 事件.get('type')=='tool/call':
+        状态['root']=根调用(匹配项)
+        return 状态
+    return 应用增量(状态,匹配项)
 
-工具定义={#根工具调用节点定义
-    'kind':'tool-call','target':'chat',#kind/目标
-    'match':工具匹配,'start':工具开始,'update':工具更新,'buildViewNode':工具建视图,#生命周期
-}#结束
 
-def 登记工具会话节点(上下文):#登记根工具生命周期
-    '挂到 uiConversation.events'
-    上下文.uiConversation.events.register(工具定义)#登记
+def 工具更新(上下文,匹配项):
+    '增量、正式调用、结果和 PTC 子调用'
+    状态=上下文.get('state') if isinstance(上下文.get('state'),dict) else {'root':None,'children':{},'parents':{}}
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else None
+    if not isinstance(事件,dict):
+        return 状态
+    if 事件.get('type')=='assistant/live-chunk':
+        return 应用增量(状态,匹配项)
+    if 事件.get('type')=='tool/call':
+        下一=dict(状态)
+        下一['root']=根调用(匹配项,状态.get('root') if isinstance(状态.get('root'),dict) else None)
+        return 下一
+    if 事件.get('type')=='tool/result':
+        根=状态.get('root')
+        进行=根 if isinstance(根,dict) and 'kind' not in 根 and 根.get('phase')=='start' else None
+        结果=根结果(匹配项,进行)
+        if 结果 is None:
+            return 状态
+        下一=dict(状态)
+        下一['root']=结果
+        return 下一
+    return 更新派发(状态,匹配项)
+
+
+def 工具公布(匹配项):
+    '实时块跟动画帧，其余立刻公布'
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else {}
+    if 事件.get('type')=='assistant/live-chunk':
+        return 'animation-frame'
+    return 'immediate'
+
+
+def 工具建视图(上下文):
+    '准备中的根在中断后隐藏。其余投影子调用'
+    当前表=上下文.get('current')
+    当前=当前表.get('chat') if hasattr(当前表,'get') else None
+    状态=上下文.get('state')
+    if not isinstance(状态,dict):
+        状态=回退状态(上下文)
+    if not isinstance(状态,dict) or 状态.get('root') is None:
+        if not isinstance(当前,dict):
+            return None
+        if 当前.get('visibility')=='hidden':
+            return 当前
+        隐藏=dict(当前)
+        隐藏['visibility']='hidden'
+        return 隐藏
+    中断于=中断点(上下文)
+    根=状态['root']
+    if isinstance(根,dict) and 'kind' not in 根 and 根.get('phase')=='preparing':
+        当前根=当前.get('data',{}).get('root') if isinstance(当前,dict) and isinstance(当前.get('data'),dict) else None
+        根=准备块(根,当前根)
+    投影=投影块(根,状态,中断于)
+    起点=上下文.get('start') if isinstance(上下文.get('start'),dict) else None
+    起点事件=起点.get('event') if isinstance(起点,dict) else None
+    锚=起点事件.get('seq') if isinstance(起点事件,dict) else None
+    if 锚 is None and isinstance(状态.get('root'),dict) and 'kind' in 状态['root']:
+        锚=状态['root'].get('seq')
+    if 锚 is None:
+        匹配=上下文.get('matches') if isinstance(上下文.get('matches'),list) else []
+        if len(匹配)>0 and isinstance(匹配[0],dict) and isinstance(匹配[0].get('event'),dict):
+            锚=匹配[0]['event'].get('seq')
+    if 锚 is None:
+        锚=0
+    准备中=isinstance(投影,dict) and 'kind' not in 投影 and 投影.get('phase')=='preparing'
+    可见='hidden' if 准备中 and 中断于 is not None else 'visible'
+    位置=上下文位置(上下文)
+    数据={'root':投影}
+    if isinstance(当前,dict) and isinstance(当前.get('data'),dict) and 当前['data'].get('root') is 投影:
+        数据=当前['data']
+    if isinstance(当前,dict) and 当前.get('data') is 数据 and 当前.get('anchorSeq')==锚 and 当前.get('visibility')==可见 and 当前.get('location') is 位置:
+        return 当前
+    return 聊天节点(上下文,'tool-call',锚,数据,{'visibility':可见,'location':位置})
+
+
+工具定义={
+    'kind':'tool-call',
+    'target':'chat',
+    'match':工具匹配,
+    'start':工具开始,
+    'update':工具更新,
+    'publication':工具公布,
+    'buildViewNode':工具建视图,
+}
+
+
+def 登记工具会话节点(上下文):
+    '按事件类型分发匹配'
+    def 匹配(事件):
+        '转给定义上的匹配'
+        return 工具匹配(事件)
+    登记=dict(工具定义)
+    登记['match']={
+        'assistant/live-chunk':匹配,
+        'tool/call':匹配,
+        'tool/result':匹配,
+        'tool/ptc-dispatch-start':匹配,
+        'tool/ptc-dispatch':匹配,
+    }
+    上下文.uiConversation.events.register(登记)

@@ -1,0 +1,9 @@
+{
+    "MenuView": "菜单视图",
+    "MenuView.module": "菜单视图.module",
+    "controller": "控制器",
+    "locales": "文案",
+    "service": "服务",
+    "slots": "槽",
+    "contract": "服务约定"
+}

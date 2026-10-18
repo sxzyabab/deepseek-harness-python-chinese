@@ -6,7 +6,7 @@ from .编解码 import 解析钩子输出#钩子输出解码
 运行选项=dict#一次钩子执行的选项字段
 运行结果=dict#一次钩子执行的返回字段
 
-def 读文本(捕获):
+def 读取文本(捕获):
     '从已收集输出映射取出 text。捕获是命令包返回的 dict'
     if 捕获 is None:#缺席
         return ''#空串
@@ -38,7 +38,7 @@ def 执行钩子(外壳,钩子,选项,现在):
         结果=外壳.运行(外壳.解析(请求))#解析请求并执行命令，同步返回 dict
         退出码=结果['exitCode'] if 'exitCode' in 结果 else None#取出退出码；信号死亡则没有
         return {#组装执行结果
-            'output':解析钩子输出(退出码,读文本(结果['stdout'] if 'stdout' in 结果 else None),读文本(结果['stderr'] if 'stderr' in 结果 else None),期望事件名),#解码捕获输出
+            'output':解析钩子输出(退出码,读取文本(结果['stdout'] if 'stdout' in 结果 else None),读取文本(结果['stderr'] if 'stderr' in 结果 else None),期望事件名),#解码捕获输出
             'durationMs':(现在()-开始)//1000000,#单调纳秒改墙钟毫秒
         }#执行结果对象
     except Exception as 错误:

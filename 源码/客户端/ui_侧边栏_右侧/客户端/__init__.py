@@ -1,269 +1,392 @@
-from .文案 import 中文,英文,右侧侧栏文案键#词典
-from .停靠文案 import 停靠标签#停靠投影
-from ..异常 import 右侧侧栏错误,异常原文#本包异常
-from .约定.槽位 import (#席约定
+from ...模块.客户端.通告 import 取握手窗口
+from .文案 import 中文,英文
+from .约定.槽位 import (
     右侧侧栏词表命名空间,
+    席名右栏,
     席名右栏会话,
     席名右侧签正文,
     席名右侧签标题,
     席名右侧向导,
-    席名右侧签菜单项,
     席名右侧向导条目,
-    右侧侧栏子槽,
-)#席约定结束
-from .约定.种子 import 向导种类,页面地址,默认种子#种子
-from .约定.参数 import 右侧侧栏资源参数,右侧侧栏标签参数,右侧侧栏导航参数#参数占位
-from .存储 import 可关闭标签,独一停靠标签,创建表面,创建右侧侧栏存储#存储
-from .服务 import 创建右侧侧栏控制器,右侧侧栏控制器,资源方案前缀
-from .标签注册表 import 右侧侧栏标签注册表,默认优先级带,优先级秩#注册表
-from .标签域 import 标签域,快照仓#标签域
-from .标签信息 import 标签信息工厂,向导标签信息工厂#标签信息
+    席名右侧签菜单项,
+    席名头部角,
+)
+from .约定.种子 import 默认种子
+from .存储 import 创建右侧侧栏存储
+from .服务 import 创建右侧侧栏控制器
+from .标签注册表 import 右侧侧栏标签注册表
+from .标签信息 import 标签信息工厂,向导标签信息工厂
 from .会话视图集 import 侧栏会话视图集
-from .壳.右侧侧栏 import 右栏席,意图面,样式表 as 右栏样式表,窄视口全屏阈值#右栏席
-from .壳.右栏壳 import 右栏壳#槽位右栏
-from .壳.展开按钮 import 展开按钮,样式表 as 展开样式表#展开钮
-from .标签.向导.定义 import 向导标识,向导定义#向导定义
-from .标签.向导.向导体 import 向导体,样式表 as 向导样式表#向导体
-from .标签.向导.向导标题 import 向导标题#向导标题
+from .焦点 import 观察侧栏焦点
+from .快捷键 import 登记右侧侧栏快捷键
+from .壳.关闭焦点 import 打开并聚焦窗格,关闭并聚焦窗格
+from .壳.右侧侧栏 import 右栏席
+from .壳.右栏根 import 右栏根
+from .壳.展开按钮 import 展开按钮
+from .标签.向导.定义 import 向导标识,向导定义
+from .标签.向导.向导体 import 向导体
+from .标签.向导.向导标题 import 向导标题
 from . import (
     会话视图,
+    会话视图集,
+    停靠文案,
+    存储,
     快捷键,
     持久化,
+    文案,
+    服务,
+    标签信息,
+    标签域,
+    标签注册表,
     标签清单,
     焦点,
+    约定,
+    壳,
+    标签,
 )
 
-__all__=[#仅中文公开名
+__all__=[
     '依赖','应用','命名空间',
-    '中文','英文','右侧侧栏文案键','停靠标签',
-    '右侧侧栏词表命名空间','席名右栏会话','席名右侧签正文','席名右侧签标题','席名右侧向导','席名右侧签菜单项','席名右侧向导条目','右侧侧栏子槽',
-    '向导种类','页面地址','默认种子',
-    '右侧侧栏资源参数','右侧侧栏标签参数','右侧侧栏导航参数',
-    '可关闭标签','独一停靠标签','创建表面','创建右侧侧栏存储',
-    '创建右侧侧栏控制器','右侧侧栏控制器','资源方案前缀','右侧侧栏错误',
-    '右侧侧栏标签注册表','默认优先级带','优先级秩',
-    '标签域','快照仓',
-    '标签信息工厂','向导标签信息工厂',
-    '侧栏会话视图集',
-    '右栏席','意图面','右栏样式表','窄视口全屏阈值',
-    '展开按钮','展开样式表',
-    '向导标识','向导定义','向导体','向导标题','向导样式表',
+    '文案','停靠文案','约定','壳','标签',
+    '存储','服务','标签注册表','标签信息','标签清单','标签域',
+    '会话视图','会话视图集','焦点','快捷键','持久化',
 ]
 
-命名空间=右侧侧栏词表命名空间#文案命名空间（线路字面量）
-依赖=['slots','layout','locale','resources','sessions','uiSession']#槽、布局、文案、资源、会话
+命名空间=右侧侧栏词表命名空间
+依赖=['slots','layout','locale','resources','sessions','uiSession','shortcuts']
 
 
-class 钩子源:#槽位钩子要方法，不要字典
-    'getSnapshot / subscribe 供 useXxx 读取'
-
-    def __init__(自身,读,订):
-        '记下读与订'
-        自身._读=读#快照
-        自身._订=订#订阅
-
-    def getSnapshot(自身):
-        '当前快照'
-        return 自身._读()#读
-
-    def subscribe(自身,回调):
-        '订变更，返回退订'
-        return 自身._订(回调)#订
+def _读快照(源):
+    '字典面或对象面的 getSnapshot'
+    if isinstance(源,dict):
+        return 源['getSnapshot']()
+    return 源.getSnapshot()
 
 
-class 侧栏存储句柄:#槽位按 .create 铸造实例
-    '登记进席的存储句柄'
+def _订阅(源,回调):
+    '字典面或对象面的 subscribe'
+    if isinstance(源,dict):
+        return 源['subscribe'](回调)
+    return 源.subscribe(回调)
 
-    def __init__(自身,创建):
-        '记下铸造函数'
-        自身.create=创建#铸造
 
-
-def 应用(上下文):
-    '提供登记表与导航面，挂面板席与展开钮，经公开两段路径登记向导'
-    翻译=上下文.locale.bind(命名空间)#绑定翻译
-    注册表=右侧侧栏标签注册表(上下文)#类型表
+def 应用(上下文,配置=None):
+    '提供登记表和导航，挂右栏、展开钮和向导'
+    标签表=右侧侧栏标签注册表(上下文)
     视图集=侧栏会话视图集(上下文.sessions)
+
     def 装视图():
-        '跟当前会话选择，保留后台视图'
-        当前=上下文.uiSession.adapter.current
+        '跟当前会话选择，后台视图继续留着'
+        当前=上下文.uiSession.adapter['current'] if isinstance(上下文.uiSession.adapter,dict) else 上下文.uiSession.adapter.current
+
         def 同步():
-            快照=当前.getSnapshot()
-            键=快照['key'] if 快照 is not None and 'key' in 快照 else None
+            '选择现在这份会话'
+            快照=_读快照(当前)
+            键=None
+            if isinstance(快照,dict):
+                键=快照.get('key')
+            elif 快照 is not None:
+                键=getattr(快照,'key',None)
             视图集.选择(键)
-        退订=当前.subscribe(同步)
+
+        退订=_订阅(当前,同步)
         同步()
+
         def 拆除():
+            '退订并放掉全部视图'
             退订()
             视图集.拆除()
+
         return 拆除
+
     上下文.副作用(装视图,'ui-sidebar-right: retained Session views')
-    双件=创建右侧侧栏控制器(注册表,lambda 地址,信号:上下文.resources.钉住(地址,信号))#控制器
-    控制器=双件['controller']#面
-    认领=双件['adopt']#认领
+    布局=上下文.layout
+    自动全屏=[False]
+
+    def 读自动全屏():
+        '席最后一次报上来的窄视口规则'
+        return 自动全屏[0]
+
+    def 打开聚焦(会话标识,打开):
+        '提交打开后再聚焦窗格'
+        打开并聚焦窗格(取握手窗口().document,会话标识,打开)
+
+    def 关闭聚焦(会话标识,窗格标识,关闭):
+        '提交关闭后再聚焦还在的窗'
+        关闭并聚焦窗格(取握手窗口().document,会话标识,窗格标识,关闭)
+
+    def 钉住(地址,信号):
+        '出现次活着就钉住资源'
+        上下文.resources.钉住(地址,信号)
+
+    双件=创建右侧侧栏控制器(标签表,钉住,{
+        'autoFullscreen':读自动全屏,
+        'openWithFocus':打开聚焦,
+        'closeWithFocus':关闭聚焦,
+    })
+    控制器=双件['controller']
+    认领=双件['adopt']
     遗忘=双件['forget']
-    拆登记=上下文.反射.提供服务('sidebarRightTabs',注册表)#提供登记表
-    拆服务=上下文.反射.提供服务('sidebarRight',控制器)#提供导航面
+    显示=双件['show']
+    测量=双件['measure']
+
+    def 装在屏():
+        '主列是对话时，选中的会话就是在屏会话'
+        def 同步():
+            '面板盖住主列时没有在屏会话'
+            选中=None
+            for 视图 in 视图集.源.getSnapshot():
+                if 视图.get('selected') is True:
+                    选中=视图
+                    break
+            面板=_读快照(布局.panelInfo)
+            主列空=isinstance(面板,dict) and 面板.get('activePanelId') is None
+            if 主列空 and 选中 is not None:
+                显示(选中.get('sessionId'))
+            else:
+                显示(None)
+
+        退视图=_订阅(视图集.源,同步)
+        退面板=_订阅(布局.panelInfo,同步)
+        同步()
+
+        def 拆除():
+            '卸掉订阅，并清掉在屏会话'
+            退视图()
+            退面板()
+            显示(None)
+
+        return 拆除
+
+    上下文.副作用(装在屏,'ui-sidebar-right: on-screen Session')
+    拆登记=上下文.反射.提供服务('sidebarRightTabs',标签表)
+    拆服务=上下文.反射.提供服务('sidebarRight',控制器)
 
     def 装服务面():
-        '面后于席拆除：先中止出现次再拆提供'
+        '席都卸了之后再拆这两张脸'
         def 拆除():
-            '同步拆除'
-            控制器.标签域.拆除()#中止
-            拆服务()#拆服务
-            拆登记()#拆登记
-        return 拆除#拆除器
+            '中止出现次，再撤服务'
+            控制器.标签域.拆除()
+            拆服务()
+            拆登记()
 
-    上下文.副作用(装服务面,'ui-sidebar-right: service faces')#面寿命
+        return 拆除
+
+    上下文.副作用(装服务面,'ui-sidebar-right: service faces')
 
     def 登记词典():
-        '挂中英文案'
-        return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})#登记
+        '中英文案都登记。界面只读中文表'
+        return 上下文.locale.register(命名空间,{'zh':中文,'en':英文})
 
-    上下文.副作用(登记词典,'ui-sidebar-right: dictionaries')#词典
+    上下文.副作用(登记词典,'ui-sidebar-right: dictionaries')
+
+    def 装快捷键():
+        '命令对着当前页面'
+        def 关窗口():
+            '关窗口失败只记到控制台'
+            try:
+                上下文.shortcuts.closeWindow()
+            except Exception as 错误:
+                取握手窗口().console.error('Window close failed',错误)
+
+        return 登记右侧侧栏快捷键(上下文.shortcuts,控制器,None,关窗口)
+
+    上下文.副作用(装快捷键,'ui-sidebar-right: shortcuts')
+
+    def 装焦点():
+        '跟着文档焦点'
+        return 观察侧栏焦点(取握手窗口().document)
+
+    上下文.副作用(装焦点,'ui-sidebar-right: focus')
 
     def 挂席与向导():
-        '一存储两席，加出厂向导'
-        规格=创建右侧侧栏存储(lambda:默认种子(注册表))#规格：默认页面种子
-        认领表={}#session → 释放器
+        '一个存储挂两席，再按公开路径登记向导'
+        def 取种子():
+            '现读默认页'
+            return 默认种子(标签表)
 
-        def 存储工厂(作用域键=None):
-            '铸造并认领'
-            实例=规格['create'](作用域键)#实例
+        规格=创建右侧侧栏存储(取种子)
+        认领表={}
+        原创建=规格.create
+
+        def 创建(作用域键=None):
+            '铸出来就认领。清持久化时忘掉清单'
+            实例=原创建(作用域键)
             if 作用域键 is not None:
-                旧=认领表[作用域键] if 作用域键 in 认领表 else None
+                旧=认领表.get(作用域键)
                 if 旧 is not None:
                     旧()
-                认领表[作用域键]=认领(作用域键,实例)#认领
-            原清=实例.clearPersisted if hasattr(实例,'clearPersisted') else None
-            if 原清 is None and isinstance(实例,dict) and 'clearPersisted' in 实例:
-                原清=实例['clearPersisted']
+                认领表[作用域键]=认领(作用域键,实例)
+            原清=实例.clearPersisted
+
             def 清持久化():
-                if callable(原清):
-                    原清()
+                '删布局，再忘掉这个作用域'
+                原清()
                 if 作用域键 is not None:
                     遗忘(作用域键)
-            if isinstance(实例,dict):
-                包装=dict(实例)
-                包装['clearPersisted']=清持久化
-                return 包装
-            实例.clearPersisted=清持久化
-            return 实例#实例
 
-        存储=侧栏存储句柄(存储工厂)#句柄：槽位调用 .create
-        布局=上下文.layout#布局面
+            实例.clearPersisted=清持久化
+            return 实例
+
+        规格.create=创建
 
         def 同步呈现(呈现):
-            '报帧'
-            if 呈现['shown']:#展示
-                布局.打开右侧栏(呈现['track'],呈现['fullscreen'])#开右栏
-            else:#隐
-                布局.关闭右侧栏()#关
+            '告诉框架这一栏现在怎么占位'
+            if 呈现.get('shown'):
+                布局.openRightbar(呈现.get('track'),呈现.get('fullscreen'))
+            else:
+                布局.closeRightbar()
 
-        注入基={#席注入基（线协议键）
+        def 报自动全屏(值):
+            '窄视口规则，给全屏命令读'
+            自动全屏[0]=值
+
+        def 分栏(窗格标识):
+            '和快捷键同一条路'
+            控制器.分栏(窗格标识)
+
+        def 切换全屏():
+            '有目标才切换'
+            目标=控制器.命令目标()
+            if 目标 is not None:
+                控制器.切换全屏(目标)
+
+        def 开标签(种类,选项=None):
+            '加号走公开的打开'
+            控制器.打开标签(种类,选项)
+
+        注入={
             'syncPresentation':同步呈现,
-            'bindService':控制器.绑定,
-            'openTab':控制器.打开标签,
-            'hooks':{'tabTypes':钩子源(注册表.条目,注册表.订阅)},
-        }#基结束
-        拆类型=[注册表.登记(向导定义(翻译))]#向导类型
+            'reportAutoFullscreen':报自动全屏,
+            'splitPane':分栏,
+            'toggleFullscreen':切换全屏,
+            'openTab':开标签,
+            'hooks':{
+                'shortcuts':上下文.shortcuts.catalog,
+                'tabTypes':{
+                    'subscribe':lambda 监听: 标签表.订阅(监听),
+                    'getSnapshot':lambda: 标签表.条目(),
+                },
+            },
+        }
+        拆除类型=[标签表.登记(向导定义())]
 
         def 挂右栏():
-            '登记 rightbar 根与会话席'
-            def 挂根与席():
-                '先根后会话'
-                拆根=上下文.slots.register({#根
-                    'name':'rightbar',
-                    'children':{席名右栏会话:{'kind':'single','scope':'session'}},
-                    'inject':lambda:{
-                        'hooks':{'views':视图集.源},
-                        'mountView':视图集.挂载,
-                    },
-                },右栏壳)#右栏
-                def 注入面(会话标识):
-                    '按会话补钩'
-                    def 关签(标签标识):
-                        '关本会话签'
-                        try:
-                            控制器.在会话关闭(会话标识,标签标识)#关
-                        except Exception as 错误:
-                            raise 右侧侧栏错误(异常原文(错误)) from 错误
-                    return {#注入
-                        **注入基,
-                        'closeTab':关签,
-                        'keyedHooks':{'tabNavigation':lambda 键:控制器.标签域.出现(会话标识,{'id':键})['navigation']},
-                        'occurrence':lambda 签:控制器.标签域.出现(会话标识,签),
-                    }#注入
-                拆席=上下文.slots.register({#会话席
-                    'name':席名右栏会话,
-                    'locale':命名空间,
-                    'children':{
-                        席名右侧签正文:{'kind':'keyed','scope':'session','inject':{'hooks':{'tabInfo':标签信息工厂}}},
-                        席名右侧签标题:{'kind':'keyed','scope':'session','inject':{'hooks':{'tabInfo':标签信息工厂}}},
-                        席名右侧签菜单项:{'kind':'list','scope':'session'},
-                    },
-                    'store':存储,
-                    'inject':注入面,
-                },右栏席)#席组件
-                def 拆():
-                    '逆序拆'
-                    拆席()#席
-                    拆根()#根
-                return 拆#拆除器
-            return 上下文.slots.inject('rightbar',挂根与席)#等洞
+            '根席和会话席'
+            yield 上下文.slots.register({
+                'name':席名右栏,
+                'children':{席名右栏会话:{'kind':'single','scope':'session'}},
+                'inject':lambda: {
+                    'hooks':{'views':视图集.源},
+                    'mountView':lambda 引用: 视图集.挂载(引用),
+                },
+            },右栏根)
 
-        拆席=挂右栏()#挂
+            def 会话注入(会话标识):
+                '这一会话的关闭、测量和出现次'
+                def 量(能分):
+                    '宽度够不够分栏'
+                    测量(会话标识,能分)
 
-        def 挂展开():
-            '头栏角席'
-            return 上下文.slots.register({#席
-                'name':'conversation.session.header.corner',
-                'locale':命名空间,
-                'store':存储,
-            },展开按钮)#组件
+                def 关签(标签标识):
+                    '清理失败只记到控制台，签留着'
+                    try:
+                        控制器.在会话关闭(会话标识,标签标识)
+                    except Exception as 错误:
+                        取握手窗口().console.error('Sidebar tab close failed:',错误)
 
-        拆展开=上下文.slots.inject('conversation.session.header.corner',挂展开)#等洞
+                def 导航(键):
+                    '这张签的导航快照'
+                    return 控制器.标签域.出现(会话标识,{'id':键})['navigation']
 
-        def 挂向导正文():
-            '向导正文第二阶段'
-            return 上下文.slots.register({#席
-                'name':席名右侧签正文,
-                'key':向导标识,
+                def 出现(签):
+                    '已提交的出现次'
+                    return 控制器.标签域.出现(会话标识,签)
+
+                面=dict(注入)
+                面['measureRoom']=量
+                面['closeTab']=关签
+                面['keyedHooks']={'tabNavigation':导航}
+                面['occurrence']=出现
+                return 面
+
+            yield 上下文.slots.register({
+                'name':席名右栏会话,
                 'locale':命名空间,
                 'children':{
-                    席名右侧向导条目:{'kind':'keyed','scope':'session','inject':{'hooks':{'tabInfo':向导标签信息工厂}}},
-                    席名右侧向导:{'kind':'chain','scope':'session','inject':{'hooks':{'tabInfo':向导标签信息工厂}}},
+                    席名右侧签正文:{'kind':'keyed','scope':'session','inject':{'hooks':{'tabInfo':标签信息工厂}}},
+                    席名右侧签标题:{'kind':'keyed','scope':'session','inject':{'hooks':{'tabInfo':标签信息工厂}}},
+                    席名右侧签菜单项:{'kind':'list','scope':'session'},
                 },
-                'inject':lambda:{'hooks':{'guideEntries':钩子源(注册表.向导,注册表.订阅)}},
-            },向导体)#组件
+                'store':规格,
+                'inject':会话注入,
+            },右栏席)
 
-        拆向导=上下文.slots.inject(席名右侧签正文,挂向导正文)#等洞
+        拆席=上下文.slots.inject(席名右栏,挂右栏)
+
+        def 挂展开():
+            '标题角上的打开按钮，用同一份存储'
+            return 上下文.slots.register({
+                'name':席名头部角,
+                'locale':命名空间,
+                'store':规格,
+                'inject':lambda: {'hooks':{'shortcuts':上下文.shortcuts.catalog}},
+            },展开按钮)
+
+        拆展开=上下文.slots.inject(席名头部角,挂展开)
+        向导注入={
+            'hooks':{
+                'shortcuts':上下文.shortcuts.catalog,
+                'guideEntries':{
+                    'subscribe':lambda 监听: 标签表.订阅(监听),
+                    'getSnapshot':lambda: 标签表.向导(),
+                },
+            },
+        }
+
+        def 挂向导():
+            '向导正文'
+            return 上下文.slots.register({
+                'name':席名右侧签正文,
+                'key':向导标识,
+                'children':{
+                    席名右侧向导条目:{
+                        'kind':'keyed','scope':'session','inject':{'hooks':{'tabInfo':向导标签信息工厂}},
+                    },
+                    席名右侧向导:{
+                        'kind':'chain','scope':'session','inject':{'hooks':{'tabInfo':向导标签信息工厂}},
+                    },
+                },
+                'inject':lambda: 向导注入,
+            },向导体)
+
+        拆向导=上下文.slots.inject(席名右侧签正文,挂向导)
 
         def 挂向导标题():
-            '向导芯片标题'
-            return 上下文.slots.register({#席
+            '向导芯片'
+            return 上下文.slots.register({
                 'name':席名右侧签标题,
                 'key':向导标识,
-            },向导标题)#组件
+            },向导标题)
 
-        拆向导标题=上下文.slots.inject(席名右侧签标题,挂向导标题)#等洞
+        拆标题=上下文.slots.inject(席名右侧签标题,挂向导标题)
 
         def 拆除():
-            '逆序拆'
-            拆向导标题()#标题
-            拆向导()#向导
-            拆展开()#展开
-            拆席()#席
-            for 拆 in reversed(拆类型):#类型
+            '先摘标题和向导，再摘席，最后放掉认领'
+            拆标题()
+            拆向导()
+            拆展开()
+            拆席()
+            for 拆 in reversed(拆除类型):
                 拆()
-            for 释 in 认领表.values():#认领
-                释()#释
+            for 释放 in list(认领表.values()):
+                释放()
             认领表.clear()
 
-        return 拆除#拆除器
+        return 拆除
 
-    上下文.副作用(挂席与向导,'ui-sidebar-right: seats and shipped tab type')#席
+    上下文.副作用(挂席与向导,'ui-sidebar-right: seats and shipped tab type')
 
 
-inject=依赖#框架槽
-apply=应用#框架槽
+inject=依赖
+apply=应用

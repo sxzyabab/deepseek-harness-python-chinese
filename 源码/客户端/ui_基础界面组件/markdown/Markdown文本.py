@@ -1,4 +1,3 @@
-from nicegui import ui as 界面
 from ..异常 import 基础界面错误#解析或数学未装
 from .解析 import 解析GFM,解析GFM含数学#两臂文法
 from .增量 import 增量Markdown解析器#流式增量
@@ -6,7 +5,7 @@ from .渲染 import (#渲染管线
     建引用目标,收集引用目标,渲染块列表,包块子节点,渲染脚注区,画出视图,
 )
 
-__all__=['Markdown文本','定稿渲染','流式渲染器']#仅中文公开名
+__all__=['Markdown文本','处理Markdown文本','定稿渲染','流式渲染器']#仅中文公开名
 
 def 定稿渲染(文本,代码文案=None,文件提及=None):#一次定稿全量渲染
     '含数学解析、引用收集、脚注区'
@@ -105,45 +104,58 @@ class 流式渲染器:#一份增长消息的流式态
         自身.上次结果=出#记
         return 出#结果
 
+def 处理Markdown文本(window,属性):
+    '文法可用时按结构节点画；文法未装时留下原文。有 parent 就挂上去'
+    文档=window.document
+    文本=属性['text'] if 'text' in 属性 and 属性['text'] is not None else ''#源
+    流式=属性['streaming'] is True if 'streaming' in 属性 else False#流式
+    根=文档.createElement('div')
+    根.className='Markdown文本'
+    if 流式 is True:#流式
+        根.classList.add('流式')
+    if 文本!='':#有原文
+        文案=属性['codeLabels'] if 'codeLabels' in 属性 else None#围栏文案
+        提及=属性['fileMentions'] if 'fileMentions' in 属性 else None#文件提及
+        组件=属性['组件'] if '组件' in 属性 else None
+        try:#文法
+            if 流式 is True and 组件 is not None:#流式
+                if 组件.流式器 is None or 组件.流式文案键!=文案:#换文案则换实例
+                    组件.流式器=流式渲染器(文案)#新建
+                    组件.流式文案键=文案
+                树=组件.流式器.渲染(文本)#结构
+            else:#定稿
+                树=定稿渲染(文本,文案,提及)#结构
+        except 基础界面错误:#文法或数学未装
+            根.textContent=文本
+        else:
+            画出视图(树,window,根)
+    if 'parent' in 属性:
+        属性['parent'].appendChild(根)
+    return 根
+
 class Markdown文本:#助手 Markdown
     'streaming 走流式渲染器；否则定稿'
 
     def __init__(自身,属性=None,**关键字参数):#构造
-        '合并 props；流式器惰性建'
+        '合并 props；流式器惰性建。构造不画'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
         自身.流式器=None#惰性
         自身.流式文案键=None#文案指纹
+        自身.根=None
 
     def 更新(自身,属性):#刷新
         '刷新 props'
         自身.属性=dict(属性)#最新
 
     def 渲染(自身):#画出 Markdown
-        '文法可用时按结构节点画；否则用 Markdown 控件'
-        属性=自身.属性#props
-        文本=属性['text'] if 'text' in 属性 and 属性['text'] is not None else ''#源
-        流式=属性['streaming'] is True if 'streaming' in 属性 else False#流式
-        根=界面.column().classes('Markdown文本')#块
-        if 流式 is True:#流式
-            根.classes('流式')#标记
-        with 根:#内容
-            if 文本=='':#无原文
-                return
-            文案=属性['codeLabels'] if 'codeLabels' in 属性 else None#围栏文案
-            提及=属性['fileMentions'] if 'fileMentions' in 属性 else None#文件提及
-            try:#文法
-                if 流式 is True:#流式
-                    if 自身.流式器 is None or 自身.流式文案键!=文案:#换文案则换实例
-                        自身.流式器=流式渲染器(文案)#新建
-                        自身.流式文案键=文案
-                    树=自身.流式器.渲染(文本)#结构
-                else:#定稿
-                    树=定稿渲染(文本,文案,提及)#结构
-            except 基础界面错误:#文法或数学未装
-                界面.markdown(文本)#回退
-                return
-            画出视图(树)#画出
+        '拆掉旧块，再画一次'
+        if 自身.根 is not None:
+            自身.根.remove()
+        绘制=dict(自身.属性)
+        绘制['组件']=自身
+        自身.根=处理Markdown文本(自身.属性['window'],绘制)
+        return 自身.根
 
     def __call__(自身,属性=None,**关键字参数):#组件调用形
         '对齐 React'

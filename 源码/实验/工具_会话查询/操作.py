@@ -1,5 +1,5 @@
 '盖在会话检索服务能力上的工具操作编排'
-from ...模型后端.llm.异常 import 装备错误#Harness错误
+from ...模型后端.llm.异常 import harness错误#Harness错误
 from ...会话检索.会话查询.异常 import 会话查询错误#检索错误
 from ...会话检索.会话查询.配置 import 若已中止则抛出#中止
 from .入参 import 工具入参#参数归一化
@@ -12,7 +12,7 @@ def 执行会话搜索(上下文,参数,执行上下文,最大结果数):
     调用方=工作区访问['callerOf'](执行上下文)#取调用方
     工作目录=调用方['header']['cwd'] if 'cwd' in 调用方['header'] else None#工作区目录
     if 工作目录 is None:#无工作区
-        raise 装备错误('cross-session search is unavailable because the caller session has no workspace','SESSION_QUERY_TOOL_UNAUTHORIZED')#拒绝
+        raise harness错误('cross-session search is unavailable because the caller session has no workspace','SESSION_QUERY_TOOL_UNAUTHORIZED')#拒绝
     查询=工具入参['normalizeQuery'](参数['query'])#归一化查询
     会话过滤器=工具入参['buildSessionFilters'](参数)#会话过滤
     事件过滤器=工具入参['buildEventFilters']({
@@ -68,7 +68,7 @@ def 执行事件搜索(上下文,参数,执行上下文,最大结果数):
                 步骤起点=事件#记下
                 break#停
         if 步骤起点 is None:#没有步骤
-            raise 装备错误('current-session search requires an active step boundary','SESSION_QUERY_TOOL_NO_CURRENT_STEP')#拒绝
+            raise harness错误('current-session search requires an active step boundary','SESSION_QUERY_TOOL_NO_CURRENT_STEP')#拒绝
         上限=区间['to'] if 'to' in 区间 else 2**53-1#原上界
         区间['to']=min(上限,步骤起点['seq']-1)#不搜当前步骤及之后
     标题=工作区访问['readTitle'](上下文,调用方,会话号,信号)#读标题

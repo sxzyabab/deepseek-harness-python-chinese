@@ -1,7 +1,7 @@
 import threading,uuid#线程与子 id
 from ...基础设施.js特性 import PromiseEX as 期约#期约封装
 from ...内核.会话 import 会话标识#品牌
-from ...sdk.客户端.高层 import 深求装备#Harness 高层 API
+from ...sdk.客户端.高层 import DeepSeekHarness#Harness 高层 API
 from ..子智能体.异常 import 子智能体错误#缝内失败
 默认关闭超时毫秒=10000#shutdown 上限
 默认处置eof宽限毫秒=6000#EOF 宽限
@@ -15,7 +15,7 @@ def 已中止(信号):
         return False#未中止
     return 信号._事件.is_set()#Event 置位
 
-class sdk跑:
+class sdk运行:
     '持有者所有的 SDK 一次性跑。载荷字段 id/localAgent/result 为线协议键；拆除入口仅 销毁'
     def __init__(自身,标识,结果,拆除):
         '记下身份、结果期约与拆除闭包'
@@ -47,7 +47,7 @@ def 启动sdk运行(请求,规格):
     }#选项骨架
     if 'maxTokens' in 规格 and 规格['maxTokens'] is not None:#有上限
         装备选项['maxTokens']=规格['maxTokens']#写入
-    装备=深求装备(装备选项)#构造装备
+    装备=DeepSeekHarness(装备选项)#构造装备
     提示=请求['prompt']#提示
     信号=请求['signal'] if 'signal' in 请求 else None#取消
     if 已中止(信号):#已取消
@@ -57,8 +57,8 @@ def 启动sdk运行(请求,规格):
         '后台握手、跑一轮并关闭装备'
         try:#跑
             装备.启动运行时()#握手
-            会话=装备.会话(str(子标识))#开会话
-            输出=会话.运行(提示)#跑一轮
+            会话=装备.打开会话(str(子标识))#开会话
+            输出=会话.运行提示(提示)#跑一轮
             结果任务.解决({'output':[{'type':'text','text':str(输出)}],'stopReason':'completed'})#成功
         except BaseException as 错误:#失败
             结果任务.拒绝(错误)#拒绝
@@ -71,4 +71,4 @@ def 启动sdk运行(请求,规格):
             '结果兑现后的回调'
             装备.关闭()#关闭装备
         return 结果任务.然后(关闭装备)#交给调用方继续链式
-    return sdk跑(子标识,结果任务,拆除)#句柄
+    return sdk运行(子标识,结果任务,拆除)#句柄

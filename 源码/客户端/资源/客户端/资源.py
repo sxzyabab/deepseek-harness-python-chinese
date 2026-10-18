@@ -1,275 +1,216 @@
-import json#登记诊断标签
-import threading#中止标志与消费线程
-from urllib.parse import urlparse as 解析URL
-from .约定 import (
-    资源状态_无,
-    资源状态_加载中,
-    资源状态_存活,
-    资源状态_失败,
-    资源服务协议,
-)
-from ..异常 import 资源错误,失败说明#本包异常；说明去掉绝对路径
+'按地址登记资源提供方，并保住每条地址的活快照'
+from json import dumps as 转json#效果标签里的协议名
+from threading import Event as 事件#流的中止旗
+from types import SimpleNamespace as 简单命名空间#一条记录和它的源
+from urllib.parse import urlparse as 解析网址#地址里的协议名
+from ....基础设施.通用工具 import 启动守护线程#消费流不挡住登记
+from ...存储 import 创建快照存储#按地址的快照
 
-__all__=[
-    '资源方案',
-    '取协议',
-    '资源错误',
-    '已中止',
-    '若已中止则抛出',
-    '资源注册表',
-]
+__all__=['资源方案','取协议','资源注册表']#本文件公开名
 
-资源方案='dsh-resource'#资源地址 scheme，无冒号
+资源方案='dsh-resource'#资源地址的方案，不带冒号
 
-def 已中止(信号):
-    '无信号视为未中止；信号为 threading.Event'
-    if 信号 is None:
-        return False
-    return 信号.is_set()
-
-def 若已中止则抛出(信号):
-    '已中止则抛资源错误'
-    if 已中止(信号):
-        raise 资源错误('The operation was aborted.')#线协议英文
 
 def 取协议(地址):
-    'dsh-resource:// 的 host（小写）；其它字符串视为无协议'
-    try:
-        解析=解析URL(地址)
-    except ValueError:
-        return None
-    if 解析.scheme!=资源方案:
-        return None
-    主机=解析.hostname
-    if 主机 is None or 主机=='':
-        return None
-    return 主机.lower()
+    'dsh-resource 地址的 host，小写。解析失败或其它方案都没有协议'
+    try:#地址解析器拒绝的字符串不是资源地址
+        解析=解析网址(地址)#按网址读
+    except ValueError:#没有方案或括号不配
+        return None#不是资源地址
+    if 解析.scheme!=资源方案:#不是 dsh-resource
+        return None#导航地址或普通文件地址
+    主机=解析.hostname#host。空主机是 None
+    if 主机 is None or 主机=='':#没有 host
+        return None#不是资源地址
+    return 主机.lower()#收成小写
 
-def 空闲快照(状态):
-    '无值、无失败的空闲态快照'
-    return {'status':状态,'value':None,'failure':None}
 
-class 快照存储:
-    '本包自持的同步快照存储：getSnapshot / subscribe / set'
-    def __init__(自身,初值):
-        '记下初始快照'
-        自身._状态=初值
-        自身._监听=set()
+def 空闲(状态):
+    '没有值和失败的快照'
+    return {'status':状态,'value':None,'failure':None}#三个字段都在
 
-    def getSnapshot(自身):
-        '返回当前快照引用'
-        return 自身._状态
 
-    def subscribe(自身,监听器):
-        '登记监听器，返回拆除器'
-        自身._监听.add(监听器)
-        def 拆除():
-            '从订阅集删除'
-            自身._监听.discard(监听器)
-        return 拆除
+class 流信号(事件):
+    '交给 open 的中止旗。aborted 对齐 AbortSignal，等待和置位沿用 Event'
+    def abort(自身):
+        '中止这条流。再调一次没有事'
+        自身.set()#置位
 
-    def set(自身,下一):
-        '写快照并广播；单回调失败不得饿死其余监听器'
-        自身._状态=下一
-        for 监听 in list(自身._监听):
-            try:
-                监听()
-            except Exception as 错误:
-                print('[client-resources] 订阅者失败:',失败说明(错误))#说明不含绝对路径
+    @property
+    def aborted(自身):
+        '已经中止'
+        return 自身.is_set()#是否置位
 
-class 资源记录:
-    '一地址的运行态：快照、持有者计数与运行中流的中止旗'
-    def __init__(自身,地址,协议,存储,源):
-        '记下不可变字段与可变计数'
-        自身.地址=地址
-        自身.协议=协议
-        自身.存储=存储
-        自身.源=源
-        自身.持有者数=0#订阅者加钉住
-        自身.控制器=None#运行中流的 Event
 
-class 资源源:
-    '可观察快照面：getSnapshot 不持有；subscribe 增减持有者'
-    def __init__(自身,取快照,订阅):
-        '登记取快照与订阅闭包'
-        自身.getSnapshot=取快照
-        自身.subscribe=订阅
-
-class 资源注册表(资源服务协议):
-    'resources 服务实现：提供方登记表与按地址记录'
+class 资源注册表:
+    'resources 服务。记录一旦建成就留下，最后一次释放只丢掉状态'
     def __init__(自身,上下文):
-        '记下登记效应所属上下文'
-        自身._上下文=上下文
-        自身._提供方={}#协议 → 提供方 dict
-        自身._记录={}#地址 → 资源记录
+        '记下登记效应所属的上下文'
+        自身.上下文=上下文#本插件的上下文
+        自身.提供方={}#协议到提供方
+        自身.记录={}#地址到记录
 
     def 登记(自身,提供方):
-        '一协议恰有一个提供方（dict：protocol/open）；返回幂等拆除器'
-        协议=提供方['protocol']
-        if 协议 in 自身._提供方:
-            raise 资源错误('resources: protocol "'+str(协议)+'" already has a provider')
+        '为一个协议登记提供方。已经有提供方就抛出。返回的拆除器可以重复调用'
+        协议=提供方['protocol']#协议键
+        if 协议 in 自身.提供方:#已经有
+            raise RuntimeError('resources: protocol "'+str(协议)+'" already has a provider')#拒绝第二个
+
         def 寿命():
-            '挂上后对已持有地址开流'
-            自身._提供方[协议]=提供方
-            for 记录 in 自身._协议下记录(协议):
-                自身._挂上(记录)#持有则开流，空闲则 loading
+            '挂上提供方。已持有的地址开流，空闲的改成加载中'
+            自身.提供方[协议]=提供方#登记
+            for 记录 in 自身.协议下记录(协议):#已有地址
+                自身.挂上(记录)#持有则开流
+
             def 拆除():
-                '结束流并报 none'
-                自身._提供方.pop(协议,None)
-                for 记录 in 自身._协议下记录(协议):
-                    自身._卸下(记录)
-            return 拆除
-        拆除=自身._上下文.副作用(寿命,'resources.register('+json.dumps(协议,ensure_ascii=False)+')')
+                '卸下提供方，停掉它的流，状态改成无'
+                del 自身.提供方[协议]#摘掉
+                for 记录 in 自身.协议下记录(协议):#同一协议
+                    自身.卸下(记录)#停流
+            return 拆除#拆除器
+
+        拆除登记=自身.上下文.副作用(寿命,'resources.register('+转json(协议)+')')#挂到本纤程
+
         def 对外拆除():
-            '拆除登记'
-            拆除()
-        return 对外拆除
+            '拆除这次登记'
+            拆除登记()#幂等
+        return 对外拆除#交给调用方
 
     def 钉住(自身,地址,信号):
-        '信号中止前保持打开；已中止则钉不住'
-        if 已中止(信号):
-            return
-        记录=自身._取记录(地址)
-        自身._持有(记录)
-        def 监视中止():
-            '中止后释放钉住'
-            信号.wait()
-            自身._释放(记录)
-        线=threading.Thread(target=监视中止,daemon=True,name='dsh-resource-pin')
-        线.start()
+        '信号中止前保持打开。已经中止的信号钉不住'
+        if 信号.aborted:#已经中止
+            return#钉不住
+        记录=自身.取记录(地址)#建或取出
+        自身.持有(记录)#算一个持有者
+
+        def 松开():
+            '中止后释放这一钉'
+            自身.释放(记录)#最后一个则停流
+        信号.addEventListener('abort',松开,{'once':True})#中止时松开
 
     def 取源(自身,地址):
-        '一地址一条活源，引用稳定'
-        return 自身._取记录(地址).源
+        '这一地址的活源。记录还在，源就还是同一个'
+        return 自身.取记录(地址).源#可观察源
 
-    def _取记录(自身,地址):
+    def 取记录(自身,地址):
         '页面存续期内保留记录'
-        记录=自身._记录[地址] if 地址 in 自身._记录 else None
-        if 记录 is None:
-            记录=自身._创建(地址)
-            自身._记录[地址]=记录
-        return 记录
+        记录=自身.记录.get(地址)#已有或没有
+        if 记录 is None:#第一次
+            记录=自身.创建(地址)#建一条
+            自身.记录[地址]=记录#留下
+        return 记录#同一条
 
-    def _创建(自身,地址):
-        '初态按是否有提供方取 none 或 loading'
-        协议=取协议(地址)
-        初态=资源状态_无 if 自身._取提供方(协议) is None else 资源状态_加载中
-        存储=快照存储(空闲快照(初态))
-        记录盒={'v':None}#创建后回填，供闭包持有同一记录
+    def 创建(自身,地址):
+        '建一条永不删除的记录。同一地址以后都返回这条的源'
+        协议=取协议(地址)#协议或没有
+        if 自身.取提供方(协议) is None:#没有提供方
+            初态='none'#无
+        else:#已经有提供方
+            初态='loading'#等第一帧
+        存储=创建快照存储(空闲(初态))#初始快照
+        记录=简单命名空间(地址=地址,协议=协议,存储=存储,源=None,持有者数=0,控制器=None)#地址运行态
 
         def 取快照():
-            '读存储，不持有'
-            return 存储.getSnapshot()
+            '读当前快照，不因此持有这条资源'
+            return 存储.getSnapshot()#当前
 
         def 订阅(监听器):
-            '订阅并持有；退订时释放'
-            退订存储=存储.subscribe(监听器)
-            自身._持有(记录盒['v'])
-            活跃=[True]#幂等门闩
+            '订阅变更并持有。退订只生效一次'
+            退订=存储.subscribe(监听器)#存储上的退订
+            自身.持有(记录)#第一个订阅者打开流
+            活跃=[True]#门闩
+
             def 取消():
-                '只生效一次'
-                if not 活跃[0]:
-                    return
-                活跃[0]=False
-                退订存储()
-                自身._释放(记录盒['v'])
-            return 取消
+                '退订并释放。再调一次没有事'
+                if 活跃[0] is not True:#已经退过
+                    return#空操作
+                活跃[0]=False#关上
+                退订()#摘掉监听
+                自身.释放(记录)#最后一个则停流
+            return 取消#退订器
 
-        源=资源源(取快照,订阅)
-        记录=资源记录(地址,协议,存储,源)
-        记录盒['v']=记录
-        return 记录
+        记录.源=简单命名空间(getSnapshot=取快照,subscribe=订阅)#可观察源
+        return 记录#留下
 
-    def _取提供方(自身,协议):
-        '无协议则无提供方'
-        if 协议 is None:
-            return None
-        return 自身._提供方[协议] if 协议 in 自身._提供方 else None
+    def 取提供方(自身,协议):
+        '没有协议就没有提供方'
+        if 协议 is None:#不是资源地址
+            return None#没有
+        return 自身.提供方.get(协议)#未登记则是 None
 
-    def _协议下记录(自身,协议):
-        '生成该协议下全部记录'
-        for 记录 in 自身._记录.values():
-            if 记录.协议==协议:
-                yield 记录
+    def 协议下记录(自身,协议):
+        '这个协议下已经建过的记录'
+        for 记录 in 自身.记录.values():#全部地址
+            if 记录.协议==协议:#同一协议
+                yield 记录#交给调用方
 
-    def _持有(自身,记录):
-        '加持有者；首位打开流'
-        记录.持有者数+=1
-        if 记录.持有者数==1:
-            自身._启动(记录)
+    def 持有(自身,记录):
+        '增加持有者。从零到一的时候打开流'
+        记录.持有者数=记录.持有者数+1#加上这次
+        if 记录.持有者数==1:#第一个
+            自身.启动(记录)#打开
 
-    def _释放(自身,记录):
-        '减持有者；末位中止流并重置空闲'
-        记录.持有者数-=1
-        if 记录.持有者数>0:
-            return
-        自身._停止(记录)
-        空闲=资源状态_无 if 自身._取提供方(记录.协议) is None else 资源状态_加载中
-        记录.存储.set(空闲快照(空闲))
+    def 释放(自身,记录):
+        '减少持有者。最后一个离开时停流，并把快照收成空闲'
+        记录.持有者数=记录.持有者数-1#去掉这次
+        if 记录.持有者数>0:#还有人
+            return#流继续
+        自身.停止(记录)#中止流
+        if 自身.取提供方(记录.协议) is None:#没有提供方
+            状态='none'#无
+        else:#提供方还在
+            状态='loading'#等下一次打开
+        记录.存储.set(空闲(状态))#丢掉值和失败
 
-    def _挂上(自身,记录):
-        '提供方到达：持有则开流，空闲则 loading'
-        if 记录.持有者数>0:
-            自身._启动(记录)
-            return
-        记录.存储.set(空闲快照(资源状态_加载中))
+    def 挂上(自身,记录):
+        '提供方到了。有人持有就开流，否则只把空闲改成加载中'
+        if 记录.持有者数>0:#有人持有
+            自身.启动(记录)#开流
+            return#不再改空闲
+        记录.存储.set(空闲('loading'))#还没人订，只改状态
 
-    def _卸下(自身,记录):
-        '提供方离开：停流并报 none'
-        自身._停止(记录)
-        记录.存储.set(空闲快照(资源状态_无))
+    def 卸下(自身,记录):
+        '提供方走了。停流并报无'
+        自身.停止(记录)#中止
+        记录.存储.set(空闲('none'))#无提供方
 
-    def _启动(自身,记录):
-        '打开提供方流；无提供方则跳过'
-        方=自身._取提供方(记录.协议)
-        if 方 is None:
-            return
-        控制器=threading.Event()
-        记录.控制器=控制器
-        if 记录.存储.getSnapshot()['status']!=资源状态_加载中:
-            记录.存储.set(空闲快照(资源状态_加载中))
-        线=threading.Thread(
-            target=自身._消费,
-            args=(记录,方,控制器),
-            daemon=True,
-            name='dsh-resource-consume',
-        )
-        线.start()
+    def 启动(自身,记录):
+        '有提供方才打开流。没有提供方就留在当前状态'
+        方=自身.取提供方(记录.协议)#当前提供方
+        if 方 is None:#还没有
+            return#不开
+        控制器=流信号()#这条流的中止旗
+        记录.控制器=控制器#记下，停止时中止它
+        if 记录.存储.getSnapshot()['status']!='loading':#还不是加载中
+            记录.存储.set(空闲('loading'))#先进入加载中
+        启动守护线程(自身.消费,记录,方,控制器)#不等待整条流
 
-    def _停止(自身,记录):
-        '置位中止旗并摘掉控制器'
-        if 记录.控制器 is not None:
-            记录.控制器.set()
-            记录.控制器=None
+    def 停止(自身,记录):
+        '中止正在跑的流，并摘掉控制器'
+        if 记录.控制器 is not None:#有流
+            记录.控制器.abort()#中止
+            记录.控制器=None#摘掉
 
-    def _消费(自身,记录,提供方,信号):
-        '失败以帧表达；流内抛错不捕获。释放后到达的帧丢弃'
-        流=提供方['open'](记录.地址,{'signal':信号})
-        for 帧 in 流:
-            if 已中止(信号):
-                break
-            if 帧['ok']:
-                记录.存储.set({
-                    'status':资源状态_存活,
-                    'value':帧['value'],
-                    'failure':None,
-                })
-            else:#失败帧保留末值
-                失败=帧['error']#提供方失败
-                if isinstance(失败,(BaseException,str)):#说明文本
-                    失败=失败说明(失败)#去掉绝对路径
-                    if 失败=='':#掏空
-                        失败='资源失败'#兜底
-                elif isinstance(失败,dict) and isinstance(失败.get('message'),str):#结构化失败
-                    干净=失败说明(失败['message'])#去掉绝对路径
-                    失败=dict(失败)#不改提供方原表
-                    失败['message']=干净 if 干净!='' else '资源失败'#兜底
-                记录.存储.set({
-                    'status':资源状态_失败,
-                    'value':记录.存储.getSnapshot()['value'],
-                    'failure':失败,
-                })
+    def 消费(自身,记录,提供方,信号):
+        '逐帧写入。中止之后的帧丢掉。流里抛出的错误不接住'
+        流=提供方['open'](记录.地址,{'signal':信号})#打开
+        for 帧 in 流:#逐帧
+            if 信号.aborted:#已经释放
+                break#丢掉这一帧并结束迭代
+            if 帧['ok']:#成功帧
+                记录.存储.set({#换成最新值
+                    'status':'live',#活
+                    'value':帧['value'],#这一帧的值
+                    'failure':None,#清掉失败
+                })#写入
+            else:#失败帧
+                记录.存储.set({#保留上一份值
+                    'status':'failed',#失败
+                    'value':记录.存储.getSnapshot()['value'],#上一份
+                    'failure':帧['error'],#这一帧的失败
+                })#写入
+
 
 资源注册表.register=资源注册表.登记#调用方按 register 登记
 资源注册表.pin=资源注册表.钉住#调用方按 pin 钉住
-资源注册表.source=资源注册表.取源#调用方按 source 取活源
+资源注册表.source=资源注册表.取源#调用方按 source 取源

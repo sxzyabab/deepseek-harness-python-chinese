@@ -1,1073 +1,2394 @@
-import importlib.resources as 包资源
-from nicegui import ui as 界面
-from ....基础设施.通用工具 import utf8字节数
+'插件装载页：官方与已安装、详情、安装对话框和卸载确认'
+from ...模块.客户端.通告 import 取握手窗口
+import base64
+import os
+from ...ui_对话.异常 import 注入模块样式文件,标样式模块,挂上
+from ...ui_基础界面组件.icons import (
+    图标下箭头描边常规,
+    图标信息描边常规,
+    图标关闭16,
+    图标加号16,
+    图标勾圈描边常规,
+    图标右chevron14,
+    图标左chevron14,
+    图标垃圾桶16,
+    图标下载16,
+    图标刷新16,
+    图标警告16,
+)
+from ...ui_基础界面组件.插件画稿 import (
+    插件画稿子智能体,
+    插件画稿搜索,
+    插件画稿循环,
+    插件画稿终端,
+    插件画稿默认,
+)
+from ...ui_基础界面组件.分段标签页 import 分段标签页
+from ...ui_基础界面组件.开关 import 开关
+from ...ui_基础界面组件.吐司 import 吐司
+from ...ui_基础界面组件.提示泡 import 提示泡
+from ...ui_基础界面组件.按钮 import 按钮
+from ...ui_基础界面组件.标签 import 标签
+from ...ui_基础界面组件.模态 import 模态
 from ...ui_基础界面组件.状态点 import 状态点
-from .配置账本 import 行配置键#行配置键
-from .装载存储 import 是否安装待决,行键#装载工具
-from ..异常 import 页面失败文案
-from .呈现 import 装载文案,提示文案,包文案#呈现
+from ...ui_基础界面组件.终端块 import 终端块
+from ...ui_基础界面组件.点外关闭 import 点外关闭
+from ...ui_基础界面组件.输入模态 import 指针模态
+from ...ui_基础界面组件.锚定位置 import 使用锚定位置
+from .文案 import 中文句,安装示例仓库,安装示例路径
+from .呈现 import 包文案,行文案,提示文案,注册表文案对,重启文案,管理文案
+from .装载存储 import 已问镜像,是否安装待决,提供的注册表,镜像恢复注册表,行键
+from .配置账本 import 行配置键
 
-__all__=['插件装载页','高亮毫秒','行筛选阈值']#仅中文公开名
+__all__=['插件装载页']
 
-高亮毫秒=2400#安装启用后列表高亮时长
-行筛选阈值=10#超过此数显示筛选框
-
-内置档组合包={#页面排除的内置 profile 组合包
-    '@deepseek-ai/dsh-base',
-    '@deepseek-ai/dsh-web-app',
-    '@deepseek-ai/dsh-headless',
-    '@deepseek-ai/dsh-sdk-app',
-    '@deepseek-ai/dsh-acp-app',
-    '@deepseek-ai/dsh-sdk-minimal',
-}#内置结束
-
-阶段键={#fiber 阶段 → 文案键
-    'pending':'rowPhasePending',
-    'loading':'rowPhaseLoading',
-    'active':'rowPhaseActive',
-    'failed':'rowPhaseFailed',
-    'unloading':'rowPhaseUnloading',
-}#阶段结束
-
-阶段点={#阶段 → 状态点
-    'pending':'idle',
-    'loading':'ongoing',
-    'active':'done',
-    'failed':'error',
-    'unloading':'idle',
-}#点结束
-
-输入问题键={#检查拒因 → 文案键
-    'invalid-spec':'installProblemInvalid',
-    'already-installed':'installProblemInstalled',
-    'not-found':'installProblemNotFound',
-    'not-a-package':'installProblemNotPackage',
-    'not-a-bundle':'installProblemNotBundle',
-    'network':'installProblemNetwork',
-    'unknown':'installProblemUnknown',
-}#输入结束
-
-失败种类键={#pnpm 失败种类 → 文案键
-    'pnpm-missing':'installFailurePnpmMissing',
-    'timeout':'installFailureTimeout',
-    'not-found':'installFailureNotFound',
-    'no-matching-version':'installFailureNoMatchingVersion',
-    'network':'installFailureNetwork',
-    'disk-full':'installFailureDiskFull',
-    'permission':'installFailurePermission',
-    'build-blocked':'installFailureBuildBlocked',
-    'integrity':'installFailureIntegrity',
-    'unknown':'installFailureGeneric',
-}#失败种类结束
-
-屏标题键={#安装阶段 → 标题
-    'starting':'installStarting',
-    'running':'installingTitle',
-    'cancelling':'installCancelling',
-    'applying':'installApplying',
-    'done':'installedTitle',
-    'failed':'installFailedTitle',
-}#屏标题结束
-
-主体种类键={#主体种类 → 文案键
-    'registry':None,
-    'path':'installSubjectPath',
-    'git':'installSubjectGit',
-    'tarball':'installSubjectTarball',
-}#主体结束
-
-引导示例=(#安装引导三例
+样式模块='plugin-manager-page'
+高亮毫秒=2400
+行筛选阈值=10
+卡片画稿尺寸=36
+行画稿尺寸=30
+安装终端行数=12
+已安装页='installed'
+内置档组合包={
+    '@deepseek-ai/dsh-base','@deepseek-ai/dsh-web-app','@deepseek-ai/dsh-headless',
+    '@deepseek-ai/dsh-sdk-app','@deepseek-ai/dsh-acp-app','@deepseek-ai/dsh-sdk-minimal',
+}
+始终展示=(
+    '@deepseek-ai/dsh-experimental-agent-team-profile',
+    '@deepseek-ai/dsh-experimental-voice-input-bundle',
+    '@deepseek-ai/dsh-experimental-auto-review',
+    '@deepseek-ai/dsh-experimental-inspector-profile',
+)
+更多包=(
+    '@deepseek-ai/dsh-experimental-tool-worktree',
+    '@deepseek-ai/dsh-experimental-cot-translation-bundle',
+    '@deepseek-ai/dsh-experimental-terminal-bundle',
+    '@deepseek-ai/dsh-experimental-session-search',
+    '@deepseek-ai/dsh-experimental-session-titles-bundle',
+    '@deepseek-ai/dsh-experimental-badge-skill-bundle',
+    '@deepseek-ai/dsh-experimental-ralph-bundle',
+    '@deepseek-ai/dsh-experimental-plugin-market-bundle',
+    '@deepseek-ai/dsh-subagent-codex',
+    '@deepseek-ai/dsh-subagent-claude-code',
+)
+预览文件={
+    '@deepseek-ai/dsh-experimental-badge-skill-bundle':'badge-skill-preview.zh.svg',
+    '@deepseek-ai/dsh-experimental-voice-input-bundle':'voice-input-preview.zh.svg',
+}
+条目画稿类={
+    'shell':插件画稿终端,
+    'agent-loop':插件画稿循环,
+    'subagent':插件画稿子智能体,
+    'web-search':插件画稿搜索,
+}
+阶段键={
+    'pending':'rowPhasePending','loading':'rowPhaseLoading','active':'rowPhaseActive',
+    'failed':'rowPhaseFailed','unloading':'rowPhaseUnloading',
+}
+阶段点={'pending':'idle','loading':'ongoing','active':'done','failed':'error','unloading':'ongoing'}
+输入问题键={
+    'invalid-spec':'installProblemInvalid','already-installed':'installProblemInstalled',
+    'shipped':'installProblemShipped','not-found':'installProblemNotFound',
+    'not-a-package':'installProblemNotPackage','not-a-bundle':'installProblemNotBundle',
+    'network':'installProblemNetwork','unknown':'installProblemUnknown',
+}
+失败种类键={
+    'pnpm-missing':'installFailurePnpmMissing','timeout':'installFailureTimeout',
+    'not-found':'installFailureNotFound','no-matching-version':'installFailureNoMatchingVersion',
+    'network':'installFailureNetwork','disk-full':'installFailureDiskFull',
+    'permission':'installFailurePermission','build-blocked':'installFailureBuildBlocked',
+    'integrity':'installFailureIntegrity','unknown':'installFailureGeneric',
+}
+屏标题键={
+    'starting':'installStarting','running':'installingTitle','cancelling':'installCancelling',
+    'applying':'installApplying','unconfirmed':'installUnconfirmedTitle','unknown':'installUnknownTitle',
+    'done':'installedTitle','failed':'installFailedTitle',
+}
+主体种类键={'registry':None,'path':'installSubjectPath','git':'installSubjectGit','tarball':'installSubjectTarball'}
+引导示例=(
     {'key':'id','titleKey':'installGuideIdTitle','exampleKey':'installGuideIdExample','hintKey':'installGuideIdHint'},
-    {'key':'git','titleKey':'installGuideGitTitle','exampleKey':'installGuideGitExample','hintKey':'installGuideGitHint'},
-    {'key':'path','titleKey':'installGuidePathTitle','exampleKey':'installGuidePathExample','hintKey':'installGuidePathHint'},
-)#引导结束
+)
 
-def _读样式(文件名):
-    '读当前包内样式。失败时异常文案只有样式读不到，不含路径'
-    try:
-        return 包资源.files(__package__).joinpath(文件名).read_text(encoding='utf-8')
-    except OSError:
-        raise OSError('样式读不到') from None
+def 窗口于(属性):
+    '宿主窗口。没有时用当前页'
+    if isinstance(属性,dict) and 'window' in 属性:
+        return 属性['window']
+    return 取握手窗口()
 
-def _去注释(原文):
-    '去掉块注释，避免注释里的花括号打断规则'
-    出=[]
-    下标=0
-    长度=len(原文)
-    while 下标<长度:
-        if 原文.startswith('/*',下标):
-            止=原文.find('*/',下标+2)
-            if 止<0:
-                break
-            下标=止+2
-            continue
-        出.append(原文[下标])
-        下标+=1
-    return ''.join(出)
+def 确保样式(文档):
+    '把本页样式模块插进文档'
+    注入模块样式文件(
+        文档,
+        '插件装载页样式',
+        os.path.join(os.path.dirname(__file__),'插件装载页.module.css'),
+        样式模块,
+    )
 
-def _前缀一片(片,根):
-    '同一元素与后代都能命中'
-    片=片.strip()
-    if 片=='':
-        return ''
-    return '.'+根+' '+片+', .'+根+片
+def 建(文档,标签,类名=None):
+    '造一个挂了官方类名的节点'
+    节点=文档.createElement(标签)
+    if isinstance(类名,str) and 类名!='':
+        节点.className=类名
+    return 标样式模块(节点,样式模块)
 
-def _前缀选择器(选择器,根):
-    '逗号分隔的每一段都挂上根'
-    条=[]
-    for 片 in 选择器.split(','):
-        已=_前缀一片(片,根)
-        if 已!='':
-            条.append(已)
-    return ', '.join(条)
+def 挂组件(父,组件):
+    '画出组件并挂上'
+    if 组件 is None or 父 is None:
+        return None
+    节点=组件.渲染()
+    if 节点 is not None and hasattr(节点,'tagName'):
+        标样式模块(节点,样式模块)
+        父.appendChild(节点)
+    return 节点
 
-def _挂规则(文,根):
-    '普通规则挂根；媒体查询递归；关键帧保持原样'
-    出=[]
-    下标=0
-    长度=len(文)
-    while 下标<长度:
-        while 下标<长度 and 文[下标].isspace():
-            下标+=1
-        if 下标>=长度:
-            break
-        起=下标
-        while 下标<长度 and 文[下标]!='{':
-            下标+=1
-        if 下标>=长度:
-            break
-        选择器=文[起:下标].strip()
-        下标+=1
-        深度=1
-        体起=下标
-        while 下标<长度 and 深度>0:
-            if 文[下标]=='{':
-                深度+=1
-            elif 文[下标]=='}':
-                深度-=1
-            下标+=1
-        体=文[体起:下标-1]
-        if 选择器.startswith('@keyframes') or 选择器.startswith('@font-face'):
-            出.append(选择器+'{'+体+'}')
-        elif 选择器.startswith('@media') or 选择器.startswith('@container') or 选择器.startswith('@supports'):
-            出.append(选择器+'{'+_挂规则(体,根)+'}')
-        elif 选择器!='':
-            出.append(_前缀选择器(选择器,根)+'{'+体+'}')
-    return '\n'.join(出)
+def 画图标(窗口,工厂,尺寸=None):
+    '按边长画一枚已有图标'
+    属性={'window':窗口}
+    if 尺寸 is not None:
+        属性['size']=尺寸
+    return 工厂(属性)
 
-def _挂到根(原文,根):
-    '共享样式只作用在本组件根下'
-    return _挂规则(_去注释(原文),根)
-
-界面.add_css(_挂到根(_读样式('插件装载页.module.css'),'插件装载页根'),shared=True)
-
-def 轻提示毫秒(文本):
-    'toast 停留时长'
-    return min(8000,max(3000,utf8字节数(文本)*80))#按字节预算
-
-def 部件摘要(行表,翻译):
-    '组件计数行'
-    失败=len([行 for 行 in 行表 if 行.get('phase')=='failed'])#失败数
-    关闭=len([行 for 行 in 行表 if not 行['enabled']])#关闭数
-    运行=len([行 for 行 in 行表 if 行['enabled'] and 行.get('phase')=='active'])#运行数
-    段=[翻译('partsCountTotal',{'count':str(len(行表))})]#段
-    if 运行>0:段.append(翻译('partsCountRunning',{'count':str(运行)}))#运行
-    if 关闭>0:段.append(翻译('partsCountOff',{'count':str(关闭)}))#关闭
-    if 失败>0:段.append(翻译('partsCountFailed',{'count':str(失败)}))#失败
-    return ' · '.join(段)#连接
+def 预览地址(文件名):
+    '把迁移来的中文预览图读成数据地址'
+    路径=os.path.join(os.path.dirname(__file__),'静态资产',文件名)
+    句柄=open(路径,'rb')
+    数据=句柄.read()
+    句柄.close()
+    return 'data:image/svg+xml;base64,'+base64.b64encode(数据).decode('ascii')
 
 def 包状态(包):
-    '卡片状态：运行/关闭/异常'
-    if 'error' in 包 and 包['error'] is not None:
-        return 'problem'#异常
-    return 'running' if 包['enabled'] else 'disabled'#启停
+    '卡片状态：异常、运行或关闭'
+    if 包.get('error') is not None:
+        return 'problem'
+    if 包.get('enabled') is True:
+        return 'running'
+    return 'disabled'
 
-def 行状态文案(行,翻译):
-    '行状态句'
-    if not 行['enabled']:
-        return 翻译('partOff')#关闭
-    阶段=行.get('phase')#阶段
-    return 翻译('rowStateIdle') if 阶段 is None else 翻译(阶段键[阶段])#阶段
+def 可更新(包):
+    '已安装且可移除，目录版本或 link 来源和当前不同'
+    目标=包.get('installTarget')
+    if 包.get('installed') is not True or 包.get('removable') is not True:
+        return False
+    if 包.get('availability')=='installation' or 目标 is None:
+        return False
+    if 包.get('version')!=目标.get('version'):
+        return True
+    来源=包.get('source')
+    是链接=目标['spec'].startswith('link:') or (isinstance(来源,str) and 来源.startswith('link:'))
+    return 是链接 and 来源!=目标['spec']
 
-def 行点状态(行):
-    '行旁状态点'
-    if not 行['enabled'] or 'phase' not in 行:
-        return 'idle'#空闲
-    return 阶段点[行['phase']]#点
+def 可选包秩(名称):
+    '始终展示的在前，未点名的居中，更多列表垫后'
+    始终=始终展示.index(名称) if 名称 in 始终展示 else -1
+    if 始终>=0:
+        return 始终
+    垫后=更多包.index(名称) if 名称 in 更多包 else -1
+    if 垫后<0:
+        return len(始终展示)
+    return len(始终展示)+1+垫后
 
-def 失败文案(失败,翻译):
-    '失败屏一句'
+def 行引用(行):
+    '详情槽看到的一行'
+    return {'rowId':行['rowId'],'moduleName':行['moduleName'],'enabled':行['enabled']}
+
+def 包引用(包):
+    '详情槽看到的一个组合包'
+    引用={
+        'name':包['name'],
+        'installed':包['installed'],
+        'availability':包['availability'],
+        'official':包['official'],
+        'enabled':包['enabled'],
+        'rows':[行引用(行) for 行 in 包['rows']],
+    }
+    if 包.get('version') is not None:
+        引用['version']=包['version']
+    return 引用
+
+def 注册表名单(注册表列,已解析):
+    '按中文名单分隔符拼注册表名'
+    名列=[注册表文案对(项,已解析)['name'] for 项 in 注册表列]
+    return 中文句('registryListSeparator').join(名列)
+
+def 输入问题句(问题,已解析):
+    '检查拒绝时字段下的一句'
+    问过=问题['registries'] if 问题.get('registries') is not None else []
+    if 问题['problem']=='network' and len(问过)>1:
+        return 中文句('installProblemNetworkAll',{'registries':注册表名单(问过,已解析)})
+    return 中文句(输入问题键[问题['problem']],{'reason':问题['reason']})
+
+def 失败句(失败,安装):
+    '失败屏的一句。兼容性拒绝优先于 pnpm 分类'
     if 失败 is None:
-        return 翻译('installFailureGeneric')#通用
-    待=失败['pendingBuilds'] if 'pendingBuilds' in 失败 else None#待允许
-    if 失败.get('kind')=='build-blocked' and (待 is None or len(待)==0):
-        return 翻译('installFailureBuildBlockedManual')#手动
-    if 'kind' in 失败 and 失败['kind'] is not None:
-        return 翻译(失败种类键[失败['kind']])#种类
-    if 'code' in 失败 and 失败['code'] is not None:
-        return 装载文案({'code':失败['code'],'diagnostic':失败.get('reason')},翻译)#码
-    原因=失败.get('reason') or ''#原因
-    if 原因=='':
-        return 翻译('installFailureGeneric')#通用
-    return 页面失败文案(原因)
+        return 中文句('installFailureGeneric')
+    if 失败.get('code')=='incompatible-version':
+        错误={'code':失败['code'],'installing':True}
+        if 失败.get('incompatible') is not None:
+            错误['incompatible']=失败['incompatible']
+        return 管理文案(错误)
+    待允许=失败.get('pendingBuilds')
+    if 失败.get('kind')=='build-blocked' and (待允许 is None or len(待允许)==0):
+        return 中文句('installFailureBuildBlockedManual')
+    主体=None if 安装 is None else 安装.get('subject')
+    主机=None if 主体 is None else 主体.get('host')
+    if 失败.get('failedAt')=='spec-host' and 主机 is not None:
+        return 中文句('installFailureNetworkHost',{'host':主机})
+    问过=[] if 安装 is None or 安装.get('attempts') is None else 安装['attempts']['registries']
+    if 失败.get('failedAt')=='registry' and 失败.get('kind') in ('network','timeout') and len(问过)>1:
+        已解析=None
+        if 安装.get('registries') is not None:
+            已解析=安装['registries'].get('resolved')
+        return 中文句('installFailureNetworkAll',{'registries':注册表名单(问过,已解析)})
+    if 失败.get('kind') is not None:
+        return 中文句(失败种类键[失败['kind']])
+    if 失败.get('code') is not None:
+        return 管理文案({'code':失败['code'],'diagnostic':失败.get('reason')})
+    if 失败.get('reason') in (None,''):
+        return 中文句('installFailureGeneric')
+    return 失败['reason']
 
-class 插件装载页:#插件装载页视图模型
-    '官方与已安装组合包、详情、安装对话框与卸载确认'
+def 部件摘要(行表):
+    '组件计数：总数，以及出现过的状态'
+    异常=0
+    关闭=0
+    运行=0
+    for 行 in 行表:
+        if 行.get('phase')=='failed':
+            异常=异常+1
+        if 行.get('enabled') is not True:
+            关闭=关闭+1
+        if 行.get('enabled') is True and 行.get('phase')=='active':
+            运行=运行+1
+    句列=[中文句('partsCountTotal',{'count':str(len(行表))})]
+    if 运行>0:
+        句列.append(中文句('partsCountRunning',{'count':str(运行)}))
+    if 关闭>0:
+        句列.append(中文句('partsCountOff',{'count':str(关闭)}))
+    if 异常>0:
+        句列.append(中文句('partsCountFailed',{'count':str(异常)}))
+    return ' · '.join(句列)
+
+def 终端文案():
+    '安装终端用的中文标签'
+    def 命令行(行号):
+        '命令行的无障碍名'
+        return 中文句('terminalCommandLine',{'n':str(行号)})
+    def 信号(信号名):
+        '信号名'
+        return 中文句('terminalSignal',{'signal':信号名})
+    def 退出码(码):
+        '退出码'
+        return 中文句('terminalExitCode',{'code':str(码)})
+    def 展开名(隐):
+        '展开其余行的无障碍名'
+        return 中文句('terminalExpandAria',{'n':str(隐)})
+    def 展开文(隐):
+        '展开其余行'
+        return 中文句('terminalExpand',{'n':str(隐)})
+    return {
+        'commandLine':命令行,
+        'signal':信号,
+        'exitCode':退出码,
+        'noExitCode':中文句('terminalNoExitCode'),
+        'running':中文句('terminalRunning'),
+        'failed':中文句('terminalFailed'),
+        'done':中文句('terminalDone'),
+        'copy':中文句('terminalCopy'),
+        'copied':中文句('terminalCopied'),
+        'noOutput':中文句('terminalNoOutput'),
+        'collapseAria':中文句('terminalCollapseAria'),
+        'collapse':中文句('terminalCollapse'),
+        'expandAria':展开名,
+        'expand':展开文,
+    }
+
+class 安装输入法:
+    '记住一次输入法组合，含 Safari 组合结束后 10 毫秒'
+    def __init__(自身):
+        '组合尚未开始'
+        自身.活动=False
+        自身.直到=0
+
+    def 复位(自身):
+        '对话框阶段变了就清掉组合'
+        自身.活动=False
+        自身.直到=0
+
+    def 开始(自身,事件=None):
+        '组合开始'
+        自身.活动=True
+
+    def 结束(自身,事件=None):
+        '组合结束，再留 10 毫秒'
+        自身.活动=False
+        自身.直到=时间毫秒()+10
+
+    def 失焦(自身,事件=None):
+        '离开输入框'
+        自身.活动=False
+        自身.直到=0
+
+    def 正在输入(自身,事件):
+        '组合中、229 或刚结束的窗口里，回车不算提交'
+        码=getattr(事件,'keyCode',None)
+        if getattr(事件,'isComposing',False) is True or 码==229:
+            return True
+        if 自身.活动 is True:
+            return True
+        return 时间毫秒()<自身.直到
+
+def 时间毫秒():
+    '当前毫秒'
+    import time
+    return int(time.time()*1000)
+
+class 包画稿:
+    '包或行的图。解码失败就换成默认画稿'
     def __init__(自身,属性):
-        '记下合成 props。槽位只调用构造，键齐了就画。'
-        自身.属性=属性 if isinstance(属性,dict) else {}#props
-        自身.页态={'kind':'list'}#当前页
-        自身.行筛选=''#行筛选
-        自身.引导开=False#安装引导
-        自身.已确保=False#已首读
-        自身.激活名=None#刚启用的包
-        自身.添加开=False#添加菜单
-        if 't' in 自身.属性:
-            自身.渲染()
-
-    def 更新(自身,属性):
-        '刷新合成 props'
-        自身.属性=属性#最新
-
-    def _写视图(自身,视图):
-        '写入导航存储；没有存储时只记在页面上'
-        自身.页态=视图#本地副本
-        动作=自身.属性['actions'] if 'actions' in 自身.属性 and isinstance(自身.属性['actions'],dict) else None#动作
-        写=动作['setView'] if 动作 is not None and 'setView' in 动作 else None#写视图
-        if callable(写):
-            写(视图)#存储
-
-    def _读视图(自身):
-        '优先读导航存储，缺席时用页面自己的页态'
-        用=自身.属性['useStore'] if 'useStore' in 自身.属性 else None#选择器
-        if callable(用):
-            态=用(lambda 值:值)#整份
-            if isinstance(态,dict) and isinstance(态.get('view'),dict):
-                return 态['view']#存储
-        return 自身.页态#本地
-
-    def _解析文案(自身,文本):
-        '包内文案；解析失败只留下去掉路径后的说明'
-        解析=自身.属性['resolveText'] if 'resolveText' in 自身.属性 else None#解析器
-        if callable(解析):
-            try:
-                return 解析(文本)#解析
-            except Exception as 错误:
-                return 页面失败文案(错误)#说明
-        if isinstance(文本,str):
-            return 文本#原样
-        return ''#空
-
-    def _行说明(自身,行):
-        '行元数据里的说明；没有则留给 summary 槽'
-        元=行['meta'] if 'meta' in 行 and isinstance(行['meta'],dict) else None#元数据
-        if 元 is None or 'description' not in 元 or 元['description'] is None:
-            return None#没有说明
-        文=自身._解析文案(元['description'])#解析
-        if isinstance(文,str) and 文.strip()!='':
-            return 文#说明
-        return None#空说明当没有
-
-    def 开包(自身,名):
-        '打开组合包页'
-        自身._写视图({'kind':'package','name':名})#包页
-
-    def 开条目(自身,身份):
-        '打开官方插件页'
-        自身._写视图({'kind':'item','id':身份})#条目页
-
-    def 开行(自身,名,行标识):
-        '打开行配置页'
-        自身._写视图({'kind':'row','name':名,'rowId':行标识})#行页
-
-    def 回列表(自身):
-        '回卡片列表'
-        自身._写视图({'kind':'list'})#列表
-
-    def 回包(自身,名):
-        '回组合包页'
-        自身._写视图({'kind':'package','name':名})#包页
-
-    def 设行筛选(自身,文本):
-        '改行筛选'
-        自身.行筛选=文本#筛选
-
-    def 切换引导(自身):
-        '翻转安装引导'
-        自身.引导开=not 自身.引导开#翻转
-
-    def _读钩(自身,钩名):
-        'use* 选择器，或尚未绑定的对象源'
-        用名='use'+钩名[0].upper()+钩名[1:]#座位名
-        用=自身.属性[用名] if 用名 in 自身.属性 else None#选择器
-        if callable(用):#已绑定
-            return 用(lambda 值:值)#整份
-        钩=自身.属性['hooks'] if 'hooks' in 自身.属性 and isinstance(自身.属性['hooks'],dict) else None#旧面
-        if 钩 is None or 钩名 not in 钩 or 钩[钩名] is None:#无源
-            return None#缺
-        源=钩[钩名]#源
-        if hasattr(源,'getSnapshot'):#对象
-            return 源.getSnapshot()#快照
-        return None#不能读
-
-    def _已装(自身,包):
-        '显式已安装；缺键不是已装'
-        return 'installed' in 包 and 包['installed'] is True#已装
-
-    def _可选(自身,包):
-        '显式可选官方包；缺键不是可选'
-        return 'optional' in 包 and 包['optional'] is True#可选
-
-    def 视图(自身):
-        '投影整页视图模型'
-        属性=自身.属性#props
-        翻译=属性['t']#文案
-        确保=属性['ensure'] if 'ensure' in 属性 else None#首读
-        if not 自身.已确保 and callable(确保):#首读
-            确保()#确保
-            自身.已确保=True#已
-        状态=自身._读钩('pluginManager')#装载态
-        账本=自身._读钩('configLedger')#账本
-        if not isinstance(状态,dict) or not isinstance(账本,dict):#还没绑上
-            return None#交给渲染画加载
-        提示=状态['notice'] if 'notice' in 状态 else None#提示
-        if isinstance(提示,dict) and 提示.get('kind')=='refresh-failed':
-            提示行=None#刷新失败由罩层提示画
-        elif 提示 is None:
-            提示行=None#没有提示
-        else:
-            提示行=提示文案(提示,翻译)#提示句
-        包表=状态['packages'] if 'packages' in 状态 and isinstance(状态['packages'],list) else []#包表；空列表保留
-        忙碌=状态['busy'] if 'busy' in 状态 and isinstance(状态['busy'],list) else []#忙碌
-        状态={**状态,'packages':包表,'busy':忙碌,'notice':提示}#补齐
-        列出=[包 for 包 in 包表 if 'name' in 包 and 包['name'] not in 内置档组合包 and (自身._已装(包) or 自身._可选(包) or ('error' in 包 and 包['error'] is not None))]#列出
-        我的=[包 for 包 in 列出 if 自身._已装(包) or not 自身._可选(包)]#已装
-        官方=[包 for 包 in 列出 if 自身._可选(包) and not 自身._已装(包)]#官方
-        已载=状态['status'] in ('ready','error')#已载
-        视=自身._读视图()#当前页态
-        开包=None#开的包
-        开条目=None#开的条目
-        开行=None#开的行
-        if 视['kind'] in ('package','row'):#包或行
-            for 包 in 列出:#查找
-                if 包['name']==视['name']:#命中
-                    开包=包
-                    break
-        if 视['kind']=='item':#条目
-            for 项 in 账本['items']:#查找
-                if 项['id']==视['id']:#命中
-                    开条目=项
-                    break
-        if 视['kind']=='row' and 开包 is not None:#行
-            for 行 in 开包['rows']:#查找
-                if 行['rowId']==视['rowId']:#命中
-                    开行=行
-                    break
-        显示卡片=开包 is None and 开条目 is None#卡片态
-        结果={#基础
-            'kind':'plugin-manager-page',#种类
-            'cssModule':'插件装载页.module.css',#样式
-            'status':状态['status'],#状态
-            'busy':状态['busy'],#忙碌
-            'notice':状态['notice'],#提示
-            'noticeLine':提示行,#提示句
-            'noticeHoldMs':轻提示毫秒(提示行) if 提示行 is not None else 0,
-            'install':自身._安装视图(状态['install'],翻译),#安装
-            'confirm':自身._确认视图(状态['confirm'],翻译),#确认
-            'highlight':状态['highlight'],#高亮
-            'highlightMs':高亮毫秒,#高亮时长
-            'showsCards':显示卡片,#卡片
-            'loaded':已载,#已载
-            'labels':{#页文案
-                'title':翻译('title'),
-                'intro':翻译('intro'),
-                'refresh':翻译('refresh'),
-                'addPlugin':翻译('addPlugin'),
-                'loading':翻译('loading'),
-                'unavailable':翻译('unavailable'),
-                'error':翻译('error'),
-                'retry':翻译('retry'),
-                'empty':翻译('empty'),
-                'officialTitle':翻译('officialTitle'),
-                'bundlesTitle':翻译('bundlesTitle'),
-            },#文案结束
-            'actions':{#动作
-                'refresh':属性['refresh'],
-                'openInstall':属性['openInstall'],
-                'dismissNotice':属性['dismissNotice'],
-                'clearHighlight':属性['clearHighlight'],
-                'backToList':自身.回列表,
-            },#动作结束
-        }#基础结束
-        if 显示卡片 and 已载:#卡片列表
-            官方卡=[自身._包卡(包,翻译,状态) for 包 in 官方]#官方包卡
-            for 项 in 账本['items']:#官方条目
-                官方卡.append(自身._条目卡(项,翻译,属性))#条目卡
-            结果['officialCards']=官方卡#官方
-            结果['bundleCards']=[自身._包卡(包,翻译,状态) for 包 in 我的]#已装
-        if 已载 and 开包 is not None and 开行 is not None:#行详情
-            结果['rowDetail']=自身._行详情(开包,开行,翻译,属性)#行
-        elif 已载 and 开包 is not None:#包详情
-            结果['packageDetail']=自身._包详情(开包,翻译,状态,账本,属性)#包
-        elif 已载 and 开条目 is not None:#条目详情
-            结果['itemDetail']=自身._条目详情(开条目,翻译,属性)#条目
-        return 结果#视图
-
-    def _包卡(自身,包,翻译,状态):
-        '组合包卡片'
-        文=包文案(包,翻译)#文案
-        return {#卡
-            'kind':'package-card',#种类
-            'name':包['name'],#名
-            'title':文['title'],#标题
-            'description':文['description'],#描述
-            'beta':文['beta'],#beta
-            'statusBeta':翻译('statusBeta'),#Beta 标
-            'statusProblem':翻译('statusProblem'),#异常标
-            'versionTag':翻译('versionTag',{'version':包['version']}) if 'version' in 包 and 包['version'] is not None else None,#版本
-            'status':包状态(包),#状态
-            'enabled':包['enabled'],#启用
-            'busy':包['name'] in 状态['busy'],#忙碌
-            'highlighted':状态['highlight']==包['name'],#高亮
-            'readOnlyReason':包.get('readOnlyReason'),#只读
-            'error':包.get('error'),#错误
-            'actions':{#动作
-                'open':lambda 名=包['name']:自身.开包(名),
-                'setEnabled':lambda 启,名=包['name']:自身.属性['setEnabled'](名,启),#启停
-            },#动作结束
-        }#卡结束
-
-    def _条目卡(自身,项,翻译,属性):
-        '官方插件卡片'
-        return {#卡
-            'kind':'item-card',#种类
-            'id':项['id'],#id
-            'label':项['label'],#标签
-            'summarySlot':{'name':'plugins.item','view':'summary','only':项['id']},#摘要槽
-            'actions':{'open':lambda 身份=项['id']:自身.开条目(身份)},
-        }#卡结束
-
-    def _包详情(自身,包,翻译,状态,账本,属性):
-        '组合包详情页'
-        文=包文案(包,翻译)#文案
-        查询=自身.行筛选.strip().lower()#筛选
-        行表=包['rows'] if 查询=='' else [行 for 行 in 包['rows'] if 查询 in 行['rowId'].lower()]#过滤
-        行视图=[]#行
-        for 行 in 行表:#每行
-            键=行配置键(包['name'],行['rowId'])#配置键
-            有配置=键 in 账本['rows']
-            行视图.append({#行
-                'rowId':行['rowId'],#id
-                'moduleName':行['moduleName'],#模块
-                'entryId':行.get('entryId'),#入口
-                'enabled':行['enabled'],#启用
-                'phase':行.get('phase'),#阶段
-                'stateText':行状态文案(行,翻译),#状态句
-                'dotState':行点状态(行),#点
-                'busy':行.get('entryId') is not None and 行键(行['entryId']) in 状态['busy'],#忙碌
-                'locked':'readOnlyReason' in 行 or 'entryId' not in 行,#锁定
-                'readOnlyReason':行.get('readOnlyReason'),#只读
-                'hasConfig':有配置,#配置
-                'configureLabel':翻译('configureRow',{'name':行['moduleName']}),#配置钮
-                'actions':{#动作
-                    'setEnabled':lambda 启,入口=行.get('entryId'):属性['setRowEnabled'](入口,启) if 入口 is not None else None,
-                    'openConfig':lambda 名=包['name'],行标识=行['rowId']:自身.开行(名,行标识) if 有配置 else None,
-                },#动作结束
-            })#行结束
-        return {#详情
-            'kind':'package-detail',#种类
-            'name':包['name'],#名
-            'title':文['title'],#标题
-            'description':文['description'] if isinstance(文.get('description'),str) and 文['description']!='' else None,#描述；没有则不另写一句
-            'beta':文['beta'],#beta
-            'version':包.get('version'),#版本
-            'status':包状态(包),#状态
-            'installed':包['installed'],#已装
-            'enabled':包['enabled'],#启用
-            'busy':包['name'] in 状态['busy'],#忙碌
-            'readOnlyReason':包.get('readOnlyReason'),#只读
-            'error':包.get('error'),#错误
-            'errorText':装载文案(包['error'],翻译) if 包.get('error') is not None else None,#错误句
-            'readOnlyText':装载文案({'code':包['readOnlyReason']},翻译) if 包.get('readOnlyReason') is not None else None,#只读句
-            'configured':包['name'] in 账本['bundles'],#自有配置
-            'bundleConfigSlot':{'name':'plugins.bundle.config','view':'page','entryKey':包['name']},#配置槽
-            'partsSummary':部件摘要(包['rows'],翻译) if len(包['rows'])>0 else None,#摘要
-            'showFilter':len(包['rows'])>行筛选阈值,#筛选
-            'filter':自身.行筛选,#筛选值
-            'rows':行视图,#行
-            'filterEmpty':len(包['rows'])>0 and len(行视图)==0,#无匹配
-            'labels':{#文案
-                'backToList':翻译('backToList'),
-                'crumbRoot':翻译('crumbRoot'),
-                'uninstall':翻译('uninstall'),
-                'uninstallLabel':翻译('uninstallLabel',{'name':文['title']}),
-                'enableToggle':翻译('enableToggle',{'name':文['title']}),
-                'partsLabel':翻译('partsLabel'),
-                'partsEmpty':翻译('partsEmpty'),
-                'partsFilter':翻译('partsFilter'),
-                'partsFilterEmpty':翻译('partsFilterEmpty'),
-                'reasonLabel':翻译('reasonLabel'),
-                'versionTag':翻译('versionTag',{'version':包['version']}) if 包.get('version') is not None else None,
-                'statusBeta':翻译('statusBeta'),
-                'statusProblem':翻译('statusProblem'),
-                'configureRow':翻译('configureRow'),
-            },#文案结束
-            'actions':{#动作
-                'back':自身.回列表,#回
-                'setEnabled':lambda 启:属性['setEnabled'](包['name'],启),#启停
-                'uninstall':lambda:属性['uninstall'](包['name']),#卸载
-                'setFilter':自身.设行筛选,#筛选
-            },#动作结束
-            'subject':{'kind':'bundle','pkg':{'name':包['name'],'installed':自身._已装(包),'enabled':包['enabled'] is True if 'enabled' in 包 else False}},#详情槽主体
-        }#详情结束
-
-    def _行详情(自身,包,行,翻译,属性):
-        '行配置详情'
-        文=包文案(包,翻译)#文案
-        键=行配置键(包['name'],行['rowId'])#键
-        return {#详情
-            'kind':'row-detail',#种类
-            'key':键,#键
-            'rowId':行['rowId'],#行 id
-            'moduleName':行['moduleName'],#模块
-            'description':自身._行说明(行),#说明；没有则回退 summary 槽
-            'summarySlot':{'name':'plugins.row.config','view':'summary','entryKey':键},#摘要
-            'pageSlot':{'name':'plugins.row.config','view':'page','entryKey':键},#页面
-            'labels':{#文案
-                'back':翻译('backToPackage',{'name':文['title']}),
-                'crumb':文['title'],
-            },#文案结束
-            'actions':{'back':lambda 名=包['name']:自身.回包(名)},#回
-            'subject':{'kind':'row','row':{'rowId':行['rowId'],'moduleName':行['moduleName'],'enabled':行['enabled'] is True if 'enabled' in 行 else False}},#详情槽主体
-        }#详情结束
-
-    def _条目详情(自身,项,翻译,属性):
-        '官方插件详情'
-        return {#详情
-            'kind':'item-detail',#种类
-            'id':项['id'],#id
-            'label':项['label'],#标签
-            'summarySlot':{'name':'plugins.item','view':'summary','only':项['id']},#摘要
-            'pageSlot':{'name':'plugins.item','view':'page','only':项['id']},#页面
-            'labels':{'backToList':翻译('backToList'),'crumbRoot':翻译('crumbRoot')},#文案
-            'actions':{'back':自身.回列表},#回
-            'subject':{'kind':'item','id':项['id']},#详情槽主体
-        }#详情结束
-
-    def _安装视图(自身,安装,翻译):
-        '安装对话框视图'
-        阶段=安装['phase']#阶段
-        结果={#基础
-            'open':安装['open'],
-            'phase':阶段,#阶段
-            'spec':安装['spec'],#规格
-            'guideOpen':自身.引导开,#引导
-            'detailsOpen':安装['detailsOpen'],#详情
-            'runs':安装['runs'],#运行
-            'subject':安装['subject'],#主体
-            'enabling':安装['enabling'],#启用中
-            'installed':安装['installed'],#已装名
-            'restartRequired':安装['restartRequired'],#需重启
-            'approvedBuilds':安装['approvedBuilds'],#已允许
-            'failure':安装['failure'],#失败
-            'inputError':安装['inputError'],#输入错
-            'pending':是否安装待决(阶段),#待决
-            'guideExamples':[{#引导例
-                'key':例['key'],
-                'title':翻译(例['titleKey']),
-                'example':翻译(例['exampleKey']),
-                'hint':翻译(例['hintKey']),
-            } for 例 in 引导示例],
-        }#基础结束
-        if 安装['inputError'] is not None:#输入错
-            错=安装['inputError']#错
-            结果['inputErrorText']=翻译(输入问题键[错['problem']],{'reason':错['reason']})#句
-        if 阶段 not in ('idle','checking'):#后续屏
-            结果['heading']=翻译(屏标题键[阶段])#标题
-            结果['failureText']=失败文案(安装['failure'],翻译) if 阶段=='failed' else None#失败句
-            if 安装['subject'] is not None:#主体卡
-                主体=安装['subject']#主体
-                种键=主体种类键.get(主体['kind'])#种类键
-                结果['subjectCard']={#卡
-                    'title':主体['name'] if 'name' in 主体 and 主体['name'] is not None else 主体['spec'],#标题
-                    'description':主体['description'] if 'description' in 主体 and 主体['description'] is not None else (翻译(种键) if 种键 is not None else None),#描述
-                    'version':翻译('installVersion',{'version':主体['version']}) if 'version' in 主体 and 主体['version'] is not None else None,#版本
-                }#卡结束
-            待=安装['failure']['pendingBuilds'] if 阶段=='failed' and 安装['failure'] is not None and 'pendingBuilds' in 安装['failure'] else []#待允许
-            结果['pendingBuilds']=待 if 待 is not None else []#待
-            结果['approvable']=len(结果['pendingBuilds'])>0#可批准
-        属性=自身.属性#props
-        结果['actions']={#动作
-            'close':属性['closeInstall'],
-            'editSpec':属性['editInstallSpec'],
-            'run':属性['runInstall'],
-            'cancel':属性['cancelInstall'],
-            'cancelAndClose':属性['cancelInstallAndClose'],
-            'toggleDetails':属性['toggleInstallDetails'],
-            'enableNow':属性['enableInstalled'],
-            'approveBuilds':属性['approveBuildsAndRetry'],
-            'toggleGuide':自身.切换引导,
-        }#动作结束
-        结果['labels']={#文案键投影（常用）
-            'installTitle':翻译('installTitle'),
-            'installDescription':翻译('installDescription'),
-            'installSpecLabel':翻译('installSpecLabel'),
-            'installSpecPlaceholder':翻译('installSpecPlaceholder'),
-            'installRun':翻译('installRun'),
-            'installChecking':翻译('installChecking'),
-            'installGuideToggle':翻译('installGuideToggle'),
-            'installGuideHide':翻译('installGuideHide'),
-            'installGuideIntro':翻译('installGuideIntro'),
-            'installGuideIdNote':翻译('installGuideIdNote'),
-            'installGuideExampleLabel':翻译('installGuideExampleLabel'),
-            'installGuideFill':翻译('installGuideFill'),
-            'installGuideSafety':翻译('installGuideSafety'),
-            'close':翻译('close'),
-            'installEdit':翻译('installEdit'),
-            'installCancel':翻译('installCancel'),
-            'installCancelling':翻译('installCancelling'),
-            'installCloseCancels':翻译('installCloseCancels'),
-            'installDetailsShow':翻译('installDetailsShow'),
-            'installDetailsHide':翻译('installDetailsHide'),
-            'installRetry':翻译('installRetry'),
-            'installEnableNow':翻译('installEnableNow'),
-            'installClose':翻译('installClose'),
-            'installApprovalTitle':翻译('installApprovalTitle'),
-            'installApprovalDescription':翻译('installApprovalDescription'),
-            'installApprovalConsequence':翻译('installApprovalConsequence'),
-            'installApprovalCaution':翻译('installApprovalCaution'),
-            'installApproveAndRetry':翻译('installApproveAndRetry'),
-            'installDoneNothing':翻译('installDoneNothing'),
-            'installDoneRestart':翻译('installDoneRestart'),
-            'installLocation':翻译('installLocation'),
-            'terminalNoOutput':翻译('terminalNoOutput'),
-        }#文案结束
-        return 结果#安装视图
-
-    def _确认视图(自身,确认,翻译):
-        '卸载确认视图'
-        if 确认 is None:
-            return None#无
-        文=包文案({'name':确认['packageName']},翻译)#文案
-        return {#确认
-            'action':确认['action'],#动作
-            'packageName':确认['packageName'],#包名
-            'title':翻译('confirmUninstallTitle',{'name':文['title']}),#标题
-            'description':翻译('confirmUninstallDescription'),#说明
-            'confirmLabel':翻译('confirmUninstall'),#确认
-            'cancelLabel':翻译('cancel'),#取消
-            'closeLabel':翻译('close'),#关闭
-            'actions':{#动作
-                'confirm':自身.属性['confirm'],
-                'cancel':自身.属性['cancelConfirm'],
-            },#动作结束
-        }#确认结束
-
-    def _安放(自身,界面):
-        '复用根列'
-        旧=getattr(自身,'根',None)
-        if 旧 is not None:
-            try:
-                旧.clear()
-                return 旧
-            except Exception as 错误:
-                自身.根=None
-                自身.画面失败=页面失败文案(错误)
-        自身.根=界面.column().classes('插件装载页根 page')
-        return 自身.根
-
-    def _画开关(自身,界面,启用,禁用,回调):
-        '启停开关；值未变则不重画'
-        def 改(事件,写=回调):
-            '写入启停'
-            下一=事件.value is True
-            if 下一==启用:
-                return
-            写(下一)
-            自身.渲染()
-        开关=界面.switch(value=启用 is True,on_change=改)
-        if 禁用 is True:
-            开关.disable()
-
-    def _画槽(自身,槽):
-        '声明过的配置席由宿主画；没有 renderSlot 时跳过'
-        渲=自身.属性['renderSlot'] if 'renderSlot' in 自身.属性 else None
-        if 渲 is None or not isinstance(槽,dict) or 'name' not in 槽:
-            return
-        拥有={}
-        if 'view' in 槽:
-            拥有['view']=槽['view']
-        选项={}
-        if 'entryKey' in 槽 and 槽['entryKey'] is not None:
-            选项['entryKey']=槽['entryKey']
-        if 'only' in 槽 and 槽['only'] is not None:
-            选项['only']=槽['only']
-        渲(槽['name'],拥有,选项 if len(选项)>0 else None)
-
-    def _画拥有槽(自身,名,拥有,选项=None):
-        '直接把拥有方属性交给已声明的槽'
-        渲=自身.属性['renderSlot'] if 'renderSlot' in 自身.属性 else None
-        if 渲 is None:#没装
-            return#跳过
-        渲(名,拥有 if isinstance(拥有,dict) else {},选项)#画
-
-    def _画点(自身,界面,态):
-        '行或失败旁的状态点'
-        if 态 in ('ongoing','error','done','warning'):#四态
-            状态点({'state':态,'size':10}).渲染()#点
-            return#已画
-        if 态=='idle':#空闲；状态点类会把未知态画成完成
-            界面.html('<span aria-hidden="true" class="状态点 点" data-state="idle" style="width:10px;height:10px"></span>',sanitize=False)#闲点
-
-    def _画卡(自身,界面,卡):
-        '组合包或官方条目卡'
-        def 点开():
-            '进入详情'
-            卡['actions']['open']()
-            自身.渲染()
-        界面.button(卡['title'] if 'title' in 卡 else 卡['label'],on_click=点开).props('flat no-caps align=left')
-        描述=卡['description'] if 'description' in 卡 else None
-        if isinstance(描述,str) and 描述!='':
-            界面.label(描述)
-        if 'summarySlot' in 卡:
-            自身._画槽(卡['summarySlot'])
-        if 卡.get('beta') is True:
-            界面.label(卡['statusBeta'] if 'statusBeta' in 卡 and isinstance(卡['statusBeta'],str) else 'Beta')
-        if 卡.get('status')=='problem':
-            界面.label(卡['statusProblem'] if 'statusProblem' in 卡 and isinstance(卡['statusProblem'],str) else '')
-        版本=卡['versionTag'] if 'versionTag' in 卡 else None
-        if isinstance(版本,str) and 版本!='':
-            界面.label(版本)
-        if 卡['kind']=='package-card':
-            def 写启停(启,名=卡['name'],写=卡['actions']['setEnabled']):
-                '记下刚启用的包，供启用后槽使用'
-                if 启 is True:
-                    自身.激活名=名
-                elif 自身.激活名==名:
-                    自身.激活名=None
-                写(启)
-            自身._画开关(界面,卡['enabled'],卡['busy'] is True or 卡.get('readOnlyReason') is not None,写启停)
-
-    def _画安装(自身,界面,安装):
-        '安装对话框'
-        if not isinstance(安装,dict) or 安装.get('open') is not True:
-            return
-        文=安装['labels']
-        动作=安装['actions']
-        with 界面.dialog() as 对话框:
-            with 界面.card():
-                界面.label(文['installTitle'])
-                界面.label(文['installDescription'])
-                if 安装['phase'] in ('idle','checking'):
-                    def 改规格(事件):
-                        '写入安装规格'
-                        动作['editSpec'](事件.value)
-                    界面.input(文['installSpecLabel'],value=安装['spec'],placeholder=文['installSpecPlaceholder'],on_change=改规格)
-                    if isinstance(安装.get('inputErrorText'),str) and 安装['inputErrorText']!='':
-                        界面.label(安装['inputErrorText'])
-                    def 点引导():
-                        '展开或收起安装引导'
-                        动作['toggleGuide']()
-                        自身.渲染()
-                    界面.button(文['installGuideHide'] if 安装['guideOpen'] is True else 文['installGuideToggle'],on_click=点引导).props('flat no-caps')
-                    if 安装['guideOpen'] is True:
-                        界面.label(文['installGuideIntro'])
-                        for 例 in 安装['guideExamples']:
-                            界面.label(例['title'])
-                            界面.label(例['example'])
-                            界面.label(例['hint'])
-                            def 点填(_事件=None,文本=例['example']):
-                                '把示例填进规格'
-                                动作['editSpec'](文本)
-                                自身.渲染()
-                            界面.button(文['installGuideFill'],on_click=点填).props('flat no-caps')
-                        界面.label(文['installGuideSafety'])
-                    def 点安装():
-                        '开始安装'
-                        动作['run']()
-                        自身.渲染()
-                    跑=界面.button(文['installChecking'] if 安装['phase']=='checking' else 文['installRun'],on_click=点安装)
-                    if 安装['pending'] is True or (isinstance(安装['spec'],str) and 安装['spec'].strip()==''):
-                        跑.disable()
-                else:
-                    if isinstance(安装.get('heading'),str) and 安装['heading']!='':
-                        界面.label(安装['heading'])
-                    主体=安装.get('subjectCard')
-                    if isinstance(主体,dict):
-                        界面.label(主体['title'])
-                        if isinstance(主体['description'],str) and 主体['description']!='':
-                            界面.label(主体['description'])
-                        if isinstance(主体['version'],str) and 主体['version']!='':
-                            界面.label(主体['version'])
-                    if isinstance(安装.get('failureText'),str) and 安装['failureText']!='':
-                        界面.label(安装['failureText'])
-                    待建=安装['pendingBuilds'] if 'pendingBuilds' in 安装 and 安装['pendingBuilds'] is not None else []
-                    if len(待建)>0:
-                        界面.label(文['installApprovalTitle'])
-                        界面.label(文['installApprovalDescription'])
-                        for 名 in 待建:
-                            界面.label(名 if isinstance(名,str) else str(名))
-                        def 点批准():
-                            '允许构建并重试'
-                            动作['approveBuilds']()
-                            自身.渲染()
-                        界面.button(文['installApproveAndRetry'],on_click=点批准)
-                    if 安装['phase']=='done':
-                        界面.label(文['installDoneRestart'] if 安装['restartRequired'] is True else 文['installDoneNothing'])
-                        if isinstance(安装['installed'],str) and 安装['installed']!='':
-                            def 点启用():
-                                '立刻启用'
-                                动作['enableNow']()
-                                自身.渲染()
-                            界面.button(文['installEnableNow'],on_click=点启用)
-                    def 点详情():
-                        '展开或收起输出'
-                        动作['toggleDetails']()
-                        自身.渲染()
-                    界面.button(文['installDetailsHide'] if 安装['detailsOpen'] is True else 文['installDetailsShow'],on_click=点详情).props('flat no-caps')
-                    if 安装['detailsOpen'] is True:
-                        运行=安装['runs'] if 安装['runs'] is not None else []
-                        if len(运行)==0:
-                            界面.label(文['terminalNoOutput'])
-                        else:
-                            for 段 in 运行:
-                                if isinstance(段,dict):
-                                    命令=段['command'] if 'command' in 段 else ''
-                                    输出=段['output'] if 'output' in 段 and 段['output'] is not None else ''
-                                    if 命令!='':
-                                        界面.label(命令)
-                                    if 输出!='':
-                                        界面.label(输出).style('white-space:pre-wrap')
-                                    elif 命令=='':
-                                        界面.label(文['terminalNoOutput'])
-                                elif isinstance(段,str) and 段!='':
-                                    界面.label(段).style('white-space:pre-wrap')
-                    def 点取消安装():
-                        '取消安装'
-                        动作['cancel']()
-                        自身.渲染()
-                    界面.button(文['installCancelling'] if 安装['phase']=='cancelling' else 文['installCancel'],on_click=点取消安装).props('flat no-caps')
-                def 点关():
-                    '关闭安装；进行中则取消并关闭'
-                    if 安装['pending'] is True and 安装['phase'] not in ('idle','checking'):
-                        动作['cancelAndClose']()
-                    else:
-                        动作['close']()
-                    自身.渲染()
-                界面.button(文['close'],on_click=点关).props('flat no-caps')
-        对话框.open()
-
-    def _画确认(自身,界面,确认):
-        '卸载确认'
-        if 确认 is None:
-            return
-        with 界面.dialog() as 对话框:
-            with 界面.card():
-                界面.label(确认['title'])
-                界面.label(确认['description'])
-                def 点确认():
-                    '确认卸载'
-                    确认['actions']['confirm']()
-                    自身.渲染()
-                def 点取消():
-                    '取消卸载'
-                    确认['actions']['cancel']()
-                    自身.渲染()
-                界面.button(确认['confirmLabel'],on_click=点确认)
-                界面.button(确认['cancelLabel'],on_click=点取消).props('flat no-caps')
-        对话框.open()
+        '记下地址'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.失败源=None
 
     def 渲染(自身):
-        '列表、详情、安装对话框与卸载确认'
-        if 't' not in 自身.属性:#槽位还没给文案
-            return#不画
-        视=自身.视图()
-        with 自身._安放(界面):
-            失败句=getattr(自身,'画面失败',None)
-            if isinstance(失败句,str) and 失败句!='':
-                自身.画面失败=None
-                界面.label(失败句)
-            if 视 is None:#钩子还没绑上
-                界面.label(自身.属性['t']('loading'))
-                return#先画再停
-            文=视['labels']
-            界面.label(文['title'])
-            界面.label(文['intro'])
-            忙=isinstance(视['busy'],list) and len(视['busy'])>0
-            with 界面.row():
-                def 点刷新():
-                    '重读清单'
-                    视['actions']['refresh']()
-                    自身.渲染()
-                刷=界面.button(文['refresh'],on_click=点刷新).props('flat no-caps')
-                def 点添加():
-                    '打开安装并收起菜单'
-                    自身.添加开=False
-                    视['actions']['openInstall']()
-                    自身.渲染()
-                加=界面.button(文['addPlugin'],on_click=点添加)
-                def 点更多():
-                    '展开添加方式'
-                    自身.添加开=not 自身.添加开
-                    自身.渲染()
-                界面.button(on_click=点更多).props('icon=expand_more flat')
-                if 忙:
-                    刷.disable()
-                    加.disable()
-            if 自身.添加开:
-                with 界面.column().classes('plugin-add-menu'):
-                    界面.button(自身.属性['t']('installTitle'),on_click=点添加).props('flat no-caps align=left')
-                    def 关菜单():
-                        '收起添加菜单'
-                        自身.添加开=False
-                        自身.渲染()
-                    自身._画拥有槽('plugins.add.actions',{'onDismiss':关菜单})
-            if isinstance(视['noticeLine'],str) and 视['noticeLine']!='':
-                界面.label(视['noticeLine'])
-                def 点关提示():
-                    '关掉提示'
-                    视['actions']['dismissNotice']()
-                    自身.渲染()
-                界面.button(on_click=点关提示).props('icon=close flat round')
-            if 视['status']=='loading' or 视['loaded'] is not True:
-                if 视['status']=='error':
-                    自身._画点(界面,'error')
-                    界面.label(文['error'])
-                    def 点重试():
-                        '再读'
-                        视['actions']['refresh']()
-                        自身.渲染()
-                    界面.button(文['retry'],on_click=点重试).props('flat no-caps')
-                elif 视['status']=='unavailable':
-                    界面.label(文['unavailable'])
+        '有地址且没失败就画 img，否则画默认或子智能体稿'
+        属性=自身.属性
+        窗口=窗口于(属性)
+        文档=窗口.document
+        是行=属性.get('row') is True
+        尺寸=属性['size'] if 'size' in 属性 else (行画稿尺寸 if 是行 else 卡片画稿尺寸)
+        地址=属性.get('src')
+        if 地址 is None or 地址==自身.失败源:
+            类=插件画稿子智能体 if 是行 else 插件画稿默认
+            return 类({'window':窗口,'size':尺寸}).渲染()
+        图=文档.createElement('img')
+        图.className='packageImage'
+        标样式模块(图,样式模块)
+        图.src=地址
+        图.width=尺寸
+        图.height=尺寸
+        图.alt=''
+        def 失败(事件=None):
+            '这次地址解码失败'
+            自身.失败源=地址
+            if 属性.get('重画') is not None:
+                属性['重画']()
+        图.addEventListener('error',失败)
+        return 图
+
+class 包预览:
+    '详情页上的功能预览。失败只在原处说明'
+    def __init__(自身,属性):
+        '记下地址和标题'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.失败源=None
+
+    def 渲染(自身):
+        '失败时写出无法显示，否则画图'
+        属性=自身.属性
+        窗口=窗口于(属性)
+        文档=窗口.document
+        地址=属性.get('src')
+        if 地址==自身.失败源:
+            段=建(文档,'p','reason')
+            段.setAttribute('role','status')
+            段.textContent=中文句('previewUnavailable')
+            return 段
+        图=文档.createElement('img')
+        图.className='packagePreview'
+        标样式模块(图,样式模块)
+        图.src=地址
+        图.alt=中文句('previewAlt',{'name':属性.get('title') or ''})
+        def 失败(事件=None):
+            '预览解码失败'
+            自身.失败源=地址
+            if 属性.get('重画') is not None:
+                属性['重画']()
+        图.addEventListener('error',失败)
+        return 图
+
+class 元数据错误:
+    'Host 的元信息诊断，不改变管理权限'
+    def __init__(自身,属性):
+        '记下错误文本'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '没有错误就不画'
+        错误=自身.属性.get('error')
+        if 错误 is None:
+            return None
+        文档=窗口于(自身.属性).document
+        段=建(文档,'p','reason')
+        段.setAttribute('role','status')
+        段.setAttribute('data-package-meta-error','')
+        段.textContent=中文句('metadataError',{'error':错误})
+        return 段
+
+class 启用开关:
+    '组合包的启用开关。Host 拒绝或读不了时锁上，并说明原因'
+    def __init__(自身,属性):
+        '记下包和回调'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '画出开关'
+        属性=自身.属性
+        包=属性['pkg']
+        锁=包.get('readOnlyReason') is not None
+        读不了=包.get('enabled') is not True and 包.get('error') is not None
+        可装缺文件=包.get('availability')=='missing' and 包.get('installTarget') is not None
+        开关属性={
+            'window':窗口于(属性),
+            'checked':包.get('enabled') is True,
+            'label':中文句('enableToggle',{'name':属性.get('title') or ''}),
+            'disabled':属性.get('busy') is True or 锁 or (读不了 and not 可装缺文件),
+            'onChange':属性.get('onSetEnabled'),
+        }
+        if 包.get('readOnlyReason') is not None:
+            开关属性['title']=管理文案({'code':包['readOnlyReason']})
+        return 开关(开关属性).渲染()
+
+class 行开关:
+    '一行的开关。没有活入口或 Host 拒绝时锁上'
+    def __init__(自身,属性):
+        '记下行'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '画出组件开关'
+        属性=自身.属性
+        行=属性['row']
+        锁=行.get('readOnlyReason') is not None or 行.get('entryId') is None
+        开关属性={
+            'window':窗口于(属性),
+            'checked':行.get('enabled') is True,
+            'label':中文句('partToggle',{'name':属性.get('title') or ''}),
+            'disabled':属性.get('busy') is True or 锁,
+            'onChange':属性.get('onChange'),
+        }
+        if 行.get('readOnlyReason') is not None:
+            开关属性['title']=管理文案({'code':行['readOnlyReason']})
+        return 开关(开关属性).渲染()
+
+class 卡片头:
+    '卡片共有的头：画稿、名称、标签、一行说明和末尾控件'
+    def __init__(自身,属性):
+        '记下标题和打开动作'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '画出卡片头'
+        属性=自身.属性
+        文档=窗口于(属性).document
+        头=建(文档,'div','cardHead')
+        标=建(文档,'span','cardIcon')
+        标.setAttribute('aria-hidden','true')
+        挂上(标,属性.get('icon'))
+        头.appendChild(标)
+        主=建(文档,'div','cardMain')
+        行=建(文档,'div','titleRow')
+        钮=建(文档,'button','cardTitle cardOpen')
+        钮.type='button'
+        钮.setAttribute('aria-label',中文句('openDetail',{'name':属性.get('title') or ''}))
+        钮.textContent=属性.get('title') or ''
+        def 打开(事件=None):
+            '打开这一张'
+            if 属性.get('onOpen') is not None:
+                属性['onOpen']()
+        钮.addEventListener('click',打开)
+        行.appendChild(钮)
+        if 属性.get('tags') is not None:
+            挂上(行,属性['tags'])
+        主.appendChild(行)
+        if 属性.get('description') is not None:
+            说明=建(文档,'span','cardDesc')
+            挂上(说明,属性['description'])
+            主.appendChild(说明)
+        头.appendChild(主)
+        if 属性.get('end') is not None:
+            尾=建(文档,'div','cardEnd')
+            挂上(尾,属性['end'])
+            头.appendChild(尾)
+        return 头
+
+class 列表骨架:
+    '第一次读取时的占位卡片'
+    def __init__(自身,属性):
+        '记下无障碍名'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '画出四张空卡片'
+        文档=窗口于(自身.属性).document
+        区=建(文档,'section','group')
+        区.setAttribute('role','status')
+        区.setAttribute('aria-label',自身.属性.get('label') or '')
+        区.setAttribute('data-plugin-loading','')
+        头=建(文档,'div','groupHead')
+        头.setAttribute('aria-hidden','true')
+        题=建(文档,'span','groupTitle skeletonText skeletonHeading')
+        题.appendChild(建(文档,'span','skeletonFill skeletonBar'))
+        头.appendChild(题)
+        区.appendChild(头)
+        列=建(文档,'ul','cards')
+        列.setAttribute('aria-hidden','true')
+        for 序 in range(4):
+            项=建(文档,'li','card')
+            卡头=建(文档,'div','cardHead')
+            卡头.appendChild(建(文档,'span','cardIcon skeletonFill skeletonIcon'))
+            主=建(文档,'div','cardMain')
+            行=建(文档,'div','titleRow')
+            名=建(文档,'span','cardTitle skeletonText skeletonTitle')
+            名.appendChild(建(文档,'span','skeletonFill skeletonBar'))
+            行.appendChild(名)
+            主.appendChild(行)
+            述=建(文档,'span','cardDesc skeletonText skeletonDescription')
+            述.appendChild(建(文档,'span','skeletonFill skeletonBar'))
+            主.appendChild(述)
+            卡头.appendChild(主)
+            卡头.appendChild(建(文档,'div','cardEnd skeletonActions'))
+            项.appendChild(卡头)
+            列.appendChild(项)
+        区.appendChild(列)
+        return 区
+
+class 详情顶:
+    '每页共有的顶：返回屑、图标和动作'
+    def __init__(自身,属性):
+        '记下返回动作'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '画出返回和动作行'
+        属性=自身.属性
+        文档=窗口于(属性).document
+        顶=建(文档,'div','detailTop')
+        顶.setAttribute('data-window-drag','')
+        屑=建(文档,'button','crumb')
+        屑.type='button'
+        屑.setAttribute('aria-label',属性.get('crumbLabel') or '')
+        标=画图标(窗口于(属性),图标下箭头描边常规,14)
+        if 标 is not None:
+            标.className='crumbIcon'
+            标.setAttribute('aria-hidden','true')
+            标样式模块(标,样式模块)
+            屑.appendChild(标)
+        字=文档.createElement('span')
+        字.textContent=属性.get('crumbText') or ''
+        屑.appendChild(字)
+        def 返回(事件=None):
+            '回到上一层'
+            if 属性.get('onBack') is not None:
+                属性['onBack']()
+        屑.addEventListener('click',返回)
+        顶.appendChild(屑)
+        头=建(文档,'div','detailHead')
+        图=建(文档,'span','cardIcon')
+        图.setAttribute('aria-hidden','true')
+        挂上(图,属性.get('icon'))
+        头.appendChild(图)
+        if 属性.get('actions') is not None:
+            挂上(头,属性['actions'])
+        顶.appendChild(头)
+        return 顶
+
+class 来源区:
+    '声明的安装来源和版本'
+    def __init__(自身,属性):
+        '记下包'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '内置且没有来源、未安装、也不是可选包时不画'
+        包=自身.属性['pkg']
+        if 包.get('source') is None and 包.get('installed') is not True and 包.get('availability')=='installation' and 包.get('optional') is not True:
+            return None
+        文档=窗口于(自身.属性).document
+        区=建(文档,'section','detailSection')
+        区.setAttribute('data-plugin-source','')
+        题=建(文档,'h4','sectionTitle')
+        题.textContent=中文句('sourceTitle')
+        区.appendChild(题)
+        表=建(文档,'dl','facts')
+        def 加行(名,值节点):
+            '一行事实'
+            行=文档.createElement('div')
+            名节=文档.createElement('dt')
+            名节.textContent=名
+            值节=文档.createElement('dd')
+            if isinstance(值节点,str):
+                值节.textContent=值节点
+            else:
+                值节.appendChild(值节点)
+            行.appendChild(名节)
+            行.appendChild(值节)
+            表.appendChild(行)
+        if 包.get('source') is not None:
+            码=文档.createElement('code')
+            码.textContent=包['source']
+            加行(中文句('sourceSpec'),码)
+        elif 包.get('availability')=='missing':
+            键='statusMissingFiles' if 包.get('installed') is True else 'sourceNotInstalled'
+            加行(中文句('sourceSpec'),中文句(键))
+        else:
+            加行(中文句('sourceSpec'),中文句('sourceBuiltIn'))
+        if 包.get('version') is not None:
+            加行(中文句('sourceVersion'),包['version'])
+        目标=包.get('installTarget')
+        if 目标 is not None:
+            码=文档.createElement('code')
+            码.textContent=目标.get('spec') or ''
+            加行(中文句('sourceTargetSpec'),码)
+            加行(中文句('sourceTargetVersion'),目标.get('version') or '')
+        区.appendChild(表)
+        return 区
+
+class 行区:
+    '按声明顺序列出组件。超过十行才出现筛选'
+    def __init__(自身,属性):
+        '筛选从空开始'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.筛选=''
+
+    def 渲染(自身):
+        '画出标题、计数、筛选和行'
+        属性=自身.属性
+        窗口=窗口于(属性)
+        文档=窗口.document
+        行表=属性.get('rows') or []
+        解析=属性['resolveText']
+        查询=自身.筛选.strip().lower()
+        显示=[]
+        for 行 in 行表:
+            文=行文案(行,解析)
+            块=[文['title'],文.get('description'),行['rowId'],行['moduleName']]
+            命中=查询=='' or any(isinstance(项,str) and 查询 in 项.lower() for 项 in 块)
+            if 命中:
+                显示.append((行,文))
+        区=建(文档,'section','detailSection')
+        区.setAttribute('data-plugin-rows','')
+        头=建(文档,'div','sectionHead')
+        题=建(文档,'h4','sectionTitle')
+        题.textContent=中文句('partsLabel')
+        头.appendChild(题)
+        if len(行表)>0:
+            计数=建(文档,'span','sectionCount')
+            计数.textContent=部件摘要(行表)
+            头.appendChild(计数)
+        区.appendChild(头)
+        if len(行表)==0:
+            空=建(文档,'p','status')
+            空.textContent=中文句('partsEmpty')
+            区.appendChild(空)
+        if len(行表)>行筛选阈值:
+            框=文档.createElement('input')
+            框.type='search'
+            框.className='partsFilter'
+            标样式模块(框,样式模块)
+            框.placeholder=中文句('partsFilter')
+            框.setAttribute('aria-label',中文句('partsFilter'))
+            框.value=自身.筛选
+            def 改(事件):
+                '更新筛选并重画'
+                自身.筛选=事件.target.value
+                if 属性.get('重画') is not None:
+                    属性['重画']()
+            框.addEventListener('input',改)
+            区.appendChild(框)
+        if len(行表)>0 and len(显示)==0:
+            无=建(文档,'p','status')
+            无.textContent=中文句('partsFilterEmpty')
+            区.appendChild(无)
+        if len(显示)>0:
+            列=建(文档,'ul','rows')
+            for 行,文 in 显示:
+                项=建(文档,'li','row')
+                项.setAttribute('data-plugin-row',行['entryId'] if 行.get('entryId') is not None else 行['rowId'])
+                if 行.get('phase')=='failed':
+                    项.setAttribute('data-state','failed')
+                elif 行.get('enabled') is not True:
+                    项.setAttribute('data-state','off')
+                线=建(文档,'div','rowLine')
+                图盒=建(文档,'span','rowIcon')
+                图盒.setAttribute('aria-hidden','true')
+                图=包画稿({'window':窗口,'src':None if 行.get('meta') is None else 行['meta'].get('icon'),'row':True,'重画':属性.get('重画')}).渲染()
+                if 图 is not None:
+                    图盒.appendChild(图)
+                线.appendChild(图盒)
+                主=建(文档,'div','rowMain')
+                配置=属性.get('configure')
+                有页=配置 is not None and 配置['has'](行) is True
+                if 有页:
+                    开=建(文档,'button','rowOpen')
+                    开.type='button'
+                    开.setAttribute('aria-label',中文句('configureRow',{'name':文['title']}))
+                    名=建(文档,'span','rowId')
+                    名.textContent=文['title']
+                    开.appendChild(名)
+                    箭=画图标(窗口,图标右chevron14,14)
+                    if 箭 is not None:
+                        箭.className='rowOpenIcon'
+                        箭.setAttribute('aria-hidden','true')
+                        开.appendChild(箭)
+                    def 点开(事件=None,当前行=行):
+                        '打开这一行的配置'
+                        配置['open'](当前行)
+                    开.addEventListener('click',点开)
+                    主.appendChild(开)
                 else:
-                    界面.label(文['loading'])
-            elif 'rowDetail' in 视:
-                详情=视['rowDetail']
-                def 点回():
-                    '回到组合包'
-                    详情['actions']['back']()
-                    自身.渲染()
-                界面.button(详情['labels']['back'],on_click=点回).props('flat no-caps')
-                自身._画拥有槽('plugins.detail.actions',{'subject':详情['subject']})
-                界面.label(详情['moduleName'])
-                界面.label(详情['rowId'])
-                自身._画拥有槽('plugins.detail.badge',{'subject':详情['subject']})
-                if isinstance(详情.get('description'),str) and 详情['description']!='':
-                    界面.label(详情['description'])
+                    名=建(文档,'span','rowId')
+                    名.textContent=文['title']
+                    主.appendChild(名)
+                if 文.get('description') is not None:
+                    述=建(文档,'span','rowModule')
+                    述.textContent=文['description']
+                    主.appendChild(述)
+                if 文['title']!=行['rowId']:
+                    码=建(文档,'code','rowModule')
+                    码.textContent=行['rowId']
+                    主.appendChild(码)
+                if 文['title']!=行['moduleName']:
+                    码=建(文档,'code','rowModule')
+                    码.textContent=行['moduleName']
+                    主.appendChild(码)
+                线.appendChild(主)
+                态=建(文档,'span','rowState')
+                点态='idle'
+                if 行.get('enabled') is True and 行.get('phase') is not None:
+                    点态=阶段点[行['phase']]
+                点=状态点({'window':窗口,'state':点态}).渲染()
+                if 点 is not None:
+                    态.appendChild(点)
+                if 行.get('enabled') is not True:
+                    态文=中文句('partOff')
+                elif 行.get('phase') is None:
+                    态文=中文句('rowStateIdle')
                 else:
-                    自身._画槽(详情['summarySlot'])
-                自身._画槽(详情['pageSlot'])
-                自身._画拥有槽('plugins.detail.section',{'subject':详情['subject']})
-            elif 'packageDetail' in 视:
-                详情=视['packageDetail']
-                def 点回():
-                    '回到列表'
-                    详情['actions']['back']()
-                    自身.渲染()
-                界面.button(详情['labels']['backToList'],on_click=点回).props('flat no-caps')
-                自身._画拥有槽('plugins.detail.actions',{'subject':详情['subject']})
-                界面.label(详情['title'])
-                自身._画拥有槽('plugins.detail.badge',{'subject':详情['subject']})
-                if isinstance(详情['description'],str) and 详情['description']!='':
-                    界面.label(详情['description'])
-                if 详情.get('configured') is True:
-                    自身._画槽(详情['bundleConfigSlot'])
-                if isinstance(详情['labels']['versionTag'],str) and 详情['labels']['versionTag']!='':
-                    界面.label(详情['labels']['versionTag'])
-                if isinstance(详情['errorText'],str) and 详情['errorText']!='':
-                    界面.label(详情['errorText'])
-                if isinstance(详情['readOnlyText'],str) and 详情['readOnlyText']!='':
-                    界面.label(详情['readOnlyText'])
-                自身._画开关(界面,详情['enabled'],详情['busy'] is True or 详情.get('readOnlyReason') is not None,详情['actions']['setEnabled'])
-                if 详情['installed'] is True:
-                    def 点卸():
-                        '请求卸载'
-                        详情['actions']['uninstall']()
-                        自身.渲染()
-                    界面.button(详情['labels']['uninstall'],on_click=点卸).props('flat no-caps')
-                界面.label(详情['labels']['partsLabel'])
-                if isinstance(详情['partsSummary'],str) and 详情['partsSummary']!='':
-                    界面.label(详情['partsSummary'])
-                if 详情['showFilter'] is True:
-                    def 改筛选(事件):
-                        '过滤行'
-                        if 事件.value==自身.行筛选:
-                            return
-                        自身.设行筛选(事件.value)
-                        自身.渲染()
-                    界面.input(详情['labels']['partsFilter'],value=详情['filter'],on_change=改筛选)
-                if 详情['filterEmpty'] is True:
-                    界面.label(详情['labels']['partsFilterEmpty'])
-                elif len(详情['rows'])==0:
-                    界面.label(详情['labels']['partsEmpty'])
-                for 行 in 详情['rows']:
-                    自身._画点(界面,行['dotState'] if 'dotState' in 行 else 'idle')
-                    界面.label(行['moduleName'])
-                    界面.label(行['stateText'])
-                    自身._画开关(界面,行['enabled'],行['busy'] is True or 行['locked'] is True,行['actions']['setEnabled'])
-                    if 行['hasConfig'] is True:
-                        钮文=行['configureLabel'] if 'configureLabel' in 行 else 详情['labels']['configureRow']
-                        def 点配置(_事件=None,回调=行['actions']['openConfig']):
-                            '打开行配置'
-                            回调()
-                            自身.渲染()
-                        界面.button(钮文,on_click=点配置).props('flat no-caps')
-                自身._画拥有槽('plugins.detail.section',{'subject':详情['subject']})
-            elif 'itemDetail' in 视:
-                详情=视['itemDetail']
-                def 点回():
-                    '回到列表'
-                    详情['actions']['back']()
-                    自身.渲染()
-                界面.button(详情['labels']['backToList'],on_click=点回).props('flat no-caps')
-                自身._画拥有槽('plugins.detail.actions',{'subject':详情['subject']})
-                界面.label(详情['label'])
-                自身._画拥有槽('plugins.detail.badge',{'subject':详情['subject']})
-                自身._画槽(详情['summarySlot'])
-                自身._画槽(详情['pageSlot'])
-                自身._画拥有槽('plugins.detail.section',{'subject':详情['subject']})
-            elif 视['showsCards'] is True:
-                官方=视['officialCards'] if 'officialCards' in 视 else []
-                已装=视['bundleCards'] if 'bundleCards' in 视 else []
-                if len(官方)==0 and len(已装)==0 and 视['status']!='error':
-                    界面.label(文['empty']).classes('empty')
-                if len(官方)>0:
-                    界面.label(文['officialTitle'])
-                    for 卡 in 官方:
-                        自身._画卡(界面,卡)
-                if len(已装)>0:
-                    界面.label(文['bundlesTitle'])
-                    for 卡 in 已装:
-                        自身._画卡(界面,卡)
-                if 视['status']=='error':
-                    自身._画点(界面,'error')
-                    界面.label(文['error'])
-                    def 点列表重试():
-                        '再读'
-                        视['actions']['refresh']()
-                        自身.渲染()
-                    界面.button(文['retry'],on_click=点列表重试).props('flat no-caps')
-                if isinstance(自身.激活名,str) and 自身.激活名!='':
-                    def 关激活():
-                        '关掉启用后提示'
-                        自身.激活名=None
-                        自身.渲染()
-                    def 开激活详情(名=自身.激活名):
-                        '进入刚启用的包'
-                        自身.激活名=None
-                        自身.开包(名)
-                        自身.渲染()
-                    自身._画拥有槽('plugins.bundle.activation',{
-                        'packageName':自身.激活名,
-                        'onDismiss':关激活,
-                        'onOpenDetails':开激活详情,
-                    },{'entryKey':自身.激活名})
-            自身._画安装(界面,视['install'])
-            自身._画确认(界面,视['confirm'])
+                    态文=中文句(阶段键[行['phase']])
+                态.appendChild(文档.createTextNode(态文))
+                线.appendChild(态)
+                切换=属性.get('toggle')
+                if 切换 is not None:
+                    def 改开关(启用,当前行=行):
+                        '启停这一行'
+                        切换['onSetEnabled'](当前行,启用)
+                    开关节点=行开关({
+                        'window':窗口,'row':行,'title':文['title'],
+                        'busy':切换['busy'](行),
+                        'onChange':改开关,
+                    }).渲染()
+                    if 开关节点 is not None:
+                        线.appendChild(开关节点)
+                项.appendChild(线)
+                错=None if 行.get('meta') is None else 行['meta'].get('error')
+                错节点=元数据错误({'window':窗口,'error':错}).渲染()
+                if 错节点 is not None:
+                    项.appendChild(错节点)
+                列.appendChild(项)
+            区.appendChild(列)
+        return 区
+
+class 包卡片:
+    '一张打开详情的组合包卡片'
+    def __init__(自身,属性):
+        '记下包'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '画出名称、说明、标签和开关'
+        属性=自身.属性
+        窗口=窗口于(属性)
+        文档=窗口.document
+        包=属性['pkg']
+        文=包文案(包,属性['resolveText'])
+        状态=包状态(包)
+        项=建(文档,'li','card cardLink')
+        项.setAttribute('data-plugin-package',包['name'])
+        项.setAttribute('data-plugin-status',状态)
+        if 属性.get('highlighted') is True:
+            项.setAttribute('data-plugin-highlight','')
+        标签盒=文档.createElement('span')
+        if 文['beta'] is True:
+            挂组件(标签盒,标签({'window':窗口,'className':'statusTag','tone':'info','children':中文句('statusBeta')}))
+        if 状态=='problem':
+            挂组件(标签盒,标签({'window':窗口,'className':'statusTag','tone':'danger','children':中文句('statusProblem')}))
+        if 包.get('availability')=='missing':
+            键='statusMissingFiles' if 包.get('installed') is True else 'statusNotInstalled'
+            挂组件(标签盒,标签({'window':窗口,'className':'statusTag','children':中文句(键)}))
+        if 可更新(包):
+            挂组件(标签盒,标签({'window':窗口,'className':'statusTag','tone':'info','children':中文句('statusUpdateAvailable')}))
+        开关节点=启用开关({
+            'window':窗口,'pkg':包,'title':文['title'],'busy':属性.get('busy'),
+            'onSetEnabled':属性.get('onSetEnabled'),
+        }).渲染()
+        头=卡片头({
+            'window':窗口,'title':文['title'],'onOpen':属性.get('onOpen'),
+            'icon':包画稿({'window':窗口,'src':None if 包.get('meta') is None else 包['meta'].get('icon'),'重画':属性.get('重画')}).渲染(),
+            'tags':标签盒,'description':文.get('description'),'end':开关节点,
+        }).渲染()
+        项.appendChild(头)
+        错=None if 包.get('meta') is None else 包['meta'].get('error')
+        错节点=元数据错误({'window':窗口,'error':错}).渲染()
+        if 错节点 is not None:
+            项.appendChild(错节点)
+        return 项
+
+class 条目卡片:
+    '一张打开官方插件页的卡片'
+    def __init__(自身,属性):
+        '记下条目'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '标题来自登记，一行说明来自 summary'
+        属性=自身.属性
+        窗口=窗口于(属性)
+        文档=窗口.document
+        条目=属性['item']
+        项=建(文档,'li','card cardLink')
+        项.setAttribute('data-plugin-item',条目['id'])
+        类=条目画稿类.get(条目['id'],插件画稿默认)
+        头=卡片头({
+            'window':窗口,'title':条目['label'],'onOpen':属性.get('onOpen'),
+            'icon':类({'window':窗口,'size':卡片画稿尺寸}).渲染(),
+            'description':属性['renderSlot']('plugins.item',{'view':'summary'},{'only':条目['id']}),
+        }).渲染()
+        项.appendChild(头)
+        return 项
+
+class 条目详情:
+    '官方插件自己的页'
+    def __init__(自身,属性):
+        '记下条目和表单'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '屑、动作、说明、表单和贡献分区'
+        属性=自身.属性
+        窗口=窗口于(属性)
+        文档=窗口.document
+        条目=属性['item']
+        主体={'kind':'item','id':条目['id']}
+        根=建(文档,'div','detail')
+        根.setAttribute('data-plugin-item-detail',条目['id'])
+        动作=建(文档,'div','detailActions')
+        挂上(动作,属性['renderSlot']('plugins.detail.actions',{'subject':主体}))
+        类=条目画稿类.get(条目['id'],插件画稿默认)
+        根.appendChild(详情顶({
+            'window':窗口,
+            'crumbLabel':中文句('backToList'),
+            'crumbText':中文句('crumbRoot'),
+            'onBack':属性.get('onBack'),
+            'icon':类({'window':窗口,'size':卡片画稿尺寸}).渲染(),
+            'actions':动作,
+        }).渲染())
+        主=建(文档,'div','detailMain')
+        行=建(文档,'div','titleRow')
+        题=建(文档,'h3','detailTitle')
+        题.textContent=条目['label']
+        行.appendChild(题)
+        挂上(行,属性['renderSlot']('plugins.detail.badge',{'subject':主体}))
+        主.appendChild(行)
+        述=建(文档,'p','detailDesc')
+        挂上(述,属性['renderSlot']('plugins.item',{'view':'summary'},{'only':条目['id']}))
+        主.appendChild(述)
+        根.appendChild(主)
+        区=建(文档,'div','detailSections')
+        配置=建(文档,'section','detailSection')
+        配置.setAttribute('data-plugin-config','')
+        挂上(配置,属性['renderSlot']('plugins.item',{'view':'page','form':属性.get('form')},{'only':条目['id']}))
+        区.appendChild(配置)
+        挂上(区,属性['renderSlot']('plugins.detail.section',{'subject':主体}))
+        根.appendChild(区)
+        return 根
+
+class 行详情:
+    '一行自己的配置页'
+    def __init__(自身,属性):
+        '记下行和表单'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '技术名留在标题旁边，表单来自这一行的登记'
+        属性=自身.属性
+        窗口=窗口于(属性)
+        文档=窗口.document
+        包=属性['pkg']
+        行=属性['row']
+        包文=包文案(包,属性['resolveText'])
+        行文=行文案(行,属性['resolveText'])
+        键=行配置键(包['name'],行['rowId'])
+        主体={'kind':'row','pkg':包引用(包),'row':行引用(行)}
+        根=建(文档,'div','detail')
+        根.setAttribute('data-plugin-row-detail',键)
+        动作=建(文档,'div','detailActions')
+        挂上(动作,属性['renderSlot']('plugins.detail.actions',{'subject':主体}))
+        根.appendChild(详情顶({
+            'window':窗口,
+            'crumbLabel':中文句('backToPackage',{'name':包文['title']}),
+            'crumbText':包文['title'],
+            'onBack':属性.get('onBack'),
+            'icon':包画稿({
+                'window':窗口,
+                'src':None if 行.get('meta') is None else 行['meta'].get('icon'),
+                'row':True,'size':卡片画稿尺寸,'重画':属性.get('重画'),
+            }).渲染(),
+            'actions':动作,
+        }).渲染())
+        主=建(文档,'div','detailMain')
+        题行=建(文档,'div','titleRow')
+        题=建(文档,'h3','detailTitle')
+        题.textContent=行文['title']
+        题行.appendChild(题)
+        挂上(题行,属性['renderSlot']('plugins.detail.badge',{'subject':主体}))
+        主.appendChild(题行)
+        if 行文['title']!=行['rowId']:
+            名=建(文档,'p','detailName')
+            码=文档.createElement('code')
+            码.textContent=行['rowId']
+            名.appendChild(码)
+            主.appendChild(名)
+        模块=建(文档,'p','detailName')
+        码=文档.createElement('code')
+        码.textContent=行['moduleName']
+        模块.appendChild(码)
+        主.appendChild(模块)
+        述=建(文档,'p','detailDesc')
+        if 行文.get('description') is not None:
+            述.textContent=行文['description']
+        else:
+            挂上(述,属性['renderSlot']('plugins.row.config',{'view':'summary'},{'entryKey':键}))
+        主.appendChild(述)
+        根.appendChild(主)
+        错=None if 行.get('meta') is None else 行['meta'].get('error')
+        错节点=元数据错误({'window':窗口,'error':错}).渲染()
+        if 错节点 is not None:
+            根.appendChild(错节点)
+        区=建(文档,'div','detailSections')
+        区.setAttribute('data-plugin-config','')
+        挂上(区,属性['renderSlot']('plugins.row.config',{'view':'page','form':属性.get('form')},{'entryKey':键}))
+        挂上(区,属性['renderSlot']('plugins.detail.section',{'subject':主体}))
+        根.appendChild(区)
+        return 根
+
+class 包详情:
+    '一个组合包的页：开关、卸载、行和来源'
+    def __init__(自身,属性):
+        '记下包。行筛选由行区自己留'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.行区=None
+
+    def 渲染(自身):
+        '画出详情'
+        属性=自身.属性
+        窗口=窗口于(属性)
+        文档=窗口.document
+        包=属性['pkg']
+        文=包文案(包,属性['resolveText'])
+        状态=包状态(包)
+        主体={'kind':'bundle','pkg':包引用(包)}
+        根=建(文档,'div','detail')
+        根.setAttribute('data-plugin-detail',包['name'])
+        动作=建(文档,'div','detailActions')
+        挂上(动作,属性['renderSlot']('plugins.detail.actions',{'subject':主体}))
+        if 可更新(包):
+            挂组件(动作,按钮({
+                'window':窗口,'variant':'outline','size':'sm',
+                'icon':画图标(窗口,图标刷新16,13),
+                'disabled':属性.get('busy') is True,
+                'aria-label':中文句('updateLabel',{'name':文['title']}),
+                'onClick':属性.get('onUpdate'),
+                'children':中文句('update'),
+            }))
+        if 包.get('installed') is True or 包.get('removable') is True:
+            挂组件(动作,按钮({
+                'window':窗口,'variant':'outline','size':'sm','className':'danger',
+                'icon':画图标(窗口,图标垃圾桶16,13),
+                'aria-label':中文句('uninstallLabel',{'name':文['title']}),
+                'disabled':属性.get('busy') is True or 包.get('removable') is not True or 包.get('readOnlyReason') is not None,
+                'onClick':属性.get('onUninstall'),
+                'children':中文句('uninstall'),
+            }))
+        挂组件(动作,启用开关({
+            'window':窗口,'pkg':包,'title':文['title'],'busy':属性.get('busy'),
+            'onSetEnabled':属性.get('onSetEnabled'),
+        }))
+        屑键='backToPackage' if 属性.get('inMore') is True else 'backToList'
+        屑文='moreTitle' if 属性.get('inMore') is True else 'crumbRoot'
+        根.appendChild(详情顶({
+            'window':窗口,
+            'crumbLabel':中文句(屑键,{'name':中文句('moreTitle')}) if 属性.get('inMore') is True else 中文句('backToList'),
+            'crumbText':中文句(屑文),
+            'onBack':属性.get('onBack'),
+            'icon':包画稿({'window':窗口,'src':None if 包.get('meta') is None else 包['meta'].get('icon'),'重画':属性.get('重画')}).渲染(),
+            'actions':动作,
+        }).渲染())
+        主=建(文档,'div','detailMain')
+        题行=建(文档,'div','titleRow')
+        题=建(文档,'h3','detailTitle')
+        题.textContent=文['title']
+        题行.appendChild(题)
+        if 包.get('version') is not None:
+            挂组件(题行,标签({'window':窗口,'className':'versionTag','tone':'neutral','children':中文句('versionTag',{'version':包['version']})}))
+        if 文['beta'] is True:
+            挂组件(题行,标签({'window':窗口,'className':'statusTag','tone':'info','children':中文句('statusBeta')}))
+        if 状态=='problem':
+            挂组件(题行,标签({'window':窗口,'className':'statusTag','tone':'danger','children':中文句('statusProblem')}))
+        if 包.get('availability')=='missing':
+            键='statusMissingFiles' if 包.get('installed') is True else 'statusNotInstalled'
+            挂组件(题行,标签({'window':窗口,'className':'statusTag','children':中文句(键)}))
+        if 可更新(包):
+            挂组件(题行,标签({'window':窗口,'className':'statusTag','tone':'info','children':中文句('statusUpdateAvailable')}))
+        挂上(题行,属性['renderSlot']('plugins.detail.badge',{'subject':主体}))
+        主.appendChild(题行)
+        名=建(文档,'p','detailName')
+        码=文档.createElement('code')
+        码.setAttribute('data-plugin-name','')
+        码.textContent=包['name']
+        名.appendChild(码)
+        主.appendChild(名)
+        if 文.get('description') is not None:
+            述=建(文档,'p','detailDesc')
+            述.textContent=文['description']
+            主.appendChild(述)
+        根.appendChild(主)
+        错=None if 包.get('meta') is None else 包['meta'].get('error')
+        错节点=元数据错误({'window':窗口,'error':错}).渲染()
+        if 错节点 is not None:
+            根.appendChild(错节点)
+        if 包.get('error') is not None:
+            因=建(文档,'p','reason')
+            因.setAttribute('role','status')
+            因.textContent=中文句('reasonLabel')+'：'+管理文案(包['error'])
+            根.appendChild(因)
+        if 包.get('readOnlyReason') is not None:
+            因=建(文档,'p','reason')
+            因.setAttribute('role','status')
+            因.textContent=管理文案({'code':包['readOnlyReason']})
+            根.appendChild(因)
+        文件=预览文件.get(包['name'])
+        if 文件 is not None:
+            预览=包预览({'window':窗口,'src':预览地址(文件),'title':文['title'],'重画':属性.get('重画')}).渲染()
+            if 预览 is not None:
+                根.appendChild(预览)
+        区=建(文档,'div','detailSections')
+        if 属性.get('configured') is True:
+            配置=建(文档,'section','detailSection')
+            配置.setAttribute('data-plugin-config','')
+            挂上(配置,属性['renderSlot']('plugins.bundle.config',{'view':'page'},{'entryKey':包['name']}))
+            区.appendChild(配置)
+        if 包.get('availability')!='missing':
+            if 自身.行区 is None or 自身.行区.属性.get('rows') is not 包['rows']:
+                自身.行区=行区({
+                    'window':窗口,'rows':包['rows'],'resolveText':属性['resolveText'],
+                    'toggle':属性.get('toggle'),'configure':属性.get('configure'),'重画':属性.get('重画'),
+                })
+            else:
+                自身.行区.属性= {
+                    'window':窗口,'rows':包['rows'],'resolveText':属性['resolveText'],
+                    'toggle':属性.get('toggle'),'configure':属性.get('configure'),'重画':属性.get('重画'),
+                }
+            区.appendChild(自身.行区.渲染())
+        来源=来源区({'window':窗口,'pkg':包}).渲染()
+        if 来源 is not None:
+            区.appendChild(来源)
+        挂上(区,属性['renderSlot']('plugins.detail.section',{'subject':主体}))
+        根.appendChild(区)
+        return 根
+
+class 主体块:
+    '安装对话框里的名称、说明、版本和规格'
+    def __init__(自身,属性):
+        '记下行'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '按有没有说明和版本画'
+        属性=自身.属性
+        文档=窗口于(属性).document
+        行=属性['lines']
+        根=建(文档,'div','subject')
+        根.setAttribute('data-install-subject',行['spec'])
+        名=建(文档,'p','subjectName')
+        名.textContent=行['title']
+        根.appendChild(名)
+        if 行.get('description') is not None:
+            述=建(文档,'p','subjectDesc')
+            述.textContent=行['description']
+            根.appendChild(述)
+        if 行.get('version') is not None:
+            版=建(文档,'p','subjectMeta')
+            版.textContent=中文句('installVersion',{'version':行['version']})
+            根.appendChild(版)
+        if 行.get('showSpec') is True:
+            规格=建(文档,'p','subjectSpec')
+            规格.textContent=行['spec']
+            根.appendChild(规格)
+        return 根
+
+class 添加插件菜单:
+    '主按钮安装，旁边的菜单列出其余添加方式'
+    def __init__(自身,属性):
+        '菜单开始是关的'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.开=False
+
+    def 渲染(自身):
+        '画出一组按钮。菜单用页面样式，因为共享菜单不收任意子节点'
+        属性=自身.属性
+        窗口=窗口于(属性)
+        文档=窗口.document
+        根=建(文档,'span','addGroup')
+        根.setAttribute('role','group')
+        根.setAttribute('aria-label',中文句('addPlugin'))
+        挂组件(根,按钮({
+            'window':窗口,'variant':'primary','size':'sm','className':'addPrimary',
+            'icon':画图标(窗口,图标加号16,13),
+            'disabled':属性.get('disabled') is True,
+            'onClick':自身.主安装,
+            'children':中文句('addPlugin'),
+        }))
+        更多=按钮({
+            'window':窗口,'variant':'primary','size':'sm','className':'addMore',
+            'disabled':属性.get('disabled') is True,
+            'children':画图标(窗口,图标下箭头描边常规,12),
+        }).渲染()
+        if 更多 is not None:
+            更多.setAttribute('aria-label',中文句('chooseAddMethod'))
+            更多.setAttribute('aria-haspopup','menu')
+            更多.setAttribute('aria-expanded','true' if 自身.开 else 'false')
+            def 点更多(事件=None):
+                '翻转菜单'
+                自身.开=自身.开 is not True
+                if 属性.get('重画') is not None:
+                    属性['重画']()
+            更多.addEventListener('click',点更多)
+            def 按下(事件):
+                '关闭时按下方向键打开'
+                if 自身.开 is not True and 事件.key=='ArrowDown':
+                    事件.preventDefault()
+                    自身.开=True
+                    if 属性.get('重画') is not None:
+                        属性['重画']()
+            更多.addEventListener('keydown',按下)
+            根.appendChild(更多)
+        if 自身.开:
+            单=建(文档,'div','addMenu')
+            单.setAttribute('role','menu')
+            项=文档.createElement('button')
+            项.type='button'
+            项.setAttribute('role','menuitem')
+            项.className='菜单项'
+            图=画图标(窗口,图标下载16,14)
+            if 图 is not None:
+                项.appendChild(图)
+            文=建(文档,'span','addMenuItem')
+            题=文档.createElement('span')
+            题.textContent=中文句('installExisting')
+            述=建(文档,'span','addMenuDescription')
+            述.textContent=中文句('installExistingDescription')
+            文.appendChild(题)
+            文.appendChild(述)
+            项.appendChild(文)
+            def 选现成(事件=None):
+                '关掉菜单并打开安装'
+                自身.开=False
+                if 属性.get('openInstall') is not None:
+                    属性['openInstall']()
+            项.addEventListener('click',选现成)
+            单.appendChild(项)
+            def 关掉():
+                '贡献动作开始前先关菜单'
+                自身.开=False
+                if 属性.get('重画') is not None:
+                    属性['重画']()
+            挂上(单,属性['renderSlot']('plugins.add.actions',{'onDismiss':关掉}))
+            文档.body.appendChild(单)
+            自身.拆外=点外关闭(根,True,自身.点外,单)
+        return 根
+
+    def 主安装(自身):
+        '关掉菜单并打开安装'
+        自身.开=False
+        if 自身.属性.get('openInstall') is not None:
+            自身.属性['openInstall']()
+
+    def 点外(自身,开着):
+        '点到外面就关'
+        if 开着:
+            return
+        自身.开=False
+        if 自身.属性.get('重画') is not None:
+            自身.属性['重画']()
+
+class 确认对话框:
+    '卸载前的确认'
+    def __init__(自身,属性):
+        '记下名字'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 渲染(自身):
+        '画出确认和取消'
+        属性=自身.属性
+        窗口=窗口于(属性)
+        取消=按钮({'window':窗口,'variant':'outline','onClick':属性.get('onCancel'),'children':中文句('cancel')}).渲染()
+        确认=按钮({
+            'window':窗口,'variant':'primary','className':'dangerButton',
+            'onClick':属性.get('onConfirm'),'children':中文句('confirmUninstall'),
+        }).渲染()
+        脚=窗口.document.createElement('span')
+        if 取消 is not None:
+            脚.appendChild(取消)
+        if 确认 is not None:
+            标样式模块(确认,样式模块)
+            脚.appendChild(确认)
+        return 模态({
+            'window':窗口,'open':True,'onClose':属性.get('onCancel'),
+            'title':中文句('confirmUninstallTitle',{'name':属性.get('name') or ''}),
+            'closeLabel':中文句('close'),
+            'description':中文句('confirmUninstallDescription'),
+            'footer':脚,
+        }).渲染()
+
+class 安装对话框:
+    '规格、检查、安装中、已安装和失败。失败留下的脚本在这里允许'
+    def __init__(自身,属性):
+        '引导默认收起'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.引导开=False
+        自身.自定义草稿=''
+        自身.规格输入=安装输入法()
+        自身.源输入=安装输入法()
+
+    def 渲染(自身):
+        '按阶段画。GitHub 连不上时先给镜像恢复'
+        if getattr(自身,'拆锚定',None) is not None:
+            自身.拆锚定()
+            自身.拆锚定=None
+        if getattr(自身,'拆外',None) is not None:
+            自身.拆外()
+            自身.拆外=None
+        if getattr(自身,'拆键',None) is not None:
+            自身.拆键()
+            自身.拆键=None
+        属性=自身.属性
+        安装=属性['install']
+        窗口=窗口于(属性)
+        文档=窗口.document
+        确保样式(文档)
+        阶段=安装['phase']
+        镜像=镜像恢复注册表(安装)
+        if 镜像!='缺席':
+            return self_镜像(自身,窗口,安装,镜像)
+        if 阶段 in ('idle','checking') and 安装.get('confirmed') is not None:
+            return self_已确认(自身,窗口,安装)
+        if 阶段 in ('idle','checking'):
+            return self_规格(自身,窗口,安装)
+        return self_结果(自身,窗口,安装)
+
+def self_镜像(自身,窗口,安装,镜像):
+    'GitHub 失败后的镜像或换一种方式'
+    另一=已问镜像(安装)
+    def 采用(事件=None):
+        '已经在问镜像时先打开包名引导'
+        if 另一:
+            自身.引导开=True
+        自身.属性['onUseGithubMirror']()
+    取消=按钮({'window':窗口,'variant':'outline','onClick':自身.属性['onClose'],'children':中文句('cancel')}).渲染()
+    主=按钮({
+        'window':窗口,'variant':'primary','onClick':采用,
+        'children':中文句('installTryAnotherWay' if 另一 else 'installUseGithubMirror'),
+    }).渲染()
+    脚=窗口.document.createElement('span')
+    if 取消 is not None:
+        脚.appendChild(取消)
+    if 主 is not None:
+        脚.appendChild(主)
+    键='installGithubTimeoutTitle' if 安装.get('failure') is not None and 安装['failure'].get('kind')=='timeout' else 'installGithubFailedTitle'
+    return 模态({
+        'window':窗口,'open':安装['open'],'onClose':自身.属性['onClose'],
+        'title':中文句(键),'closeLabel':中文句('close'),
+        'description':中文句('installGithubFailedDescription'),'footer':脚,
+    }).渲染()
+
+def self_已确认(自身,窗口,安装):
+    '没有规格表。检查、拒绝后重试，或取消后安装'
+    检查中=安装['phase']=='checking'
+    问题=安装.get('inputError')
+    体=建(窗口.document,'div','installBody')
+    体.setAttribute('data-install-phase',安装['phase'])
+    确认=安装['confirmed']
+    体.appendChild(主体块({'window':窗口,'lines':{
+        'spec':安装['spec'],'title':确认['title'],'version':确认['version'],'showSpec':True,
+    }}).渲染())
+    if 检查中:
+        段=建(窗口.document,'p','status statusWithDot')
+        段.setAttribute('role','status')
+        点=状态点({'window':窗口,'state':'ongoing'}).渲染()
+        if 点 is not None:
+            段.appendChild(点)
+        段.appendChild(窗口.document.createTextNode(中文句('installChecking')))
+        体.appendChild(段)
+    elif 问题 is not None:
+        警=建(窗口.document,'p','inputError')
+        警.setAttribute('role','alert')
+        已解析=None if 安装.get('registries') is None else 安装['registries'].get('resolved')
+        警.textContent=输入问题句(问题,已解析)
+        体.appendChild(警)
+    脚=None
+    if not 检查中:
+        关=按钮({'window':窗口,'variant':'outline','onClick':自身.属性['onClose'],'children':中文句('close')}).渲染()
+        跑=按钮({
+            'window':窗口,'variant':'primary','onClick':自身.属性['onRun'],
+            'children':中文句('installRun' if 问题 is None else 'retry'),
+        }).渲染()
+        脚=窗口.document.createElement('span')
+        if 关 is not None:
+            脚.appendChild(关)
+        if 跑 is not None:
+            脚.appendChild(跑)
+    return 模态({
+        'window':窗口,'open':安装['open'],'onClose':自身.属性['onClose'],
+        'title':中文句('installConfirmedTitle' if 问题 is None else 'installConfirmedRefused'),
+        'closeLabel':中文句('close'),'className':'installDialog','children':体,'footer':脚,
+    }).渲染()
+
+def self_规格(自身,窗口,安装):
+    '规格、引导和注册表'
+    文档=窗口.document
+    检查中=安装['phase']=='checking'
+    空=安装['spec'].strip()==''
+    选择=安装['registry']
+    已解析=None if 安装.get('registries') is None else 安装['registries'].get('resolved')
+    选中名=中文句('registryCustom') if 选择['kind']=='custom' else 注册表文案对(选择['registry'],已解析)['name']
+    句=None if 安装.get('inputError') is None else 输入问题句(安装['inputError'],已解析)
+    if 安装['spec']==安装示例仓库:
+        模板提示=中文句('installGitTemplateHint')
+    elif 安装['spec']==安装示例路径:
+        模板提示=中文句('installPathTemplateHint')
+    else:
+        模板提示=None
+    体=建(文档,'div','installBody')
+    字段=建(文档,'div','installField')
+    框=文档.createElement('input')
+    框.type='text'
+    if 安装.get('mirrorRecovery') is True:
+        框.autofocus=True
+    框.setAttribute('data-modal-autofocus','')
+    框.value=安装['spec']
+    框.placeholder=中文句('installSpecPlaceholder')
+    框.disabled=检查中
+    框.setAttribute('aria-label',中文句('installPackageLabel' if 安装.get('mirrorRecovery') else 'installSpecLabel'))
+    框.setAttribute('aria-invalid','true' if 安装.get('inputError') is not None else 'false')
+    def 改规格(事件):
+        '把输入交回控制器'
+        自身.属性['onEditSpec'](事件.target.value)
+    def 规格键(事件):
+        '非组合中的回车开始安装'
+        if 自身.规格输入.正在输入(事件):
+            return
+        if 事件.key=='Enter' and not 空 and not 检查中:
+            自身.属性['onRun']()
+    框.addEventListener('input',改规格)
+    框.addEventListener('compositionstart',自身.规格输入.开始)
+    框.addEventListener('compositionend',自身.规格输入.结束)
+    框.addEventListener('blur',自身.规格输入.失焦)
+    框.addEventListener('keydown',规格键)
+    字段.appendChild(框)
+    体.appendChild(字段)
+    if 句 is not None:
+        警=建(文档,'p','inputError')
+        警.setAttribute('role','alert')
+        警.textContent=句
+        体.appendChild(警)
+    elif 模板提示 is not None:
+        提=建(文档,'p','templateHint')
+        提.setAttribute('role','status')
+        提.textContent=模板提示
+        体.appendChild(提)
+    行=建(文档,'div','optionsRow')
+    引导=建(文档,'button','guideToggle')
+    引导.type='button'
+    引导.setAttribute('aria-expanded','true' if 自身.引导开 else 'false')
+    箭=画图标(窗口,图标下箭头描边常规,12)
+    if 箭 is not None:
+        箭.className='guideChevron'
+        箭.setAttribute('aria-hidden','true')
+        引导.appendChild(箭)
+    引导字=文档.createElement('span')
+    引导字.textContent=中文句('installGuideHide' if 自身.引导开 else 'installGuideToggle')
+    引导.appendChild(引导字)
+    def 翻引导(事件=None):
+        '展开或收起引导'
+        自身.引导开=自身.引导开 is not True
+        if 自身.属性.get('重画') is not None:
+            自身.属性['重画']()
+    引导.addEventListener('click',翻引导)
+    行.appendChild(引导)
+    源钮=建(文档,'button','registryToggle')
+    源钮.type='button'
+    源钮.setAttribute('aria-expanded','true' if 安装.get('registryOpen') else 'false')
+    源钮.setAttribute('aria-haspopup','dialog')
+    源钮.disabled=检查中
+    源字=文档.createElement('span')
+    源字.textContent=中文句('registryToggle')
+    源选=建(文档,'span','registryChosen')
+    源选.textContent=选中名
+    源钮.appendChild(源字)
+    源钮.appendChild(文档.createTextNode(' '))
+    源钮.appendChild(源选)
+    源箭=画图标(窗口,图标下箭头描边常规,12)
+    if 源箭 is not None:
+        源箭.className='guideChevron'
+        源箭.setAttribute('aria-hidden','true')
+        源钮.appendChild(源箭)
+    def 点源(事件=None):
+        '展开或收起注册表'
+        自身.属性['onToggleRegistry']()
+    源钮.addEventListener('click',点源)
+    行.appendChild(源钮)
+    体.appendChild(行)
+    if 自身.引导开:
+        导=建(文档,'div','guide')
+        导.setAttribute('data-install-guide','')
+        单=建(文档,'ol','guideList')
+        for 例 in 引导示例:
+            项=建(文档,'li','guideItem')
+            主=建(文档,'div','guideMain')
+            题=建(文档,'span','guideTitle')
+            题.textContent=中文句(例['titleKey'])
+            主.appendChild(题)
+            示=建(文档,'span','guideHint')
+            示.textContent=中文句(例['hintKey'])
+            主.appendChild(示)
+            样=建(文档,'span','guideExample')
+            样标=建(文档,'span','guideExampleLabel')
+            样标.textContent=中文句('installGuideExampleLabel')
+            样码=文档.createElement('code')
+            样码.textContent=中文句(例['exampleKey'])
+            样.appendChild(样标)
+            样.appendChild(样码)
+            主.appendChild(样)
+            项.appendChild(主)
+            def 填入(事件=None,键=例['exampleKey']):
+                '把示例填进规格'
+                自身.属性['onEditSpec'](中文句(键))
+            挂组件(项,按钮({
+                'window':窗口,'variant':'outline','size':'sm','disabled':检查中,'onClick':填入,
+                'children':中文句('installGuideFill'),
+            }))
+            单.appendChild(项)
+        导.appendChild(单)
+        体.appendChild(导)
+    if 安装.get('registryOpen') is True and 安装['phase']=='idle':
+        面板=建(文档,'fieldset','registry')
+        面板.setAttribute('data-install-registry','')
+        面板.setAttribute('aria-label',中文句('registryLegend'))
+        for 注册表 in 提供的注册表(安装.get('registries')):
+            选中=选择['kind']=='offered' and 选择.get('registry') is 注册表
+            标签=建(文档,'label','registryOption')
+            标签.setAttribute('data-checked','true' if 选中 else 'false')
+            单选=文档.createElement('input')
+            单选.type='radio'
+            单选.name='plugin-registry'
+            单选.checked=选中
+            def 选这项(事件=None,项=注册表):
+                '选一个提供的源'
+                if 选择['kind']=='custom':
+                    自身.自定义草稿=选择.get('url') or ''
+                自身.属性['onChooseRegistry']({'kind':'offered','registry':项})
+            单选.addEventListener('change',选这项)
+            标签.appendChild(单选)
+            题=建(文档,'span','registryTitle')
+            对=注册表文案对(注册表,已解析)
+            if 对['name']==对['host']:
+                题.textContent=对['name']
+            else:
+                题.appendChild(文档.createTextNode(对['name']+' '))
+                辅=建(文档,'span','registryHint')
+                辅.textContent=对['host']
+                题.appendChild(辅)
+            标签.appendChild(题)
+            面板.appendChild(标签)
+        自定义行=建(文档,'div','registryOption')
+        自定义行.setAttribute('data-checked','true' if 选择['kind']=='custom' else 'false')
+        自定义选=建(文档,'label','registryCustomPick')
+        自定义单选=文档.createElement('input')
+        自定义单选.type='radio'
+        自定义单选.name='plugin-registry'
+        自定义单选.checked=选择['kind']=='custom'
+        def 选自定义(事件=None):
+            '改用自己填的地址'
+            自身.属性['onChooseRegistry']({'kind':'custom','url':自身.自定义草稿})
+        自定义单选.addEventListener('change',选自定义)
+        自定义选.appendChild(自定义单选)
+        自定义题=建(文档,'span','registryTitle')
+        自定义题字=文档.createElement('span')
+        自定义题字.textContent=中文句('registryCustom')
+        自定义题.appendChild(自定义题字)
+        自定义选.appendChild(自定义题)
+        自定义行.appendChild(自定义选)
+        自定义框=文档.createElement('input')
+        自定义框.type='text'
+        自定义框.className='registryCustomField'
+        标样式模块(自定义框,样式模块)
+        自定义框.setAttribute('aria-label',中文句('registryCustom'))
+        自定义框.placeholder=中文句('registryCustomPlaceholder')
+        自定义框.value=选择['url'] if 选择['kind']=='custom' else 自身.自定义草稿
+        自定义框.setAttribute('aria-invalid','true' if 安装.get('registryError') else 'false')
+        def 改自定义(事件):
+            '把自填地址交给控制器'
+            自身.属性['onChooseRegistry']({'kind':'custom','url':事件.target.value})
+        def 自定义键(事件):
+            '非组合中的回车开始安装'
+            if 自身.源输入.正在输入(事件):
+                return
+            if 事件.key=='Enter' and not 空:
+                自身.属性['onRun']()
+        def 聚焦自定义(事件=None):
+            '指针点进输入框时改成自定义源'
+            if 指针模态() and 选择['kind']!='custom':
+                自身.属性['onChooseRegistry']({'kind':'custom','url':自身.自定义草稿})
+        自定义框.addEventListener('input',改自定义)
+        自定义框.addEventListener('focus',聚焦自定义)
+        自定义框.addEventListener('compositionstart',自身.源输入.开始)
+        自定义框.addEventListener('compositionend',自身.源输入.结束)
+        自定义框.addEventListener('blur',自身.源输入.失焦)
+        自定义框.addEventListener('keydown',自定义键)
+        自定义行.appendChild(自定义框)
+        if 安装.get('registryError') is True:
+            错=建(文档,'p','inputError')
+            错.setAttribute('role','alert')
+            错.textContent=中文句('registryCustomInvalid')
+            自定义行.appendChild(错)
+        提示=建(文档,'span','registryHint')
+        提示.textContent=中文句('registryCustomHint')
+        自定义行.appendChild(提示)
+        面板.appendChild(自定义行)
+        文档.body.appendChild(面板)
+        自身.拆锚定=使用锚定位置({
+            'open':True,'anchor':源钮,'panel':面板,'window':窗口,
+            'align':'end','gap':6,'margin':12,
+        })
+        def 点外关(开着):
+            '点到面板外就收起'
+            if 开着:
+                return
+            自身.属性['onToggleRegistry']()
+        自身.拆外=点外关闭(源钮,True,点外关,面板)
+        def 按逃(事件):
+            'Escape 只收起注册表'
+            if 事件.key!='Escape':
+                return
+            事件.stopPropagation()
+            自身.属性['onToggleRegistry']()
+        文档.addEventListener('keydown',按逃,True)
+        def 拆键():
+            '卸掉 Escape'
+            文档.removeEventListener('keydown',按逃,True)
+        自身.拆键=拆键
+    安全=建(文档,'p','installSafety')
+    安全.setAttribute('role','note')
+    警图=画图标(窗口,图标警告16,14)
+    if 警图 is not None:
+        警图.setAttribute('aria-hidden','true')
+        安全.appendChild(警图)
+    安全文=建(文档,'span','installSafetyText')
+    甲=文档.createElement('span')
+    甲.textContent=中文句('installGuideSafety')
+    乙=文档.createElement('span')
+    乙.textContent=中文句('installUpgradeNotice')
+    安全文.appendChild(甲)
+    安全文.appendChild(乙)
+    安全.appendChild(安全文)
+    装钮=按钮({
+        'window':窗口,'variant':'primary','className':'wide',
+        'disabled':检查中 or 空,'onClick':自身.属性['onRun'],
+        'children':中文句('installChecking' if 检查中 else 'installRun'),
+    }).渲染()
+    脚=建(文档,'div','installFooter')
+    脚.appendChild(安全)
+    if 装钮 is not None:
+        if 检查中:
+            装钮.setAttribute('aria-busy','true')
+        脚.appendChild(装钮)
+    模态属性={
+        'window':窗口,'open':安装['open'],'onClose':自身.属性['onClose'],
+        'title':中文句('installTitle'),'closeLabel':中文句('close'),
+        'className':'installDialog','contentClassName':'installContent',
+        'children':体,'footer':脚,
+    }
+    if 安装.get('mirrorRecovery') is not True:
+        模态属性['description']=中文句('installDescription')
+    return 模态(模态属性).渲染()
+
+def self_结果(自身,窗口,安装):
+    '安装中、完成和失败'
+    文档=窗口.document
+    阶段=安装['phase']
+    标题=中文句(屏标题键[阶段])
+    待决=是否安装待决(阶段)
+    可取消=阶段 in ('starting','running','unconfirmed')
+    可停=可取消 or 阶段 in ('failed','unknown')
+    失败=安装.get('failure')
+    不确定=None if 失败 is None else 失败.get('uncertainty')
+    不确定文=None
+    if 不确定=='result':
+        不确定文=中文句('installResultUnconfirmed',{'reason':失败.get('reason') or ''})
+    elif 不确定=='cancellation':
+        键='installApplyingCancellationError' if 阶段=='applying' else 'installCancelUnconfirmed'
+        不确定文=中文句(键,{'reason':失败.get('reason') or ''})
+    elif 不确定=='acceptance':
+        不确定文=中文句('installAwaitingAcceptance',{'reason':失败.get('reason') or ''})
+    待允许=失败.get('pendingBuilds') if 阶段=='failed' and 失败 is not None and 失败.get('pendingBuilds') is not None else []
+    可允许=len(待允许)>0
+    问过=安装['attempts'] if 安装.get('attempts') is not None and len(安装['attempts']['registries'])>1 else None
+    已解析=None if 安装.get('registries') is None else 安装['registries'].get('resolved')
+    尝试句=None
+    if 待决 and 问过 is not None and len(问过['registries'])>=2:
+        当前源=问过['registries'][-1]
+        上一源=问过['registries'][-2]
+        尝试句=中文句('installAttempt',{
+            'previous':注册表文案对(上一源,已解析)['name'],
+            'registry':注册表文案对(当前源,已解析)['name'],
+            'index':str(len(问过['registries'])),
+            'total':str(问过['total']),
+        })
+    可换源=阶段=='failed' and not 可允许 and 失败 is not None and 失败.get('failedAt')=='registry' and 安装.get('confirmed') is None
+    向导=建(文档,'div','wizard')
+    向导.setAttribute('data-install-phase',阶段)
+    头=建(文档,'div','wizardHead')
+    if 阶段=='done' or (安装.get('confirmed') is not None and not 待决):
+        头.appendChild(文档.createElement('span'))
+    else:
+        if 安装.get('confirmed') is not None:
+            返回名='cancel'
+        elif 待决:
+            返回名='installCancelAndEdit'
+        else:
+            返回名='installEdit'
+        回=建(文档,'button','wizardBack')
+        回.type='button'
+        回.setAttribute('aria-label',中文句('cancel' if 安装.get('confirmed') is not None else ('installCancelAndEdit' if 待决 else 'installEditAria')))
+        回.disabled=not 可停
+        左=画图标(窗口,图标左chevron14,16)
+        if 左 is not None:
+            左.setAttribute('aria-hidden','true')
+            回.appendChild(左)
+        回字=文档.createElement('span')
+        回字.textContent=中文句(返回名)
+        回.appendChild(回字)
+        def 点回(事件=None):
+            '取消或回到编辑'
+            自身.属性['onCancel']()
+        回.addEventListener('click',点回)
+        头.appendChild(回)
+    关=建(文档,'button','wizardClose')
+    关.type='button'
+    关.setAttribute('aria-label',中文句('installCloseCancels' if 可取消 else 'close'))
+    关图=画图标(窗口,图标关闭16,14)
+    if 关图 is not None:
+        关.appendChild(关图)
+    def 点关(事件=None):
+        '关闭对话框'
+        自身.属性['onClose']()
+    关.addEventListener('click',点关)
+    头.appendChild(关)
+    向导.appendChild(头)
+    滚=建(文档,'div','wizardScroll')
+    英雄=建(文档,'div','wizardHero')
+    图标盒=建(文档,'span','wizardIcon')
+    图标盒.setAttribute('aria-hidden','true')
+    if 待决:
+        图标盒.setAttribute('data-state','ongoing')
+        点=状态点({'window':窗口,'state':'ongoing','size':28}).渲染()
+        if 点 is not None:
+            图标盒.appendChild(点)
+    elif 阶段=='done':
+        图标盒.setAttribute('data-state','done')
+        勾=画图标(窗口,图标勾圈描边常规,28)
+        if 勾 is not None:
+            图标盒.appendChild(勾)
+    else:
+        图标盒.setAttribute('data-state','error')
+        警=画图标(窗口,图标警告16,28)
+        if 警 is not None:
+            图标盒.appendChild(警)
+    英雄.appendChild(图标盒)
+    题=建(文档,'h2','wizardTitle')
+    题.setAttribute('role','alert' if 阶段=='failed' else 'status')
+    题.textContent=标题
+    英雄.appendChild(题)
+    if 阶段=='failed':
+        副=建(文档,'p','wizardSub')
+        副.textContent=失败句(失败,安装)
+        英雄.appendChild(副)
+    if 尝试句 is not None:
+        副=建(文档,'p','wizardSub')
+        副.textContent=尝试句
+        英雄.appendChild(副)
+    if 不确定文 is not None:
+        副=建(文档,'p','wizardSub')
+        副.setAttribute('role','alert')
+        副.textContent=不确定文
+        英雄.appendChild(副)
+    if 阶段=='unknown':
+        副=建(文档,'p','wizardSub')
+        副.textContent=中文句('installUnknownDescription')
+        英雄.appendChild(副)
+    滚.appendChild(英雄)
+    主体=安装.get('subject')
+    if 主体 is not None:
+        展示=dict(主体)
+        if 阶段=='done' and 安装.get('installedVersion') is not None:
+            展示['version']=安装['installedVersion']
+        种类键=主体种类键.get(主体.get('kind'))
+        说明=主体.get('description')
+        if 说明 is None and 种类键 is not None:
+            说明=中文句(种类键)
+        滚.appendChild(主体块({'window':窗口,'lines':{
+            'spec':主体.get('spec') or 安装['spec'],
+            'title':安装['confirmed']['title'] if 安装.get('confirmed') is not None else (主体.get('name') or 主体.get('spec') or ''),
+            'description':说明,
+            'version':展示.get('version') if 展示.get('version') is not None else (None if 安装.get('confirmed') is None else 安装['confirmed'].get('version')),
+            'showSpec':安装.get('confirmed') is not None,
+        }}).渲染())
+    if 可允许:
+        批=建(文档,'section','approval')
+        批.setAttribute('role','group')
+        批.setAttribute('data-install-approval','')
+        批题=建(文档,'h3','approvalTitle')
+        批题.textContent=中文句('installApprovalTitle')
+        批.appendChild(批题)
+        批文=建(文档,'p','approvalText')
+        批文.textContent=中文句('installApprovalDescription')
+        批.appendChild(批文)
+        名单=建(文档,'ul','approvalList')
+        for 名 in 待允许:
+            项=文档.createElement('li')
+            码=文档.createElement('code')
+            码.textContent=名
+            项.appendChild(码)
+            名单.appendChild(项)
+        批.appendChild(名单)
+        果=建(文档,'p','approvalText')
+        果.textContent=中文句('installApprovalConsequence')
+        批.appendChild(果)
+        慎=建(文档,'p','approvalCaution')
+        慎.textContent=中文句('installApprovalCaution')
+        批.appendChild(慎)
+        挂组件(批,按钮({'window':窗口,'variant':'primary','className':'wide','onClick':自身.属性['onApproveBuilds'],'children':中文句('installApproveAndRetry')}))
+        滚.appendChild(批)
+    if 阶段=='done' and 安装.get('installed') is None:
+        果=建(文档,'p','result')
+        果.setAttribute('role','status')
+        果.textContent=中文句('installDoneNothing')
+        滚.appendChild(果)
+    if 阶段=='done' and 安装.get('restartRequired') is True:
+        果=建(文档,'p','resultWarn')
+        果.setAttribute('role','status')
+        果.textContent=重启文案('installDoneRestart',安装.get('restartReason'))
+        滚.appendChild(果)
+    if 阶段=='done' and 主体 is not None and 主体.get('kind')=='registry' and 主体.get('name') is not None and 主体.get('version') is not None and 安装.get('installedVersion') is not None and 安装['installedVersion']!=主体['version'] and (1 if 安装.get('attempts') is None else len(安装['attempts']['registries']))==1:
+        果=建(文档,'p','resultWarn')
+        果.setAttribute('role','status')
+        果.textContent=中文句('installDoneOtherVersion',{
+            'installed':安装['installedVersion'],'version':主体['version'],
+            'exact':主体['name']+'@'+主体['version'],
+        })
+        滚.appendChild(果)
+    if 阶段=='done' and 安装.get('approvedBuilds') is not None and len(安装['approvedBuilds'])>0:
+        果=建(文档,'p','result')
+        果.setAttribute('role','status')
+        果.textContent=中文句('installDoneApproved',{'names':', '.join(安装['approvedBuilds'])})
+        滚.appendChild(果)
+    脚=建(文档,'div','wizardFoot')
+    详=建(文档,'button','detailsToggle')
+    详.type='button'
+    详.setAttribute('aria-expanded','true' if 安装.get('detailsOpen') else 'false')
+    详字=文档.createElement('span')
+    详字.textContent=中文句('installDetailsHide' if 安装.get('detailsOpen') else 'installDetailsShow')
+    详.appendChild(详字)
+    详箭=画图标(窗口,图标下箭头描边常规,12)
+    if 详箭 is not None:
+        详箭.className='detailsChevron'
+        详箭.setAttribute('aria-hidden','true')
+        详.appendChild(详箭)
+    def 点详情(事件=None):
+        '展开或收起安装详情'
+        自身.属性['onToggleDetails']()
+    详.addEventListener('click',点详情)
+    脚.appendChild(详)
+    if 不确定=='result':
+        挂组件(脚,按钮({'window':窗口,'variant':'outline','size':'sm','className':'footAction','onClick':自身.属性['onReconcile'],'children':中文句('installReconcile')}))
+    if 待决:
+        挂组件(脚,按钮({
+            'window':窗口,'variant':'outline','size':'sm','className':'footAction',
+            'disabled':not 可取消,'onClick':自身.属性['onCancel'],
+            'children':中文句('installCancelling' if 阶段=='cancelling' else 'installCancel'),
+        }))
+    if 阶段=='failed' and not 可允许:
+        组=建(文档,'span','wizardActions')
+        if 可换源:
+            挂组件(组,按钮({'window':窗口,'variant':'outline','size':'sm','className':'footAction','onClick':自身.属性['onChangeRegistry'],'children':中文句('installChangeRegistry')}))
+        挂组件(组,按钮({'window':窗口,'variant':'primary','size':'sm','className':'footAction','onClick':自身.属性['onRun'],'children':中文句('installRetry')}))
+        脚.appendChild(组)
+    滚.appendChild(脚)
+    if 安装.get('detailsOpen') is True:
+        身=建(文档,'div','detailsBody')
+        第一=安装['runs'][0] if len(安装['runs'])>0 else None
+        位置=建(文档,'p','installLocation')
+        位置.textContent=中文句('terminalNoOutput') if 第一 is None else 中文句('installLocation',{'dir':第一['cwd']})
+        身.appendChild(位置)
+        序=0
+        标签=终端文案()
+        if 阶段=='cancelling':
+            标签={**标签,'failed':中文句('installCancelledShort')}
+        for 运行 in 安装['runs']:
+            块=建(文档,'div','run')
+            if 问过 is not None and 序<len(问过['registries']):
+                徽=建(文档,'p','attemptBadge')
+                徽.textContent=中文句('installAttemptBadge',{
+                    'index':str(序+1),
+                    'registry':注册表文案对(问过['registries'][序],已解析)['name'],
+                })
+                块.appendChild(徽)
+            挂组件(块,终端块({
+                'window':窗口,'command':运行['command'],'output':运行['output'],
+                'running':'exitCode' not in 运行,'exitCode':运行.get('exitCode'),
+                'maxLines':安装终端行数,'labels':标签,'className':'terminal',
+            }))
+            身.appendChild(块)
+            序=序+1
+        滚.appendChild(身)
+    if 阶段=='done':
+        if 安装.get('installed') is not None and (安装.get('subject') is None or 'selection' not in 安装['subject']):
+            挂组件(滚,按钮({
+                'window':窗口,'variant':'primary','className':'wide',
+                'disabled':安装.get('enabling') is True,'onClick':自身.属性['onEnableNow'],
+                'children':中文句('installEnableNow'),
+            }))
+        else:
+            挂组件(滚,按钮({'window':窗口,'variant':'primary','className':'wide','onClick':自身.属性['onClose'],'children':中文句('installClose')}))
+    向导.appendChild(滚)
+    return 模态({
+        'window':窗口,'open':安装['open'],'onClose':自身.属性['onClose'],
+        'title':标题,'headless':True,'className':'installDialog','children':向导,
+    }).渲染()
+
+class 插件装载页:
+    '官方插件、已安装组合包、它们的页、安装对话框和卸载确认'
+    def __init__(自身,属性):
+        '记下合成属性并画出'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        自身.已订=False
+        自身.绘制中=False
+        自身.已确保=False
+        自身.激活=None
+        自身.高亮定时=None
+        自身.菜单=添加插件菜单({})
+        自身.安装框=安装对话框({})
+        自身.包详情=None
+        自身.渲染()
 
     def __call__(自身,属性=None):
-        '对齐 React 调用'
+        '宿主再次渲染'
         if 属性 is not None:
-            自身.更新(属性)
+            自身.属性=属性
         return 自身.渲染()
+
+    def 渲染(自身):
+        '按快照重画整页'
+        if 自身.绘制中:
+            return 自身.根
+        自身.绘制中=True
+        try:
+            return 自身.画出()
+        finally:
+            自身.绘制中=False
+
+    def 画出(自身):
+        '读取钩子并摆上列表、详情和对话框'
+        属性=自身.属性
+        窗口=窗口于(属性)
+        文档=窗口.document
+        确保样式(文档)
+        def 取整(快照):
+            '整份装载快照'
+            return 快照
+        def 取视图(状态):
+            '当前导航'
+            return 状态['view']
+        def 取标签(状态):
+            '当前页'
+            return 状态['tab']
+        def 取命名空间(快照):
+            '配置镜像里的命名空间'
+            视图=快照.get('view') if isinstance(快照,dict) else None
+            if isinstance(视图,dict):
+                return 视图.get('namespaces')
+            return None
+        状态=属性['usePluginManager'](取整)
+        账本=属性['useConfigLedger'](取整)
+        视图=属性['useStore'](取视图)
+        选中标签=属性['useStore'](取标签)
+        标签表=属性['usePluginTabs'](取整)
+        配置空间=属性['useConfigurations'](取命名空间)
+        if 自身.已订 is not True:
+            def 重画():
+                '状态变了就重画'
+                自身.渲染()
+            属性['usePluginManager']._subscribe(重画)
+            属性['useConfigLedger']._subscribe(重画)
+            属性['useStore']._subscribe(重画)
+            属性['usePluginTabs']._subscribe(重画)
+            属性['useConfigurations']._subscribe(重画)
+            自身.已订=True
+        if 自身.已确保 is not True:
+            属性['ensure']()
+            自身.已确保=True
+        标签=选中标签 if any(项['id']==选中标签 for 项 in 标签表) else 已安装页
+        if 标签!=选中标签:
+            属性['actions']['setTab'](标签)
+        if 状态.get('highlight') is not None and 标签!=已安装页:
+            属性['actions']['setTab'](已安装页)
+            标签=已安装页
+        列出=[包 for 包 in 状态['packages'] if 包['name'] not in 内置档组合包 and (包.get('installed') is True or 包.get('official') is True or 包.get('error') is not None)]
+        我的=[包 for 包 in 列出 if 包.get('official') is not True]
+        官方=[包 for 包 in 列出 if 包.get('official') is True]
+        def 按秩(包):
+            '官方可选包的显示顺序'
+            return 可选包秩(包['name'])
+        官方.sort(key=按秩)
+        钉=set()
+        for 包 in 官方:
+            if 包['name'] not in 更多包 or 包.get('enabled') is True:
+                钉.add(包['name'])
+        扩展=[包 for 包 in 官方 if 包['name'] in 钉]
+        更多=list(官方)
+        已载=状态['status'] in ('ready','error')
+        刷新中=状态['refreshStatus']=='refreshing'
+        打开包=None
+        if 视图['kind'] in ('package','row'):
+            for 包 in 列出:
+                if 包['name']==视图['name']:
+                    打开包=包
+                    break
+        打开条目=None
+        if 视图['kind']=='item':
+            for 项 in 账本['items']:
+                if 项['id']==视图['id']:
+                    打开条目=项
+                    break
+        打开行=None
+        if 视图['kind']=='row' and 打开包 is not None:
+            for 行 in 打开包['rows']:
+                if 行['rowId']==视图['rowId']:
+                    打开行=行
+                    break
+        在已安装=标签==已安装页
+        显示卡片=(not 在已安装) or (打开包 is None and 打开条目 is None)
+        来自更多=(视图['kind'] in ('package','row')) and (视图.get('from')=='more' or (视图.get('name') in 更多包 and 视图.get('name') not in 钉))
+        显示更多=在已安装 and 显示卡片 and (视图['kind']=='more' or 来自更多)
+        显示主列表=显示卡片 and not 显示更多
+        已安装卡片=在已安装 and 显示卡片
+        打开包在更多=打开包 is not None and 打开包.get('official') is True and 来自更多
+        旧=自身.根
+        父=None
+        if 旧 is not None:
+            父=旧.parentNode
+            旧.remove()
+        根=建(文档,'section','page')
+        根.setAttribute('data-plugin-panel','')
+        if 状态['status']=='loading' or 刷新中:
+            根.setAttribute('aria-busy','true')
+        if 显示主列表:
+            头=建(文档,'header','pageHead')
+            头.setAttribute('data-window-drag','')
+            标题区=建(文档,'div','pageHeading')
+            题=建(文档,'h1','pageTitle')
+            题.textContent=中文句('title')
+            标题区.appendChild(题)
+            引=建(文档,'div','pageIntro')
+            引字=文档.createElement('span')
+            引字.textContent=中文句('intro')
+            引.appendChild(引字)
+            说明钮=按钮({
+                'window':窗口,'variant':'ghost','size':'sm','className':'infoButton',
+                'children':画图标(窗口,图标信息描边常规,11),
+            }).渲染()
+            if 说明钮 is not None:
+                说明钮.setAttribute('aria-label',中文句('infoLabel'))
+                标样式模块(说明钮,样式模块)
+            挂组件(引,提示泡({
+                'window':窗口,'label':中文句('infoDescription'),'side':'bottom',
+                'delayMs':300,'maxWidth':300,'portal':True,'openOnClick':True,
+                'children':说明钮,
+            }))
+            标题区.appendChild(引)
+            头.appendChild(标题区)
+            具=建(文档,'div','toolbar')
+            if not 在已安装:
+                具.setAttribute('hidden','')
+            刷新钮=文档.createElement('button')
+            刷新钮.type='button'
+            刷新钮.className='iconButton'
+            标样式模块(刷新钮,样式模块)
+            刷新钮.setAttribute('aria-label',中文句('refresh'))
+            刷新钮.setAttribute('aria-busy','true' if 刷新中 else 'false')
+            刷新钮.disabled=not 已载 or 刷新中
+            包图=建(文档,'span','iconWrap')
+            包图.setAttribute('aria-hidden','true')
+            if 刷新中:
+                点=状态点({'window':窗口,'state':'ongoing','size':18}).渲染()
+                if 点 is not None:
+                    包图.appendChild(点)
+            else:
+                图=画图标(窗口,图标刷新16)
+                if 图 is not None:
+                    包图.appendChild(图)
+            刷新钮.appendChild(包图)
+            def 点刷新(事件=None):
+                '再读插件'
+                属性['refresh']()
+            刷新钮.addEventListener('click',点刷新)
+            挂组件(具,提示泡({
+                'window':窗口,'label':中文句('refresh'),'delayMs':500,'focusDelayMs':500,
+                'side':'bottom','portal':True,'disabled':not 已载 or 刷新中,'children':刷新钮,
+            }))
+            if 状态['install'].get('requestId') is None:
+                自身.菜单.属性={
+                    'window':窗口,'disabled':not 已载,'openInstall':属性['openInstall'],
+                    'renderSlot':属性['renderSlot'],'重画':自身.渲染,
+                }
+                菜单节点=自身.菜单.渲染()
+                if 菜单节点 is not None:
+                    具.appendChild(菜单节点)
+            else:
+                挂组件(具,按钮({
+                    'window':窗口,'variant':'primary','size':'sm','className':'addButton',
+                    'icon':画图标(窗口,图标加号16,13),'disabled':not 已载,
+                    'onClick':属性['openInstall'],'children':中文句('installViewTask'),
+                }))
+            头.appendChild(具)
+            根.appendChild(头)
+        if 显示主列表 and len(标签表)>0:
+            页签=建(文档,'div','pageTabs')
+            项列=[{
+                'value':已安装页,'label':中文句('installedTab'),
+                'id':'plugins-tab-installed','panelId':'plugins-panel-installed',
+            }]
+            for 项 in 标签表:
+                项列.append({
+                    'value':项['id'],'label':项['label'],
+                    'id':'plugins-tab-'+项['id'],'panelId':'plugins-panel-'+项['id'],
+                })
+            def 换页(下一):
+                '切到选中的页'
+                属性['actions']['setTab'](下一)
+            挂组件(页签,分段标签页({
+                'window':窗口,'className':'pageTabList','label':中文句('tabsLabel'),
+                'value':标签,'onChange':换页,'items':项列,
+            }))
+            根.appendChild(页签)
+        if not 在已安装:
+            面板=建(文档,'div','tabPanel')
+            面板.setAttribute('role','tabpanel')
+            面板.id='plugins-panel-'+标签
+            def 打开包名(名):
+                '切到已安装并打开组合包'
+                属性['actions']['setTab'](已安装页)
+                属性['actions']['setView']({'kind':'package','name':名})
+            挂上(面板,属性['renderSlot']('plugins.tab',{
+                'install':属性['installFrom'],'openPackage':打开包名,
+            },{'only':标签}))
+            根.appendChild(面板)
+        if 显示更多:
+            更多头=建(文档,'header','moreHead')
+            更多头.setAttribute('data-window-drag','')
+            def 回列表(事件=None):
+                '回到主列表'
+                属性['actions']['setView']({'kind':'list'})
+            挂组件(更多头,按钮({
+                'window':窗口,'size':'sm','className':'moreBack',
+                'children':画图标(窗口,图标左chevron14,20),'onClick':回列表,
+            }))
+            更多题=建(文档,'h1','pageTitle')
+            更多题.textContent=中文句('moreTitle')
+            更多头.appendChild(更多题)
+            根.appendChild(更多头)
+        if 已安装卡片 and not 已载:
+            面板=建(文档,'div','installedPanel')
+            if 状态['status']=='loading':
+                面板.appendChild(列表骨架({'window':窗口,'label':中文句('loading')}).渲染())
+            if 状态['status']=='unavailable':
+                段=建(文档,'p','status statusWithDot')
+                段.setAttribute('role','status')
+                点=状态点({'window':窗口,'state':'idle'}).渲染()
+                if 点 is not None:
+                    段.appendChild(点)
+                段.appendChild(文档.createTextNode(中文句('unavailable')))
+                面板.appendChild(段)
+            根.appendChild(面板)
+        提示=状态.get('notice')
+        if 提示 is not None and 提示.get('kind')!='refresh-failed':
+            句=提示文案(提示)
+            停留=min(8000,max(3000,len(句)*80))
+            挂组件(根,吐司({
+                'window':窗口,'text':句,'icon':画图标(窗口,图标警告16),
+                'holdMs':停留,'onDone':属性['dismissNotice'],
+            }))
+        if not 显示卡片 and 状态['status']=='error' and not 刷新中:
+            失败盒=建(文档,'div','failure')
+            段=建(文档,'p','statusWithDot')
+            段.setAttribute('role','alert')
+            点=状态点({'window':窗口,'state':'error'}).渲染()
+            if 点 is not None:
+                段.appendChild(点)
+            段.appendChild(文档.createTextNode(中文句('refreshError' if 状态['refreshStatus']=='failed' else 'error')))
+            失败盒.appendChild(段)
+            挂组件(失败盒,按钮({'window':窗口,'variant':'outline','size':'sm','onClick':属性['refresh'],'children':中文句('retry')}))
+            根.appendChild(失败盒)
+        def 表单于(身份):
+            '这一页的配置表单。镜像里没有这个命名空间就不给'
+            if not isinstance(配置空间,list) or not any(isinstance(项,dict) and 项.get('ns')==身份 for 项 in 配置空间):
+                return None
+            表单=属性['configForm'](身份)
+            def 提交(操作,修订):
+                '按读到的修订提交'
+                return 表单.mutate(操作,修订)
+            return {'state':表单.getSnapshot(),'mutate':提交}
+        def 设行(行,启用):
+            '有活入口才启停'
+            if 行.get('entryId') is not None:
+                属性['setRowEnabled'](行['entryId'],启用)
+        if 在已安装 and 已载 and 打开包 is not None and 打开行 is not None:
+            def 回包():
+                '回到这个组合包'
+                视图值={'kind':'package','name':打开包['name']}
+                if 打开包在更多:
+                    视图值['from']='more'
+                属性['actions']['setView'](视图值)
+            根.appendChild(行详情({
+                'window':窗口,'pkg':打开包,'row':打开行,'form':表单于(打开行['rowId']),
+                'resolveText':属性['resolveText'],'renderSlot':属性['renderSlot'],'重画':自身.渲染,
+                'onBack':回包,
+            }).渲染())
+        if 在已安装 and 已载 and 打开包 is not None and 打开行 is None:
+            if 自身.包详情 is None:
+                自身.包详情=包详情({})
+            def 行忙(行):
+                '这一行是否正在写'
+                return 行.get('entryId') is not None and 行键(行['entryId']) in 状态['busy']
+            def 包忙(包):
+                '包本身忙，或它的安装还在飞'
+                if 包['name'] in 状态['busy']:
+                    return True
+                主体=状态['install'].get('subject')
+                return 主体 is not None and 主体.get('name')==包['name'] and (是否安装待决(状态['install']['phase']) or 状态['install']['phase']=='checking')
+            def 行是否忙(行):
+                '包或这一行正在写'
+                return 包忙(打开包) or 行忙(行)
+            def 行有配置(行,名=打开包['name']):
+                '这一行是否登记了自己的页'
+                return 行配置键(名,行['rowId']) in 账本['rows']
+            def 开行(行,名=打开包['name']):
+                '打开这一行'
+                视图值={'kind':'row','name':名,'rowId':行['rowId']}
+                if 打开包在更多:
+                    视图值['from']='more'
+                属性['actions']['setView'](视图值)
+            def 回层():
+                '回到更多或主列表'
+                属性['actions']['setView']({'kind':'more' if 打开包在更多 else 'list'})
+            def 改启用(启用,名=打开包['name']):
+                '启停这个包'
+                属性['setEnabled'](名,启用)
+            def 去卸载(名=打开包['name']):
+                '请求卸载'
+                属性['uninstall'](名)
+            def 去更新(名=打开包['name']):
+                '请求更新'
+                属性['update'](名)
+            自身.包详情.属性={
+                'window':窗口,'pkg':打开包,'resolveText':属性['resolveText'],
+                'busy':包忙(打开包),'renderSlot':属性['renderSlot'],'inMore':打开包在更多,
+                'configured':打开包['name'] in 账本['bundles'],'重画':自身.渲染,
+                'toggle':{'busy':行是否忙,'onSetEnabled':设行} if 打开包.get('enabled') is True else None,
+                'configure':{'has':行有配置,'open':开行},
+                'onBack':回层,
+                'onSetEnabled':改启用,
+                'onUninstall':去卸载,
+                'onUpdate':去更新,
+            }
+            根.appendChild(自身.包详情.渲染())
+        if 在已安装 and 已载 and 打开条目 is not None:
+            def 回列表():
+                '回到卡片列表'
+                属性['actions']['setView']({'kind':'list'})
+            根.appendChild(条目详情({
+                'window':窗口,'item':打开条目,'form':表单于(打开条目['id']),
+                'renderSlot':属性['renderSlot'],
+                'onBack':回列表,
+            }).渲染())
+        if 已载 and 已安装卡片:
+            if len(账本['items'])==0 and len(官方)==0 and len(我的)==0 and 状态['status']!='error':
+                面板=建(文档,'div','installedPanel')
+                空=建(文档,'p','empty')
+                空.textContent=中文句('empty')
+                面板.appendChild(空)
+                根.appendChild(面板)
+            else:
+                面板=建(文档,'div','installedPanel')
+                def 画包卡(包,来自更多列表):
+                    '一张组合包卡片'
+                    def 打开():
+                        '打开详情'
+                        自身.激活=None
+                        视图值={'kind':'package','name':包['name']}
+                        if 来自更多列表:
+                            视图值['from']='more'
+                        属性['actions']['setView'](视图值)
+                    def 开关改(启用):
+                        '启停，启用时记下引导'
+                        自身.激活=包['name'] if 启用 else None
+                        属性['setEnabled'](包['name'],启用)
+                    def 忙():
+                        '这张卡是否忙'
+                        if 包['name'] in 状态['busy']:
+                            return True
+                        主体=状态['install'].get('subject')
+                        return 主体 is not None and 主体.get('name')==包['name'] and (是否安装待决(状态['install']['phase']) or 状态['install']['phase']=='checking')
+                    return 包卡片({
+                        'window':窗口,'pkg':包,'resolveText':属性['resolveText'],
+                        'busy':忙(),'highlighted':状态.get('highlight')==包['name'],
+                        'onOpen':打开,'onSetEnabled':开关改,'重画':自身.渲染,
+                    }).渲染()
+                if 显示更多:
+                    组=建(文档,'section','group')
+                    组.setAttribute('data-plugin-scope','global')
+                    组.setAttribute('data-plugin-group','more')
+                    列=建(文档,'ul','cards')
+                    for 包 in 更多:
+                        卡=画包卡(包,True)
+                        if 卡 is not None:
+                            列.appendChild(卡)
+                    组.appendChild(列)
+                    面板.appendChild(组)
+                else:
+                    def 画组(身份,标题,卡片):
+                        '一组卡片。实验组还可以去更多'
+                        有更多=身份=='extensions' and len(更多)>0
+                        if len(卡片)==0 and not 有更多:
+                            return
+                        组=建(文档,'section','group')
+                        组.setAttribute('data-plugin-scope','global')
+                        组.setAttribute('data-plugin-group',身份)
+                        组头=建(文档,'div','groupHead')
+                        题=建(文档,'h3','groupTitle')
+                        题.textContent=标题
+                        组头.appendChild(题)
+                        if 有更多:
+                            def 去更多(事件=None):
+                                '打开更多列表'
+                                属性['actions']['setView']({'kind':'more'})
+                            挂组件(组头,按钮({
+                                'window':窗口,'size':'sm','className':'groupMore','onClick':去更多,
+                                'children':中文句('moreAction'),
+                            }))
+                        组.appendChild(组头)
+                        if len(卡片)>0:
+                            列=建(文档,'ul','cards')
+                            for 卡 in 卡片:
+                                if 卡 is not None:
+                                    列.appendChild(卡)
+                            组.appendChild(列)
+                        面板.appendChild(组)
+                    基本卡=[]
+                    for 项 in 账本['items']:
+                        def 开条目(身份=项['id']):
+                            '打开官方插件'
+                            属性['actions']['setView']({'kind':'item','id':身份})
+                        基本卡.append(条目卡片({
+                            'window':窗口,'item':项,'renderSlot':属性['renderSlot'],'onOpen':开条目,
+                        }).渲染())
+                    画组('basic',中文句('basicTitle'),基本卡)
+                    画组('extensions',中文句('extensionsTitle'),[画包卡(包,False) for 包 in 扩展])
+                    画组('bundles',中文句('bundlesTitle'),[画包卡(包,False) for 包 in 我的])
+                if 状态['status']=='error' and not 刷新中:
+                    失败盒=建(文档,'div','failure')
+                    段=建(文档,'p','statusWithDot')
+                    段.setAttribute('role','alert')
+                    点=状态点({'window':窗口,'state':'error'}).渲染()
+                    if 点 is not None:
+                        段.appendChild(点)
+                    段.appendChild(文档.createTextNode(中文句('refreshError' if 状态['refreshStatus']=='failed' else 'error')))
+                    失败盒.appendChild(段)
+                    挂组件(失败盒,按钮({'window':窗口,'variant':'outline','size':'sm','onClick':属性['refresh'],'children':中文句('retry')}))
+                    面板.appendChild(失败盒)
+                根.appendChild(面板)
+        激活包=None
+        for 包 in 列出:
+            if 包['name']==自身.激活 and 包.get('enabled') is True and 包['name'] not in 状态['busy']:
+                激活包=包
+                break
+        if 显示卡片 and 激活包 is not None and 状态['install']['open'] is not True:
+            def 关掉引导():
+                '丢掉这次启用引导'
+                自身.激活=None
+                自身.渲染()
+            def 打开详情():
+                '关掉引导并打开这个包'
+                自身.激活=None
+                视图值={'kind':'package','name':激活包['name']}
+                if 显示更多:
+                    视图值['from']='more'
+                属性['actions']['setView'](视图值)
+            挂上(根,属性['renderSlot']('plugins.bundle.activation',{
+                'packageName':激活包['name'],'onDismiss':关掉引导,'onOpenDetails':打开详情,
+            },{'entryKey':激活包['name']}))
+        def 启用刚装():
+            '记下引导并启用刚装上的包'
+            自身.激活=状态['install'].get('installed')
+            属性['enableInstalled']()
+        自身.安装框.属性={
+            'window':窗口,'install':状态['install'],'重画':自身.渲染,
+            'onClose':属性['closeInstall'],'onEditSpec':属性['editInstallSpec'],
+            'onRun':属性['runInstall'],'onCancel':属性['cancelInstall'],
+            'onReconcile':属性['reconcileInstall'],'onToggleDetails':属性['toggleInstallDetails'],
+            'onEnableNow':启用刚装,'onApproveBuilds':属性['approveBuildsAndRetry'],
+            'onToggleRegistry':属性['toggleRegistryOptions'],'onChooseRegistry':属性['chooseRegistry'],
+            'onChangeRegistry':属性['changeRegistry'],'onUseGithubMirror':属性['useGithubMirror'],
+        }
+        对话=自身.安装框.渲染()
+        if 对话 is not None:
+            根.appendChild(对话)
+        if 状态.get('confirm') is not None:
+            确认包=None
+            for 包 in 状态['packages']:
+                if 包['name']==状态['confirm']['packageName']:
+                    确认包=包
+                    break
+            if 确认包 is None:
+                名=状态['confirm']['packageName']
+            else:
+                名=包文案(确认包,属性['resolveText'])['title']
+            确认=确认对话框({
+                'window':窗口,'name':名,'onConfirm':属性['confirm'],'onCancel':属性['cancelConfirm'],
+            }).渲染()
+            if 确认 is not None:
+                根.appendChild(确认)
+        自身.根=根
+        if 父 is None and 'parent' in 属性:
+            父=属性['parent']
+        if 父 is not None and 根.parentNode is not 父:
+            父.appendChild(根)
+        if 状态.get('highlight') is not None:
+            卡=文档.querySelector('[data-plugin-package="'+状态['highlight']+'"]')
+            if 卡 is not None and hasattr(卡,'scrollIntoView'):
+                卡.scrollIntoView({'block':'center','behavior':'smooth'})
+            if 自身.高亮定时 is not None:
+                窗口.clearTimeout(自身.高亮定时)
+            自身.高亮定时=窗口.setTimeout(属性['clearHighlight'],高亮毫秒)
+        return 根

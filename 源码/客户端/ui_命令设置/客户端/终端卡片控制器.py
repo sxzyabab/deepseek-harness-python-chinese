@@ -2,8 +2,8 @@ from ...ui_基础界面组件.表单模型 import 设置表单模型,设置数�
 
 __all__=['bash命名空间','pwsh命名空间','终端卡片控制器']
 
-bash命名空间='bash-sandbox'
-pwsh命名空间='pwsh-sandbox'
+bash命名空间='bash-sandbox'#非 Windows 基础包组装的 POSIX 执行器入口
+pwsh命名空间='pwsh-sandbox'#Windows 基础包组装的 PowerShell 执行器入口
 
 class 终端卡片控制器:
     '把一条已组装的终端执行器表单接到本页'

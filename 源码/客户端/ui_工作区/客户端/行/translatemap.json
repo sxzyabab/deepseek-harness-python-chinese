@@ -1,4 +1,8 @@
 {
-    "Rows":"行",
-    "AnimatedRows":"动画行"
+    "AnimatedRows": "动画行",
+    "AnimatedRows.module": "动画行.module",
+    "Rows": "行",
+    "Rows.module": "行.module",
+    "WorkspaceBrowser": "浏览区",
+    "WorkspaceBrowser.module": "浏览区.module"
 }

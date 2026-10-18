@@ -8,7 +8,7 @@ from .异常 import ssh错误#本包异常基类
 from .模式 import 握手模式,流端点模式
 from .流安全 import 认证流,套接字流
 from . import (
-    ssh侧车,
+    ssh辅助,
     入口,
     远端进程,
 )

@@ -222,7 +222,7 @@ def json值(值):
         return None#没有
     return json.loads(文本)#解析回普通值
 
-def 读键(对象,键):
+def 读取键(对象,键):
     '键不在时返回缺席，不把 None 当成没给'
     if isinstance(对象,dict) and 键 in 对象:#有这个键
         return 对象[键]#值，可以是 None
@@ -377,8 +377,8 @@ class 克劳德代码模组(远程服务):
             'budgetMs':钩子超时,#钩子预算
             'catchBudgetMs':捕获超时,#处理函数预算
             'report':报告,#诊断
-            'onStateRead':lambda 键,槽:表面.读了状态(键,槽),#绘制订阅
-            'onStateWritten':lambda 键,槽:表面.写了状态(键,槽),#写下就重画
+            'onStateRead':lambda 键,槽:表面.读取了状态(键,槽),#绘制订阅
+            'onStateWritten':lambda 键,槽:表面.写入了状态(键,槽),#写下就重画
         })#引擎
         引擎盒['引擎']=引擎#绘制可以引发了
         自身.引擎=引擎#添加与列表
@@ -603,7 +603,7 @@ class 克劳德代码模组(远程服务):
             底下=底下盒['结果']#可能没执行
             if 底下 is not None:#执行过
                 映射=工具调用结果来自(底下)#投影
-                if 严格同(读键(映射,'result'),读键(答案,'result')) and 严格同(读键(映射,'isError'),读键(答案,'isError')):#钩子没改
+                if 严格同(读取键(映射,'result'),读取键(答案,'result')) and 严格同(读取键(映射,'isError'),读取键(答案,'isError')):#钩子没改
                     return 底下#原结果
                 if isinstance(答案,dict) and 答案.get('isError') is True and not (isinstance(底下,dict) and 底下.get('isError')):#成功被标成失败
                     return 模组代答(文本,'MOD_ANSWERED')#换成失败

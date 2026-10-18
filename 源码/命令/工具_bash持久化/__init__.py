@@ -9,12 +9,12 @@ from ...内核.工具 import 定义工具#定义面向模型的工具
 from ...工具.超时 import 截止,取超时#命令截止
 from .异常 import 持久bash错误#本包异常基类
 
-__all__=['名称','依赖','配置','应用','或许截断','下一滚回偏移','保留滚回','追加状态标记','渲染已抽','渲染壳退出状态','暂停']#仅中文公开名
+__all__=['名称','依赖','配置','应用','或许截断','下一滚回偏移','保留滚回','追加状态标记','渲染已抽','渲染命令解释器退出状态','暂停']#仅中文公开名
 
 截断说明='<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with `grep -n` in order to find the line numbers of what you are looking for.</NOTE>'#截断后追加给模型的说明
 丢失前缀说明='<response clipped><NOTE>The beginning of this command output was dropped by the terminal scrollback limit. The following text is the earliest retained output.</NOTE>\n'#滚回丢掉开头时的说明
-壳重置说明='The persistent bash shell was reset; the next bash call starts from the workspace with a fresh current directory and environment.'#壳被重置后告诉模型的说明
-壳提示符='__DSH_PERSISTENT_BASH_PROMPT__ '#持久 bash 的提示符标记
+命令解释器重置说明='The persistent bash shell was reset; the next bash call starts from the workspace with a fresh current directory and environment.'#壳被重置后告诉模型的说明
+命令解释器提示符='__DSH_PERSISTENT_BASH_PROMPT__ '#持久 bash 的提示符标记
 超时状态标记='[Command timed out or OOM]'#超时或 OOM 状态标记
 超时码='PERSISTENT_BASH_TIMEOUT'#超时原因码
 滚回页行数=1000#每次读取的滚回页行数
@@ -63,8 +63,8 @@ def 包装命令(命令,标记):#把用户命令包进打印标记与退出码�
 def 剥提示符(文本):#剥掉末尾提示符和尾换行
     '剥掉末尾提示符和尾换行'
     结果=末尾换行模式.sub('',文本)#先去掉末尾全部换行
-    while 结果.endswith(壳提示符):#末尾还是提示符
-        结果=结果[:-len(壳提示符)]#切掉一层提示符
+    while 结果.endswith(命令解释器提示符):#末尾还是提示符
+        结果=结果[:-len(命令解释器提示符)]#切掉一层提示符
     if 结果.endswith('\n'):#再去一层尾换行
         return 结果[:-1]#去掉尾换行
     return 结果#已干净
@@ -92,11 +92,11 @@ def 命令输出(快照,标记):#从滚回抽出完整命令输出
 def 提示符已完成(结果):#视口是否停在提示符
     '视口是否停在提示符'
     视口=结果['viewport']#视口文本
-    if 视口.endswith(壳提示符):#裸提示符
+    if 视口.endswith(命令解释器提示符):#裸提示符
         return True#完成
-    if 视口.endswith(壳提示符+'\r\n'):#提示符加CRLF
+    if 视口.endswith(命令解释器提示符+'\r\n'):#提示符加CRLF
         return True#完成
-    if 视口.endswith(壳提示符+'\n'):#提示符加LF
+    if 视口.endswith(命令解释器提示符+'\n'):#提示符加LF
         return True#完成
     return False#未完成
 
@@ -119,7 +119,7 @@ def 部分输出(快照,标记,回退,回退已截=False):#命令未完时尽量
     else:#结束标记前
         结束前=开始后[:回退结束]#结束标记前
     return {#用回退拼出的部分输出
-        'text':剥提示符(结束前.replace(壳提示符,'')),#去掉提示符
+        'text':剥提示符(结束前.replace(命令解释器提示符,'')),#去掉提示符
         'incomplete':回退已截 or 回退开始<0,#回退被截或没开始标记则不完整
     }#返回结束
 
@@ -140,7 +140,7 @@ def 下一滚回偏移(页,偏移):#下一页滚回起点
 def 保留滚回(上下文,所有者,会话编号,最新=None):#从最新页往回拼完整保留滚回
     '从最新页往回拼完整保留滚回'
     if 最新 is None:#调用方没给最新页
-        最新=上下文.terminals.读取(所有者,会话编号,{'offset':0,'count':滚回页行数})#读最新一页
+        最新=上下文.terminals.读取回滚(所有者,会话编号,{'offset':0,'count':滚回页行数})#读最新一页
     if len(最新['text'])==0:#空页
         页列表=[]#无页
     else:#已有页
@@ -150,7 +150,7 @@ def 保留滚回(上下文,所有者,会话编号,最新=None):#从最新页往�
     while True:#一直往更早的页走
         if 偏移>=最新['totalLines']:#已经盖到总行数
             break#停
-        页=上下文.terminals.读取(所有者,会话编号,{'offset':偏移,'count':滚回页行数})#再读一页
+        页=上下文.terminals.读取回滚(所有者,会话编号,{'offset':偏移,'count':滚回页行数})#再读一页
         已截=已截 or 页['truncated'] is True#任一页截断则记下
         if len(页['text'])>0:#非空页
             页列表.insert(0,页['text'])#插到前面
@@ -183,7 +183,7 @@ def 渲染已抽(输出,最大输出字节):#把抽出的输出渲染给模型
         标记=None#不加
     return 追加状态标记(带前缀,标记)#正文后追加状态标记
 
-def 渲染壳退出状态(内容,退出码,信号):#壳退出时追加退出原因
+def 渲染命令解释器退出状态(内容,退出码,信号):#壳退出时追加退出原因
     '壳退出时追加退出原因'
     if 信号 is not None:#被信号杀死
         标记='[shell killed by signal: '+str(信号)+']'#信号标记
@@ -193,7 +193,7 @@ def 渲染壳退出状态(内容,退出码,信号):#壳退出时追加退出原�
         标记='[shell exited]'#只知道退出了
     return 追加状态标记(内容,标记)#接到正文后
 
-def 持久壳表(上下文,配置值):#按所有者缓存持久壳
+def 持久命令解释器表(上下文,配置值):#按所有者缓存持久壳
     """按所有者缓存持久壳，交出 get/reset。
     所有者按对象身份认
     """
@@ -247,7 +247,7 @@ def 持久壳表(上下文,配置值):#按所有者缓存持久壳
                 已装所有者拆除.add(所有者)
                 所有者.ctx.副作用(偏应用(所有者副作用体,所有者),'tool-bash-persistent owner cache cleanup')
             发送=上下文.terminals.开始发送(所有者,会话编号,{
-                'text':'stty -echo; PS1='+收成Bash引号(壳提示符),
+                'text':'stty -echo; PS1='+收成Bash引号(命令解释器提示符),
                 'submit':True,
                 'signal':组合信号,
             })
@@ -332,7 +332,7 @@ def 执行命令(上下文,壳表,所有者,命令,配置值,上游):#在持久�
             else:
                 状态['回退']=结果['viewport']
             状态['回退已截']=状态['回退已截'] or 增量['truncated'] is True or 结果['truncated'] is True
-            最新=上下文.terminals.读取(所有者,状态['会话编号'],{'offset':0,'count':滚回页行数})
+            最新=上下文.terminals.读取回滚(所有者,状态['会话编号'],{'offset':0,'count':滚回页行数})
             已超时=取超时(命令截止.信号,超时码)
             if 已超时 is not None:
                 快照=保留滚回(上下文,所有者,状态['会话编号'],最新)
@@ -342,7 +342,7 @@ def 执行命令(上下文,壳表,所有者,命令,配置值,上游):#在持久�
                 收尾成功('\n'.join([
                     'Your command timed out after '+str(秒数)+' seconds or experienced an OOM error. Below is partial output:',
                     追加状态标记(部分,超时状态标记),
-                    壳重置说明,
+                    命令解释器重置说明,
                 ]))
                 return
             if 已中止(命令截止.信号):
@@ -357,15 +357,15 @@ def 执行命令(上下文,壳表,所有者,命令,配置值,上游):#在持久�
             if 会话状态['kind']=='exited':
                 快照=保留滚回(上下文,所有者,状态['会话编号'],最新)
                 壳表['reset'](所有者,'persistent bash shell exited')
-                段=渲染壳退出状态(
+                段=渲染命令解释器退出状态(
                     渲染已抽(部分输出(快照,状态['标记'],状态['回退'],状态['回退已截']),配置值['maxOutputChars']),
                     会话状态['exitCode'] if 'exitCode' in 会话状态 else None,
                     会话状态['signal'] if 'signal' in 会话状态 else None,
                 )
                 if len(段)>0:
-                    收尾成功(段+'\n'+壳重置说明)
+                    收尾成功(段+'\n'+命令解释器重置说明)
                 else:
-                    收尾成功(壳重置说明)
+                    收尾成功(命令解释器重置说明)
                 return
             if 提示符已完成(结果):
                 快照=保留滚回(上下文,所有者,状态['会话编号'],最新)
@@ -408,7 +408,7 @@ def 执行命令(上下文,壳表,所有者,命令,配置值,上游):#在持久�
 
 def 登记持久Bash(上下文,配置值):#注册持久bash工具
     '注册面向模型的持久 bash 工具'
-    壳表=持久壳表(上下文,配置值)#按所有者的壳管家
+    壳表=持久命令解释器表(上下文,配置值)#按所有者的壳管家
     队列=weakref.WeakKeyDictionary()#每所有者串行队列
 
     def 放行后来者(所有者,尾巴):

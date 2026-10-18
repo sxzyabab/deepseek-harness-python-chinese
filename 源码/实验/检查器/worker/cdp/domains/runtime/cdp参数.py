@@ -3,7 +3,7 @@ from .....异常 import 检查器错误#本包错误
 from .....共享.校验 import 精确键,可选布尔,可选字符串#校验
 
 __all__=[#仅中文公开名
-    '解析求值','解析取属性','解析调函数','解析等Promise',
+    '解析求值','解析获取属性','解析调函数','解析等Promise',
     '解析释放对象','解析释放对象组','解析全局词法作用域名',
 ]#公开面结束
 
@@ -39,7 +39,7 @@ def 解析求值(参数):#解析求值
         请求['timeoutMs']=超时#超时毫秒
     return {**选择器,'request':请求}#返回结束
 
-def 解析取属性(参数):#解析取属性
+def 解析获取属性(参数):#解析获取属性
     '解析按 realm 路由的 Runtime.getProperties 参数'
     精确键(参数,[#精确键
         'objectId','ownProperties','accessorPropertiesOnly','generatePreview','nonIndexedPropertiesOnly',#字段

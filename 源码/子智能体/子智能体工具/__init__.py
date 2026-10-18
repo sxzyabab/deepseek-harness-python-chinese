@@ -95,8 +95,8 @@ def _安装委托(上下文,配置值):
                 'UNSUPPORTED_CAPABILITY',
             )#挂载失败
         措辞=提供方措辞(bool(提供方.继承父上下文))#按是否继承会话选措辞
-        可续跑=callable(getattr(提供方,'准备可续跑',None))#本地后端才能收后续
-        if 可续跑:#可续跑后缀
+        可续运行=callable(getattr(提供方,'准备可续运行',None))#本地后端才能收后续
+        if 可续运行:#可续运行后缀
             描述后缀=' This tool starts an independently managed subagent and immediately returns its id. The runtime notifies you when it finishes. The child reports results with `send_message`; use `send_message` to steer it while running or continue its conversation after it finishes.'
         else:#外部后端
             描述后缀=' This tool starts an independently managed subagent and immediately returns its id. The runtime notifies you when it finishes. The completion notice includes its final answer. This backend does not accept follow-up messages.'

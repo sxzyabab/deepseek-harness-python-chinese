@@ -10,5 +10,9 @@
     "events":"事件",
     "card-model":"卡片模型",
     "run-card-index":"运行卡片索引",
-    "status":"状态"
+    "status":"状态",
+    "CordisPreparingRow":"准备行",
+    "CordisDefineRow.module":"定义行.module",
+    "CordisPanel.module":"面板.module",
+    "CordisRunRow.module":"运行行.module"
 }

@@ -1,53 +1,73 @@
-from .作用域槽 import 创建槽渲染器#槽位渲染器工厂
-from .应用组装 import 构建渲染应用#应用组装
-from .登记表 import 槽登记表#槽位注册表
 from . import (
+    作用域槽,
+    应用组装,
     同步外部存储声明,
+    登记表,
     绑定,
     绑定选择器,
 )
+from .作用域槽 import 创建槽渲染器,取出口,标记已连接#渲染器与卸下
+from .应用组装 import 构建渲染应用#应用树
+from .登记表 import 槽登记表#槽登记服务
 
-__all__=[#仅中文公开名
+__all__=[#同目录模块，以及 index 里的业务名
+    '作用域槽','应用组装','同步外部存储声明','登记表','绑定','绑定选择器',
     '依赖','应用','槽登记表','创建槽渲染器','构建渲染应用','挂载应用','启动交接',
-]
+]#公开面结束
 
-依赖=[]#应用组装前无前置 inject
+依赖=[]#组装前没有 inject
 
-def 空卸载():
-    '无卸载动作'
-    return None#无
 
 def 启动交接(应用工厂,启动快照):
-    '在用应用替换前，先透传内核拥有的加载 DOM'
-    return {#交接树
-        'type':'boot-handoff',#类型
-        'boot':启动快照,#启动快照
-        'app':应用工厂,#真应用工厂
-    }#树结束
+    '启动页的类名和 HTML 已在浏览器读出。同步收场是应用树'
+    if isinstance(启动快照,dict):#快照已传到 Python
+        应用树=应用工厂()#应用
+        return 应用树#替换启动页
+    return 应用工厂()#没有快照也挂应用
+
 
 def 挂载应用(容器,应用工厂):
-    '经 hydrate 保留无框架启动 DOM；否则同步首帧。容器为 DOM 对象'
-    启动=None#启动页
-    try:#宿主 DOM 可选 querySelector
-        查询=容器.querySelector#查子
-    except AttributeError:#非 DOM
-        查询=None#无
-    if 查询 is not None:#有 DOM
-        启动=查询(':scope > [data-dsh-boot]')#找启动页
+    '读启动页后把应用挂进容器。返回的函数卸下时调用拆除'
+    启动=None#启动页节点
+    查询=getattr(容器,'querySelector',None)#浏览器查询
+    if callable(查询):#容器是文档节点
+        启动=查询(':scope > [data-dsh-boot]')#内核留下的启动页
     if 启动 is not None:#有启动页
-        快照={#启动快照
-            'className':启动.className,#保留 class
-            'html':启动.innerHTML,#保留 HTML
-        }#快照结束
-        return {'type':'hydrated-root','tree':启动交接(应用工厂,快照),'unmount':空卸载}#hydrate 交接
-    return {'type':'created-root','tree':应用工厂(),'unmount':空卸载}#新建根
+        快照={#浏览器上读到的快照
+            'className':启动.className,#类名
+            'html':启动.innerHTML,#内部 HTML
+        }#快照
+        树=启动交接(应用工厂,快照)#换成应用
+        if getattr(启动,'parentNode',None) is not None:#还挂着
+            启动.remove()#摘掉启动页
+    else:#没有启动页
+        树=应用工厂()#直接画应用
+    if 树 is not None and getattr(树,'parentNode',None) is None:#还没进容器
+        容器.appendChild(树)#挂上
+    标记已连接(树)#之后被摘掉才拆除
 
-def 应用(上下文):
-    '安装槽位渲染器并提供应用挂载面'
-    槽登记表实例=槽登记表(上下文)#构造注册表服务
-    槽登记表实例.install(创建槽渲染器())#安装出口机械
+    def 卸载():
+        '卸下根，并调用拆除'
+        出口=取出口(树)#根出口
+        if 出口 is not None:#有出口
+            出口.拆除()#退订并调用拆除
+        if 树 is not None and getattr(树,'parentNode',None) is not None:#还在容器里
+            树.remove()#摘掉
+
+    return 卸载#交给启动内核
+
+
+def 应用(上下文,配置=None):
+    '安装槽位渲染器，并交出挂载面'
+    槽登记表实例=槽登记表(上下文)#登记服务
+    槽登记表实例.install(创建槽渲染器())#装上包裹渲染
+
     def 挂载(容器):
-        '挂载并返回卸载'
-        根=挂载应用(容器,构建渲染应用({'ctx':上下文}))#挂载应用
-        return 根['unmount']#卸载根
-    上下文.反射.提供服务('uiRenderer',{'mount':挂载})#提供挂载面
+        '挂上应用。卸下时调用拆除'
+        return 挂载应用(容器,构建渲染应用({'ctx':上下文}))#卸载函数
+
+    上下文.反射.提供服务('uiRenderer',{'mount':挂载})#挂载面
+
+
+apply=应用#加载器入口
+inject=依赖#依赖名

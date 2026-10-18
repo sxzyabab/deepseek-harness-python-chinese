@@ -448,11 +448,19 @@ class 代理:
     def __repr__(自身):
         return repr(获取内部数据(自身,'代理目标'))#展示被代理对象
 
+def 能挂内部数据(值):
+    '追踪器在内部数据面上。没有哈希的值，以及元组、冻结集合，不能做弱引用键'
+    if type(值).__hash__ is None:
+        return False
+    if isinstance(值,(tuple,frozenset)):
+        return False
+    return True
+
 def 套上调用方上下文(上下文,值):
     "值声明了追踪器就套壳，方法里读到的上下文变成调用方的"
-    if not 是对象(值):
-        return 值#原始值不用套壳
-    追踪器=_对象内部数据表.get(值,{}).get('追踪器')#值上声明的追踪器
+    if not 是对象(值) or not 能挂内部数据(值):
+        return 值#原始值，以及不能作为弱引用键的值，不用套壳
+    追踪器=获取内部数据(值,'追踪器',None)#值上声明的追踪器
     if not 追踪器:
         return 值#没有追踪器，或已经是壳
     return 调用方上下文壳(上下文,值,追踪器)#套壳
@@ -469,7 +477,10 @@ class 调用方上下文壳(代理):
             if 关联 and f'{关联}.{属性}' in 上下文.反射.属性表:
                 return getattr(上下文,f'{关联}.{属性}')#转发到上下文
             内层=getattr(目标,属性)#从原目标读
-            内层追踪器=_对象内部数据表.get(内层,{}).get('追踪器') if 是对象(内层) else None#嵌套追踪器
+            if 是对象(内层) and 能挂内部数据(内层):
+                内层追踪器=获取内部数据(内层,'追踪器',None)#嵌套追踪器
+            else:
+                内层追踪器=None
             if 内层追踪器:
                 return 调用方上下文壳(上下文,内层,内层追踪器)#递归套壳
             if callable(内层) and not isinstance(内层,type):
@@ -492,7 +503,10 @@ class 调用方上下文壳(代理):
             setattr(目标,属性,写入值)#写回原目标
 
         def 调用(目标,位置参数,关键字参数):
-            调用体=_对象内部数据表.get(目标,{}).get('调用')#值上声明的调用体
+            if 能挂内部数据(目标):
+                调用体=获取内部数据(目标,'调用',None)#值上声明的调用体
+            else:
+                调用体=None#不能做弱引用键的值上没有内部调用体
             if 调用体 is None:
                 类调用=getattr(type(目标),'__call__',None)#类上的调用协议
                 调用体=类调用 if isinstance(类调用,types.FunctionType) else None#只有自定义的才换自身

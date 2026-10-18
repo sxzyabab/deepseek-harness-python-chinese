@@ -25,7 +25,7 @@ class Host源后端:#Host源后端
         已列出.解决([项['descriptor'] for 项 in 自身._脚本.values()])#目录在本地，直接解决
         return 已列出#返回已解决的期约
 
-    def 取脚本来源(自身,脚本键):#取脚本来源
+    def 获取脚本来源(自身,脚本键):#获取脚本来源
         '请求原生脚本来源，返回期约，兑现值是源文本'
         脚本=自身._脚本[脚本键] if 脚本键 in 自身._脚本 else None#取脚本
         if 脚本 is None:#不可用
@@ -37,7 +37,7 @@ class Host源后端:#Host源后端
             return 结果['scriptSource']#返回
         return 自身.目标.请求('Debugger.getScriptSource',{'scriptId':脚本['nativeId']}).然后(取出源)#请求完成后再取源
 
-    def 取源映射(自身,_脚本键):#取源映射
+    def 获取源映射(自身,_脚本键):#获取源映射
         'Host 不提供源映射，返回兑现 None 的期约'
         无映射=期约扩展()#源映射期约
         无映射.解决(None)#Host不提供

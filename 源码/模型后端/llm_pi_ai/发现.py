@@ -76,7 +76,7 @@ def 有界读取(响应,网址):
         响应.close()#清理
     return b''.join(块列表).decode('utf-8')#解码为文本
 
-def 读列表(正文):
+def 读取列表(正文):
     '读一份 OpenAI 兼容列表回复。正文是 JSON 对象 dict'
     if 'data' not in 正文:#没有 data 键则无法自动发现
         raise 大模型错误(
@@ -196,8 +196,8 @@ def 发现模型(请求,已存密钥=None):
         raise 错误#其余原样抛，保留超限或解码错误
     try:#按 JSON 查看
         正文=json.loads(文本)#按未知查看
-    except JSONDecodeError as 错误:#不是 JSON 则无法读列表
+    except JSONDecodeError as 错误:#不是 JSON 则无法读取列表
         raise 大模型错误(网址+' did not answer with JSON','DISCOVERY_FAILED',{'cause':错误})#不是JSON
     if not isinstance(正文,dict):#根必须是对象
         raise 大模型错误(网址+' did not answer with JSON','DISCOVERY_FAILED')#不是对象
-    return 读列表(正文)#解析列表
+    return 读取列表(正文)#解析列表

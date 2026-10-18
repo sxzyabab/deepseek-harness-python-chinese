@@ -2,7 +2,7 @@ import re
 from .异常 import 平台认证错误
 from .协议 import 请求账号
 
-__all__=['投影配置档','读账号细节']
+__all__=['投影配置档','读取账号细节']
 
 钱包形态=re.compile(r'^-?\d+(?:\.\d+)?$',re.ASCII)
 
@@ -51,7 +51,7 @@ def 解析钱包表(值):
         结果.append({'currency':货币,'balance':余额})
     return 结果
 
-def 读账号细节(字段,来源,令牌,信号,头):
+def 读取账号细节(字段,来源,令牌,信号,头):
     '读配置档或钱包；失败永不变成零余额'
     if 字段=='profile':
         路径='/auth-api/v0/users/current'

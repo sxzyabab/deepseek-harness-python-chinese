@@ -4,7 +4,7 @@ import yaml
 from ...工具.原子写入 import 原子写文件
 from .异常 import 装载失败,注册表错误
 
-__all__=['读待决构建','记下待决构建','批准构建']
+__all__=['读取待决构建','记下待决构建','批准构建']
 
 待决占位='set this to true or false'#pnpm 11 待决标量
 忽略构建=re.compile(r'\bIgnored build scripts: (.+)')#非交互运行点名跳过的脚本
@@ -27,7 +27,7 @@ def 节点含锚点或别名(节点):
                 return True
     return False
 
-def 读策略(目录):
+def 读取策略(目录):
     '读出 pnpm-workspace.yaml 的文档与待决包名；锚点/别名拒绝'
     路径=os.path.join(目录,'pnpm-workspace.yaml')
     try:
@@ -92,13 +92,13 @@ def 忽略构建名(输出):
             留下.append(名)
     return 留下
 
-def 读待决构建(目录):
+def 读取待决构建(目录):
     '读出 pnpm 11 留下的未决定包名；通配规则排除'
-    return 读策略(目录)['pending']
+    return 读取策略(目录)['pending']
 
 def 记下待决构建(目录,输出):
     '把失败运行报告为忽略的构建脚本记进策略，再列出全部待决名'
-    策略=读策略(目录)
+    策略=读取策略(目录)
     已知=set(策略['keys'])
     新增=[名 for 名 in 忽略构建名(输出) if 名 not in 已知]
     if len(新增)==0:
@@ -114,7 +114,7 @@ def 记下待决构建(目录,输出):
 
 def 批准构建(目录,名称列表):
     '持久化批准且不跑脚本；调用方持有配置档清单锁。名称须仍在待决列表'
-    策略=读策略(目录)
+    策略=读取策略(目录)
     待决=策略['pending']
     for 名称 in 名称列表:
         if 名称 not in 待决:

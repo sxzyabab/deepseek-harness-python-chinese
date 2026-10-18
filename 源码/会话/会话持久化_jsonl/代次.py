@@ -53,7 +53,7 @@ def 是否eexist(错误):#是否 EEXIST
         return True
     return isinstance(错误,FileExistsError)#FileExistsError
 
-def 读稳定jsonl文件(路径,信号=None):#读稳定修订
+def 读取稳定jsonl文件(路径,信号=None):#读稳定修订
     '以单次重试读取稳定修订；持续写者重叠时返回已提交预读前缀'
     _若已中止(信号)#取消
     之前=物理身份(os.stat(路径))#读前
@@ -481,7 +481,7 @@ def 准备jsonl迁移(选项):#准备迁移
     后缀=_断言代次路径(源路径,源版本,当代路径,当代版本,压缩)#断言
     if 源版本>=当代版本:#非历史
         raise Error(f'migration preparation requires a historical source, got v{源版本}')#须历史
-    源=读稳定jsonl文件(源路径,信号)#读源
+    源=读取稳定jsonl文件(源路径,信号)#读源
     try:#解码
         产物=_流式解码迁移(源['bytes'],压缩,源版本,格式,选项.get('validateHistoricalHeader'),信号)#解码
     except Exception as 错误:
@@ -507,9 +507,9 @@ def 准备jsonl迁移(选项):#准备迁移
 
     return {'sourceIdentity':源身份,'artifact':产物,'publish':发布}#已准备
 
-def 读解码jsonl源(路径,版本,压缩,格式,信号=None):#读解码jsonl源
+def 读取解码jsonl源(路径,版本,压缩,格式,信号=None):#读取解码jsonl源
     '经共享流式解析器读一份稳定源，不发布当代代'
-    源=读稳定jsonl文件(路径,信号)#稳定读
+    源=读取稳定jsonl文件(路径,信号)#稳定读
     try:#解码
         产物=_流式解码迁移(源['bytes'],压缩,版本,格式,None,信号)#解码
     except BaseException as 错误:
@@ -531,8 +531,8 @@ def 默认代次格式适配器():#默认格式适配器
     }#结束
 
 __all__=[#公开面
-    '物理身份','身份串','读稳定jsonl文件','准备jsonl迁移','校验jsonl当代代',
-    '读解码jsonl源','默认代次格式适配器','代次源变更错误','代次不支持迁移错误','代次目标冲突错误',
+    '物理身份','身份串','读取稳定jsonl文件','准备jsonl迁移','校验jsonl当代代',
+    '读取解码jsonl源','默认代次格式适配器','代次源变更错误','代次不支持迁移错误','代次目标冲突错误',
     '同步目录','_同步目录',
 ]#公开面结束
 

@@ -1,167 +1,347 @@
-from ..约定.助手内容 import 有助手回复内容#可见回复
-from ..约定.回合过程 import 是子代理委派工具,回合过程规格#过程契约
-from ...异常 import 聊天错误#本包异常
-from .节点工厂 import 聊天合成序号偏移,聊天节点#公共
-from .事件投影 import 转助手块列表#块转换
-from .事件面 import 是追加面事件#面辅助
+from ...异常 import 聊天错误
+from ..约定.助手内容 import 有助手回复内容
+from ..约定.回合过程 import 回合过程规格相同,是子智能体委派工具
+from .事件投影 import 转助手块列表
+from .节点工厂 import 聊天合成序号偏移,聊天节点
 
-__all__=['回合过程定义','登记回合过程']#仅中文公开名
+__all__=['回合过程定义','登记回合过程']
 
-def 事件回合(事件):#从事件取轮次
-    '数字轮次或缺席'
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    回合=数据['turn'] if 'turn' in 数据 else None#轮次
-    return 回合 if isinstance(回合,int) and not isinstance(回合,bool) else None#整数
 
-def 是块行事件(事件):#是否 chunk 行事件
-    '三种 chunkrow'
-    return 事件['type'] in ('chunkrow/text-chunks','chunkrow/reasoning-chunks','chunkrow/tool-call-chunks')#三种
+def 事件回合(事件):
+    '载荷里的回合号'
+    数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+    回合=数据.get('turn')
+    if isinstance(回合,bool) or not isinstance(回合,int):
+        return None
+    return 回合
 
-def 可见助手事件(事件):#是否可见 Assistant 事件
-    '流式或定稿可见正文'
-    种=事件['type']#种
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    if 种=='assistant/live-chunk':#流式
-        块=数据['chunk'] if 'chunk' in 数据 else {}#块
-        块种=块['type'] if 'type' in 块 else None#块种
-        if 块种 in ('text-delta','reasoning-delta'):#增量
-            文=块['text'] if 'text' in 块 else ''#文本
-            return str(文).strip()!=''#非空
-        if 块种=='block-start':#开始
-            return (块['blockType'] if 'blockType' in 块 else None) not in ('text','reasoning','tool-call')#其它可见
-        if 块种!='block-end':#非结束
-            return False#否
-        定=块['block'] if 'block' in 块 else {}#定稿
-        定种=定['type'] if 'type' in 定 else None#定种
-        if 定种=='tool-call':#工具
-            return False#否
-        if 定种 in ('text','reasoning'):#文本
-            文=定['text'] if 'text' in 定 else ''#文本
-            return str(文).strip()!=''#非空
-        return True#其它
-    if 种=='assistant/message' and 是追加面事件(事件):#定稿
-        消息=数据['message'] if 'message' in 数据 else None#消息
-        内容=消息['content'] if 消息 is not None and 'content' in 消息 else None#内容
-        return 有助手回复内容(转助手块列表(内容))#可见
-    return False#否
 
-def 过程证据(事件):#从事件取过程证据
-    'assistant 或 other'
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    if 是块行事件(事件):#chunk 行
-        if 事件['type']=='chunkrow/tool-call-chunks':#工具行
-            return None#不算
-        文列表=数据['texts'] if 'texts' in 数据 else []#文本
-        首=-1#首非空
-        for 甲,文 in enumerate(文列表):#扫
-            if str(文).strip()!='':#非空
-                首=甲
+def 可见块(块):
+    '这条流式块会不会让助手变得可见'
+    if not isinstance(块,dict):
+        return False
+    类型=块.get('type')
+    if 类型 in ('text-delta','reasoning-delta'):
+        文=块.get('text')
+        return isinstance(文,str) and 文.strip()!=''
+    if 类型=='block-start':
+        return 块.get('blockType') not in ('text','reasoning','tool-call')
+    if 类型!='block-end':
+        return False
+    内容=块.get('block') if isinstance(块.get('block'),dict) else {}
+    if 内容.get('type')=='tool-call':
+        return False
+    if 内容.get('type') in ('text','reasoning'):
+        文=内容.get('text')
+        return isinstance(文,str) and 文.strip()!=''
+    return True
+
+
+def 可见助手事件(事件):
+    '可见的流式块，或追加的有可见内容的助手消息'
+    if 事件.get('type')=='assistant/live-chunk':
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+        return 可见块(数据.get('chunk'))
+    if 事件.get('type')=='assistant/attempt':
+        return False
+    if 事件.get('type')=='assistant/message' and 事件.get('surfaceOp')=='append':
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+        消息=数据.get('message') if isinstance(数据.get('message'),dict) else {}
+        内容=消息.get('content') if isinstance(消息.get('content'),list) else []
+        for 块 in 转助手块列表(内容):
+            if 块.get('kind')=='tool-call':
+                continue
+            if 块.get('kind') in ('text','reasoning'):
+                文=块.get('text')
+                if isinstance(文,str) and 文.strip()!='':
+                    return True
+                continue
+            return True
+    return False
+
+
+def 过程证据(事件):
+    '可见助手，或工具、追加结果、重试'
+    if 可见助手事件(事件):
+        if 事件.get('type') not in ('assistant/live-chunk','assistant/message','assistant/attempt'):
+            return None
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+        return {'kind':'assistant','seq':事件.get('seq'),'step':数据.get('step')}
+    if 事件.get('type')=='tool/call' or (事件.get('type')=='tool/result' and 事件.get('surfaceOp')=='append') or 事件.get('type')=='llm/retry':
+        return {'kind':'other','seq':事件.get('seq')}
+    return None
+
+
+def 回合位置(上下文):
+    '这份上下文所属回合'
+    起点=上下文.get('start') if isinstance(上下文.get('start'),dict) else None
+    匹配=上下文.get('matches') if isinstance(上下文.get('matches'),list) else []
+    位置=起点.get('location') if isinstance(起点,dict) else None
+    if not isinstance(位置,dict) and len(匹配)>0 and isinstance(匹配[-1],dict):
+        位置=匹配[-1].get('location')
+    if isinstance(位置,dict) and 位置.get('kind') in ('turn','step'):
+        return 位置.get('turn') if isinstance(位置.get('turn'),dict) else None
+    return None
+
+
+def 更新过程状态(状态,事件):
+    '累加回复条数、工具次数，并记下过程从哪条序号开始'
+    当前=dict(状态)
+    当前['assistantStartByStep']=dict(状态.get('assistantStartByStep') or {})
+    当前['messageCountByStep']=dict(状态.get('messageCountByStep') or {})
+    if 事件.get('type')=='assistant/message' and 事件.get('surfaceOp')=='append':
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+        消息=数据.get('message') if isinstance(数据.get('message'),dict) else {}
+        内容=消息.get('content') if isinstance(消息.get('content'),list) else []
+        if 有助手回复内容(转助手块列表(内容)):
+            步=数据.get('step')
+            当前['messageCountByStep'][步]=当前['messageCountByStep'].get(步,0)+1
+            当前['messageCount']=当前.get('messageCount',0)+1
+    if 事件.get('type')=='tool/call':
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+        委派=是子智能体委派工具(数据.get('name'))
+        if 委派:
+            当前['subagentCount']=当前.get('subagentCount',0)+1
+        else:
+            当前['toolCallCount']=当前.get('toolCallCount',0)+1
+    证据=过程证据(事件)
+    if 证据 is None:
+        return 当前
+    if 证据['kind']=='other':
+        if 当前.get('otherStartSeq') is not None:
+            return 当前
+        当前['otherStartSeq']=证据['seq']
+        已有=当前.get('controlAnchorSeq')
+        当前['controlAnchorSeq']=证据['seq'] if 已有 is None else min(已有,证据['seq'])
+        return 当前
+    if 证据['step'] in 当前['assistantStartByStep']:
+        return 当前
+    当前['assistantStartByStep'][证据['step']]=证据['seq']
+    已有=当前.get('controlAnchorSeq')
+    当前['controlAnchorSeq']=证据['seq'] if 已有 is None else min(已有,证据['seq'])
+    return 当前
+
+
+def 最新回答(回合):
+    '最后一步里有回复、且没有工具调用块的定稿助手'
+    步表=回合.get('steps') if isinstance(回合.get('steps'),list) else []
+    if len(步表)==0 or not isinstance(步表[-1],dict):
+        return None
+    数据=步表[-1].get('data')
+    材料=数据.get('assistant-step') if hasattr(数据,'get') else None
+    if not isinstance(材料,dict) or not isinstance(材料.get('finalNode'),dict):
+        return None
+    块表=材料.get('blocks') if isinstance(材料.get('blocks'),list) else []
+    if not 有助手回复内容(块表):
+        return None
+    for 块 in 块表:
+        if isinstance(块,dict) and 块.get('kind')=='tool-call':
+            return None
+    return 材料
+
+
+def 过程规格(状态,回合):
+    '控制锚、过程起点和定稿回答边界'
+    起点=回合.get('start') if isinstance(回合.get('start'),dict) else None
+    控制=状态.get('controlAnchorSeq')
+    if 控制 is None and isinstance(起点,dict):
+        控制=起点.get('seq')
+    if 控制 is None:
+        return None
+    回答=最新回答(回合)
+    if 回答 is None:
+        return {
+            'turn':回合.get('turn'),
+            'controlAnchorSeq':控制,
+            'processStartSeq':控制,
+            'answerAnchorSeq':None,
+            'answerStep':None,
+            'inlineReasoning':False,
+            'messageCount':状态.get('messageCount',0),
+            'toolCallCount':状态.get('toolCallCount',0),
+            'subagentCount':状态.get('subagentCount',0),
+        }
+    回答步=回答.get('step')
+    消息数=0
+    for 步,次数 in (状态.get('messageCountByStep') or {}).items():
+        if 步<回答步:
+            消息数+=次数
+    行内推理=False
+    for 块 in 回答.get('blocks') if isinstance(回答.get('blocks'),list) else []:
+        if isinstance(块,dict) and 块.get('kind')=='reasoning':
+            文=块.get('text')
+            if isinstance(文,str) and 文.strip()!='':
+                行内推理=True
+    更早=None
+    for 步,序号 in (状态.get('assistantStartByStep') or {}).items():
+        if 步<回答步 and (更早 is None or 序号<更早):
+            更早=序号
+    外部=状态.get('otherStartSeq')
+    if 更早 is not None and (外部 is None or 更早<外部):
+        外部=更早
+    if isinstance(起点,dict) and 起点.get('seq') is not None:
+        过程起=起点.get('seq')
+    elif 外部 is not None:
+        过程起=外部
+    else:
+        过程起=回答['finalNode'].get('seq')
+    return {
+        'turn':回合.get('turn'),
+        'controlAnchorSeq':控制,
+        'processStartSeq':过程起,
+        'answerAnchorSeq':回答['finalNode'].get('seq'),
+        'answerStep':回答步,
+        'inlineReasoning':行内推理,
+        'messageCount':消息数,
+        'toolCallCount':状态.get('toolCallCount',0),
+        'subagentCount':状态.get('subagentCount',0),
+    }
+
+
+def 空过程状态(回合):
+    '一个回合的过程计数从零开始'
+    return {
+        'turn':回合,
+        'assistantStartByStep':{},
+        'messageCountByStep':{},
+        'messageCount':0,
+        'toolCallCount':0,
+        'subagentCount':0,
+    }
+
+
+def 过程回退(上下文):
+    '没有状态时按已加载匹配重放'
+    匹配=上下文.get('matches') if isinstance(上下文.get('matches'),list) else []
+    回合=None
+    for 项 in 匹配:
+        事件=项.get('event') if isinstance(项,dict) else None
+        if isinstance(事件,dict):
+            回合=事件回合(事件)
+            if 回合 is not None:
                 break
-        if 首<0:#全空
-            return None#无
-        return {'kind':'assistant','seq':事件['seq']+首,'step':数据['step'] if 'step' in 数据 else None}#证据
-    if 可见助手事件(事件):#可见助手
-        return {'kind':'assistant','seq':事件['seq'],'step':数据['step'] if 'step' in 数据 else None}#证据
-    种=事件['type']#种
-    if 种=='tool/call' or (种=='tool/result' and 是追加面事件(事件)) or 种=='llm/retry':#其它
-        return {'kind':'other','seq':事件['seq']}#其它
-    return None#无
+    if 回合 is None:
+        return None
+    状态=空过程状态(回合)
+    for 项 in 匹配:
+        事件=项.get('event') if isinstance(项,dict) else None
+        if isinstance(事件,dict):
+            状态=更新过程状态(状态,事件)
+    return 状态
 
-def 更新过程状态(态,事件):#更新过程状态
-    '消息/工具计数与证据锚点'
-    当前=态#累计
-    种=事件['type']#种
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    if 种=='assistant/message' and 是追加面事件(事件):#消息
-        消息=数据['message'] if 'message' in 数据 else None#消息
-        内容=消息['content'] if 消息 is not None and 'content' in 消息 else None#内容
-        if 有助手回复内容(转助手块列表(内容)):#可见
-            步进=dict(当前['messageCountByStep'] if 'messageCountByStep' in 当前 else {})#拷贝
-            步=数据['step'] if 'step' in 数据 else None#步
-            步进[步]=(步进[步] if 步 in 步进 else 0)+1#+1
-            当前={**当前,'messageCountByStep':步进,'messageCount':(当前['messageCount'] if 'messageCount' in 当前 else 0)+1}#更新
-    if 种=='tool/call':#工具
-        名=数据['name'] if 'name' in 数据 else ''#名
-        委派=是子代理委派工具(名 if 名 is not None else '')#委派
-        当前={#计数
-            **当前,
-            'toolCallCount':(当前['toolCallCount'] if 'toolCallCount' in 当前 else 0)+(0 if 委派 else 1),#工具
-            'subagentCount':(当前['subagentCount'] if 'subagentCount' in 当前 else 0)+(1 if 委派 else 0),#subagent
-        }#结束
-    证据=过程证据(事件)#证据
-    if 证据 is None:#无
-        return 当前#原样
-    if 证据['kind']=='other':#其它
-        if 'otherStartSeq' in 当前 and 当前['otherStartSeq'] is not None:#已有
-            return 当前#不变
-        锚=当前['controlAnchorSeq'] if 'controlAnchorSeq' in 当前 else None#控件
-        return {#首个其它
-            **当前,
-            'otherStartSeq':证据['seq'],#起点
-            'controlAnchorSeq':证据['seq'] if 锚 is None else min(锚,证据['seq']),#控件
-        }#结束
-    步进起=dict(当前['assistantStartByStep'] if 'assistantStartByStep' in 当前 else {})#拷贝
-    if 证据['step'] in 步进起:#已记
-        return 当前#不变
-    步进起[证据['step']]=证据['seq']#记
-    锚=当前['controlAnchorSeq'] if 'controlAnchorSeq' in 当前 else None#控件
-    return {#助手证据
-        **当前,
-        'assistantStartByStep':步进起,#步进
-        'controlAnchorSeq':证据['seq'] if 锚 is None else min(锚,证据['seq']),#控件
-    }#结束
 
-def 回合过程匹配(事件):#匹配事件
-    'turn/start 开；过程相关更新'
-    种=事件['type']#种
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    if 种=='turn/start':#开始
-        return {'id':str(数据['turn']),'role':'start'}
-    回合=事件回合(事件)#轮次
-    if 回合 is None:#无
-        return None#不
-    if 种 in ('assistant/live-chunk','assistant/message','tool/call','tool/result','llm/retry','step/start','step/end','turn/end') or 是块行事件(事件):#相关
-        return {'id':str(回合),'role':'update'}#更新
-    return None#否
+def 回合过程匹配(事件):
+    '回合开始认领。过程里的助手、工具、步骤和结束都更新'
+    if 事件.get('type')=='turn/start':
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+        return {'id':str(数据.get('turn')),'role':'start'}
+    回合=事件回合(事件)
+    if 回合 is None:
+        return None
+    if 事件.get('type') in ('assistant/live-chunk','assistant/message','tool/call','tool/result','llm/retry','step/start','step/end','turn/end'):
+        return {'id':str(回合),'role':'update'}
+    return None
 
-def 回合过程开始(_上下文,匹配项):#起始状态
-    'turn/start'
-    事件=匹配项['event']#事件
-    if 事件['type']!='turn/start':#必须
-        raise 聊天错误('turn-process start requires turn/start')#硬失败
-    数据=事件['data'] if 'data' in 事件 else {}#载荷
-    return {#初态
-        'turn':数据['turn'] if 'turn' in 数据 else None,#轮次
-        'assistantStartByStep':{},#步进起
-        'messageCountByStep':{},#步进消息
-        'messageCount':0,'toolCallCount':0,'subagentCount':0,#计数
-    }#结束
 
-def 回合过程更新(上下文,匹配项):#折事件
-    '更新过程状态'
-    态=上下文['state'] if 'state' in 上下文 else {}#态
-    return 更新过程状态(态 if 态 is not None else {},匹配项['event'])#折
+def 回合过程开始(上下文,匹配项):
+    '必须从 turn/start 开始'
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else None
+    if not isinstance(事件,dict) or 事件.get('type')!='turn/start':
+        raise 聊天错误('turn-process start requires turn/start')
+    数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+    return 空过程状态(数据.get('turn'))
 
-def 回合过程建视图(上下文):#造过程控件节点
-    '无控件锚则不渲染'
-    态=上下文['state'] if 'state' in 上下文 else None#态
-    if 态 is None or 'controlAnchorSeq' not in 态 or 态['controlAnchorSeq'] is None:#无锚
-        return None#无
-    规格=回合过程规格(#规格
-        态['turn'],态['controlAnchorSeq'],态['controlAnchorSeq'],
-        None,None,False,
-        态['messageCount'] if 'messageCount' in 态 else 0,
-        态['toolCallCount'] if 'toolCallCount' in 态 else 0,
-        态['subagentCount'] if 'subagentCount' in 态 else 0,
-    )#简化开放规格
-    锚=态['controlAnchorSeq']+聊天合成序号偏移['processControl']#过程控件偏移
-    return 聊天节点(上下文,'turn-process',锚,规格)#节点
 
-回合过程定义={#过程定义
-    'kind':'turn-process','target':'chat',#kind/目标
-    'match':回合过程匹配,'start':回合过程开始,'update':回合过程更新,'buildViewNode':回合过程建视图,#生命周期
-}#结束
+def 回合过程更新(上下文,匹配项):
+    '把这一条事件折进过程计数'
+    状态=上下文.get('state') if isinstance(上下文.get('state'),dict) else 空过程状态(None)
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else {}
+    return 更新过程状态(状态,事件)
 
-def 登记回合过程(上下文):#登记轮次过程
-    '挂到 uiConversation.events'
-    上下文.uiConversation.events.register(回合过程定义)#登记
+
+def 回合过程公布(匹配项):
+    '流式块跟动画帧。用量和结束不单独公布'
+    事件=匹配项.get('event') if isinstance(匹配项,dict) else {}
+    if 事件.get('type')=='assistant/live-chunk':
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+        块=数据.get('chunk') if isinstance(数据.get('chunk'),dict) else {}
+        if 块.get('type') in ('usage','finish'):
+            return 'none'
+        return 'animation-frame'
+    return 'immediate'
+
+
+def 回合过程建位置数据(上下文,范围,先前=None):
+    '过程规格写在回合数据上。没变就留着上一份'
+    if 范围!='turn':
+        return None
+    状态=上下文.get('state')
+    if not isinstance(状态,dict):
+        状态=过程回退(上下文)
+    if not isinstance(状态,dict):
+        return None
+    回合=回合位置(上下文)
+    if not isinstance(回合,dict):
+        return None
+    规格=过程规格(状态,回合)
+    if 规格 is None:
+        return None
+    if (
+        isinstance(先前,dict)
+        and 先前.get('kind')=='turn'
+        and 先前.get('turn')==规格['turn']
+        and 先前.get('key')=='turn-process'
+        and isinstance(先前.get('value'),dict)
+        and 回合过程规格相同(先前['value'],规格)
+    ):
+        return 先前
+    return {'kind':'turn','turn':回合.get('turn'),'key':'turn-process','value':规格}
+
+
+def 回合过程建视图(上下文):
+    '控制行在过程锚上，组树位置是回合'
+    回合=回合位置(上下文)
+    数据=None
+    if isinstance(回合,dict) and hasattr(回合.get('data'),'get'):
+        数据=回合['data'].get('turn-process')
+    if not isinstance(回合,dict) or not isinstance(数据,dict):
+        return None
+    return 聊天节点(
+        上下文,
+        'turn-process',
+        数据.get('controlAnchorSeq')+聊天合成序号偏移['processControl'],
+        数据,
+        {'groupTree':'turn'},
+    )
+
+
+回合过程定义={
+    'kind':'turn-process',
+    'target':'chat',
+    'match':回合过程匹配,
+    'start':回合过程开始,
+    'update':回合过程更新,
+    'publication':回合过程公布,
+    'buildLocationData':回合过程建位置数据,
+    'buildViewNode':回合过程建视图,
+}
+
+
+def 登记回合过程(上下文):
+    '按事件类型分发匹配'
+    def 匹配(事件):
+        '转给定义上的匹配'
+        return 回合过程匹配(事件)
+    登记=dict(回合过程定义)
+    登记['match']={
+        'turn/start':匹配,
+        'assistant/live-chunk':匹配,
+        'assistant/message':匹配,
+        'tool/call':匹配,
+        'tool/result':匹配,
+        'llm/retry':匹配,
+        'step/start':匹配,
+        'step/end':匹配,
+        'turn/end':匹配,
+    }
+    上下文.uiConversation.events.register(登记)

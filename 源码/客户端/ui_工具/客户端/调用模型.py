@@ -1,157 +1,190 @@
 import json
-import os
-from ....基础设施.通用工具 import 紧凑json编码
+from ....工具.工作区路径 import 是否绝对工作区路径,相对化到工作目录,缩写家目录路径
+from .已记录路径 import 已记录绝对路径
 
-__all__=['变体标题','分类工具','结果文本','相对化到工作区','派生工具行']
+__all__=['分类工具','工具标题键','结果文本','格式化工具体','工具行模型']
 
-变体标题={
-    'search':'Search','read':'Read','bash':'Bash',
-    'write':'Write','edit':'Edit','code':'Code','others':'Tool call',
+变体标题键={
+    'search':'tool.title.search',
+    'read':'tool.title.read',
+    'bash':'tool.title.bash',
+    'write':'tool.title.write',
+    'edit':'tool.title.edit',
+    'code':'tool.title.code',
+    'others':'tool.title.generic',
 }
-
 工具变体={
-    'bash':'bash','pwsh':'bash','read':'read','read_image':'read','web_fetch':'read',
-    'web_search':'search','grep':'search','glob':'search',
-    'write':'write','edit':'edit','run_code':'code',
-    'cordis_package_inspect':'read','cordis_runtime_inspect':'read',
-    'cordis_run':'others','cordis_stop':'others','cordis_undefine':'others',
+    'bash':'bash',
+    'pwsh':'bash',
+    'read':'read',
+    'read_image':'read',
+    'web_fetch':'read',
+    'web_search':'search',
+    'grep':'search',
+    'glob':'search',
+    'write':'write',
+    'edit':'edit',
+    'run_code':'code',
+    'cordis_package_inspect':'read',
+    'cordis_runtime_inspect':'read',
+    'cordis_run':'others',
+    'cordis_stop':'others',
+    'cordis_undefine':'others',
 }
-
-工具标题={
-    'cordis_package_inspect':'Inspect','cordis_runtime_inspect':'Inspect',
-    'cordis_run':'Run Cordis Plugin','cordis_stop':'Stop Cordis Plugin',
-    'cordis_undefine':'Remove Cordis Plugin','pwsh':'Pwsh',
-    'read_image':'Read Image',
+工具标题键表={
+    'cordis_package_inspect':'tool.title.inspect',
+    'cordis_runtime_inspect':'tool.title.inspect',
+    'cordis_run':'tool.title.runCordis',
+    'cordis_stop':'tool.title.stopCordis',
+    'cordis_undefine':'tool.title.removeCordis',
+    'pwsh':'tool.title.pwsh',
+    'read_image':'tool.title.readImage',
+    'todo_write':'todo.rowTitle',
+    'ask_user_question':'ask.rowTitle',
+    'create_goal':'tool.title.createGoal',
+    'get_goal':'tool.title.getGoal',
+    'update_goal':'tool.title.updateGoal',
+    'schedule_create':'tool.title.createSchedule',
+    'schedule_list':'tool.title.listSchedules',
+    'schedule_delete':'tool.title.deleteSchedule',
+    'schedule_update':'tool.title.updateSchedule',
+    'cordis_inspect_list':'tool.title.inspectProviders',
+    'cordis_inspect_query':'tool.title.queryRuntime',
+    'cordis_inspect_self':'tool.title.inspectPlugins',
+    'workflow':'tool.title.workflow',
+    'ralph':'tool.title.ralph',
+    'session_event_read':'tool.title.readEvent',
+    'session_event_search':'tool.title.searchEvents',
+    'session_event_trace':'tool.title.traceEvent',
+    'session_search':'tool.title.searchSessions',
+    'session_trace':'tool.title.traceSession',
+    'list_subagent_models':'tool.title.listModels',
+    'subagent':'tool.title.subagent',
+    'list_agents':'tool.title.listAgents',
+    'send_message':'tool.title.sendMessage',
+    'interrupt_agent':'tool.title.interruptAgent',
+    'job_list':'tool.title.listJobs',
+    'job_output':'tool.title.readJob',
+    'job_kill':'tool.title.killJob',
+    'terminal_open':'tool.title.openTerminal',
+    'terminal_read':'tool.title.readTerminal',
+    'terminal_list':'tool.title.listTerminals',
+    'terminal_signal':'tool.title.signalTerminal',
+    'terminal_close':'tool.title.closeTerminal',
+    'lsp':'tool.title.lsp',
+    'spawn_teammate':'tool.title.spawnTeammate',
+    'team_task_create':'tool.title.createTeamTask',
+    'team_task_get':'tool.title.getTeamTask',
+    'team_task_update':'tool.title.updateTeamTask',
+    'team_task_list':'tool.title.listTeamTasks',
+    'wait_agent':'tool.title.waitAgent',
 }
-
 摘要键={
-    'bash':('description','command'),'read':('path','file_path','url'),
-    'search':('query','pattern','url'),'write':('path','file_path'),
-    'edit':('path','file_path'),'code':('description',),'others':(),
+    'bash':('description','command'),
+    'read':('path','file_path','url'),
+    'search':('query','pattern','url'),
+    'write':('path','file_path'),
+    'edit':('path','file_path'),
+    'code':('description',),
+    'others':(),
 }
-
 文件路径键=('path','file_path')
 文件路径变体=frozenset(['read','write','edit'])
 
 def 分类工具(工具名):
-    '匹配的变体；未知时为 others'
-    return 工具变体[工具名] if 工具名 in 工具变体 else 'others'
+    '匹配的变体。未知时为 others'
+    if 工具名 in 工具变体:
+        return 工具变体[工具名]
+    return 'others'
+
+def 工具标题键(工具名):
+    '工具自有标题键，否则用变体标题键'
+    if 工具名 in 工具标题键表:
+        return 工具标题键表[工具名]
+    return 变体标题键[分类工具(工具名)]
+
+def 派生自动拒绝(块):
+    '错误名为 AutoReviewDeniedError 且码为 AUTO_REVIEW_DENIED 时取出原因'
+    if 'kind' not in 块 or 块.get('isError') is not True:
+        return None
+    错误=块.get('error')
+    if not isinstance(错误,dict):
+        return None
+    if 错误.get('name')!='AutoReviewDeniedError' or 错误.get('code')!='AUTO_REVIEW_DENIED':
+        return None
+    原因=错误.get('reason')
+    return {'reason':原因 if isinstance(原因,str) else None}
 
 def 结果文本(节点):
-    '把已结算结果的内容块展平为展示文本'
-    段列表=[]
-    内容=节点['content'] if 'content' in 节点 and 节点['content'] is not None else []
-    for 块 in 内容:
-        if isinstance(块,dict) and 'type' in 块 and 块['type']=='text':
-            段列表.append(块['text'] if 'text' in 块 and 块['text'] is not None else '')
+    '文本块原样，其余块格式化成 JSON。失败且没有内容时用 name: code'
+    段=[]
+    for 内容块 in 节点['content']:
+        if isinstance(内容块,dict) and 内容块.get('type')=='text':
+            段.append(内容块.get('text') if isinstance(内容块.get('text'),str) else '')
         else:
-            段列表.append(json.dumps(块,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2))
-    if len(段列表)==0 and 'error' in 节点 and 节点['error'] is not None:
+            段.append(json.dumps(内容块,ensure_ascii=False,indent=2))
+    if len(段)==0 and 'error' in 节点 and 节点['error'] is not None:
         错误=节点['error']
-        错名=错误['name'] if isinstance(错误,dict) and 'name' in 错误 else None
-        错码=错误['code'] if isinstance(错误,dict) and 'code' in 错误 else None
-        段列表.append(str(错名)+': '+str(错码))
-    return '\n'.join(段列表)
-
-def 相对化到工作区(文本,工作区):
-    '缺席或空则路径不变；不以该根为前缀时原样返回'
-    if 工作区 is None or 工作区=='':
-        return 文本
-    根=工作区.rstrip('/\\')
-    if 文本.startswith(根+'/') or 文本.startswith(根+'\\'):
-        return 文本[len(根)+1:]
-    return 文本
-
-def 缩写主目录(文本,主目录):
-    '缺席或空则路径不变；整段等于主目录时为 ~'
-    if 主目录 is None or 主目录=='':
-        return 文本
-    根=主目录.rstrip('/\\')
-    if 文本==根:
-        return '~'
-    if 文本.startswith(根+'/') or 文本.startswith(根+'\\'):
-        return '~/'+文本[len(根)+1:]
-    return 文本
+        段.append(str(错误.get('name'))+': '+str(错误.get('code')))
+    return '\n'.join(段)
 
 def 解析参数(参数原文):
     '非 JSON 则 None'
     try:
         return json.loads(参数原文)
-    except (TypeError,ValueError,json.JSONDecodeError):
+    except json.JSONDecodeError:
         return None
 
 def 首行(文本):
     '无换行则全文'
     位置=文本.find('\n')
-    return 文本 if 位置==-1 else 文本[:位置]
-
-def 去掉绝对路径(文本):
-    '失败文案按空白切开后丢掉绝对路径、用户名和环境变量，其余原样留下'
-    if not isinstance(文本,str):
+    if 位置==-1:
         return 文本
-    屏蔽名=set(os.environ)
-    屏蔽值=set()
-    for 键 in ('USERNAME','USER','LOGNAME','USERPROFILE','HOME'):
-        值=os.environ.get(键)
-        if isinstance(值,str) and 值!='':
-            屏蔽值.add(值)
-            基=os.path.basename(值.rstrip('\\/'))
-            if 基!='':
-                屏蔽值.add(基)
-    for 值 in os.environ.values():
-        if isinstance(值,str) and (len(值)>=8 or '\\' in 值 or '/' in 值):
-            屏蔽值.add(值)
-    留下=[]
-    for 词 in 文本.split():
-        去引=词.strip('\'"()[]{}<>')
-        统一=去引.replace('\\','/')
-        if 统一.startswith('/') or 统一.startswith('~') or (len(统一)>2 and 统一[0].isalpha() and 统一[1]==':' and 统一[2]=='/'):
-            continue
-        if 去引.startswith('$') and len(去引)>1:
-            continue
-        if len(去引)>2 and 去引.startswith('%') and 去引.endswith('%'):
-            continue
-        if '=' in 去引 and 去引.split('=',1)[0] in 屏蔽名:
-            continue
-        if 去引 in 屏蔽名 or 去引 in 屏蔽值 or 统一 in 屏蔽值:
-            continue
-        含敏感=False
-        for 项 in 屏蔽值:
-            if len(项)>=3 and 项 in 去引:
-                含敏感=True
-                break
-        if 含敏感:
-            continue
-        留下.append(词)
-    return ' '.join(留下).strip()
+    return 文本[:位置]
 
 def 挑字符串(参数,键列表):
-    '无一命中则 None'
+    '按顺序取第一个非空字符串'
     for 键 in 键列表:
-        if 键 not in 参数:
-            continue
-        值=参数[键]
+        值=参数.get(键)
         if isinstance(值,str) and 值!='':
             return 值
     return None
 
 def 派生摘要(变体,参数原文):
-    '非对象则用原文首行'
+    '非对象则用原文首行。search 的 queries 用逗号接首行'
     已解析=解析参数(参数原文)
     if not isinstance(已解析,dict):
         return 首行(参数原文)
-    if 变体=='search' and 'queries' in 已解析 and isinstance(已解析['queries'],list):
-        查询列表=[首行(项) for 项 in 已解析['queries'] if isinstance(项,str) and 项!='']
-        if len(查询列表)>0:
-            return ', '.join(查询列表)
-    键列表=摘要键[变体] if 变体 in 摘要键 else ()
-    挑中=挑字符串(已解析,键列表)
+    if 变体=='search' and isinstance(已解析.get('queries'),list):
+        查询=[]
+        for 项 in 已解析['queries']:
+            if isinstance(项,str) and 项!='':
+                查询.append(首行(项))
+        if len(查询)>0:
+            return ', '.join(查询)
+    挑中=挑字符串(已解析,摘要键[变体])
     if 挑中 is not None:
         return 首行(挑中)
     for 值 in 已解析.values():
         if isinstance(值,str) and 值!='':
             return 首行(值)
     return 首行(参数原文)
+
+def 参数摘要(变体,参数,工作区,主目录):
+    '文件工具取完整 file_path。其余取 description 首行'
+    if 变体 in 文件路径变体:
+        路径=参数.text('file_path') if 参数.complete('file_path') else None
+        文件路径=None
+        if isinstance(路径,str) and 路径!='' and 参数.complete('file_path'):
+            文件路径=首行(路径)
+        摘要=''
+        if 文件路径 is not None:
+            摘要=缩写家目录路径(相对化到工作目录(文件路径,工作区),主目录)
+        return {'summary':摘要,'filePath':文件路径}
+    描述=参数.text('description')
+    if 描述 is None:
+        return {'summary':'','filePath':None}
+    return {'summary':首行(描述),'filePath':None}
 
 def 派生文件路径(变体,参数原文):
     '非文件工具变体则无路径'
@@ -161,92 +194,98 @@ def 派生文件路径(变体,参数原文):
     if not isinstance(已解析,dict):
         return None
     挑中=挑字符串(已解析,文件路径键)
-    return None if 挑中 is None else 首行(挑中)
+    if 挑中 is None:
+        return None
+    return 首行(挑中)
 
-def 派生正文(变体,参数原文):
-    '无参数则无输入段'
+def 格式化工具体(变体,参数原文):
+    '空参数没有输入段。code 变体展开体是程序本身'
     if 参数原文=='':
         return None
     已解析=解析参数(参数原文)
     if 已解析 is None:
         return 参数原文
-    if 变体=='code' and isinstance(已解析,dict) and 'code' in 已解析:
-        代码=已解析['code']
+    if 变体=='code' and isinstance(已解析,dict):
+        代码=已解析.get('code')
         if isinstance(代码,str) and 代码!='':
             return 代码
-    return json.dumps(已解析,ensure_ascii=False,separators=(',',':'),allow_nan=False,indent=2)
+    return json.dumps(已解析,ensure_ascii=False,indent=2)
 
-def 派生工具行(工具名或块,块=None,工作区=None,主目录=None):
-    '行模型所需字段。可 (工具名,块) 或单参块（块内带 toolName 或 name）'
-    if 块 is None and not isinstance(工具名或块,str):
-        块=工具名或块
-        if 'toolName' in 块 and 块['toolName']:
-            工具名=块['toolName']
-        elif 'name' in 块 and 块['name']:
-            工具名=块['name']
-        else:
-            工具名=''
-    else:
-        工具名=工具名或块 if isinstance(工具名或块,str) else ''
-        if 块 is None:
-            块={}
+def 工具行模型(工具名,块,工作区=None,主目录=None):
+    '工具行所需字段。准备中没有参数原文'
     变体=分类工具(工具名)
+    标题键=工具标题键(工具名)
     已结算='kind' in 块
     if 已结算:
-        调用=块['call'] if 'call' in 块 else None
-        参数原文=调用['argsRaw'] if 调用 is not None and 'argsRaw' in 调用 else None
-        if 参数原文 is None:
-            if 'argsRaw' in 块 and 块['argsRaw'] is not None:
-                参数原文=块['argsRaw']
-            elif 'arguments' in 块 and 块['arguments'] is not None:
-                参数原文=块['arguments']
-            else:
-                参数原文=''
-    else:
-        if 'argsRaw' in 块 and 块['argsRaw'] is not None:
-            参数原文=块['argsRaw']
-        elif 'arguments' in 块 and 块['arguments'] is not None:
-            参数原文=块['arguments']
+        调用=块.get('call')
+        if isinstance(调用,dict) and isinstance(调用.get('argsRaw'),str):
+            参数原文=调用['argsRaw']
+        elif isinstance(调用,dict) and 调用.get('argsRaw') is None:
+            参数原文=''
         else:
             参数原文=''
-    if not isinstance(参数原文,str):
-        参数原文=紧凑json编码(参数原文) if 参数原文 is not None else ''
-    错误=块['error'] if 'error' in 块 else None
-    错误码=错误['code'] if 错误 is not None and 'code' in 错误 else None
+    elif 块.get('phase')=='start':
+        参数原文=块.get('argsRaw') if isinstance(块.get('argsRaw'),str) else ''
+    else:
+        参数原文=None
+    主摘要=参数摘要(变体,块['args'],工作区,主目录)
+    if 主摘要['filePath'] is not None:
+        参数路径=主摘要['filePath']
+    elif 参数原文 is None:
+        参数路径=None
+    else:
+        参数路径=派生文件路径(变体,参数原文)
+    记录路径=已记录绝对路径(块.get('meta'),'path') if 已结算 else None
+    可用参数路径=参数路径 is not None and (
+        是否绝对工作区路径(参数路径)
+        or (已结算 and 块.get('isError') is not True and 块.get('parentCallId') is None)
+    )
+    if 参数路径 is None:
+        文件路径=None
+    elif 记录路径 is not None:
+        文件路径=记录路径
+    elif 可用参数路径:
+        文件路径=参数路径
+    else:
+        文件路径=None
     if not 已结算:
-        状态='running'
-    elif 错误码=='interrupted':
-        状态='stopped'
-    elif 'isError' in 块 and 块['isError']:
-        状态='error'
+        状态='preparing' if 块.get('phase')=='preparing' else 'running'
     else:
-        状态='ok'
-    if 参数原文=='':
-        基底=块['callId'] if 'callId' in 块 and 块['callId'] is not None else ''
+        错误=块.get('error')
+        错误码=错误.get('code') if isinstance(错误,dict) else None
+        if 错误码=='interrupted':
+            状态='stopped'
+        elif 块.get('isError') is True:
+            状态='error'
+        else:
+            状态='ok'
+    if 主摘要['summary']!='' or 参数原文 is None:
+        基文=主摘要['summary']
+    elif 参数原文=='':
+        基文=块['callId']
     else:
-        基底=缩写主目录(相对化到工作区(派生摘要(变体,参数原文),工作区),主目录)
-    工具自有标题=工具标题[工具名] if 工具名 in 工具标题 else None
-    if 变体=='others' and 工具名!='' and 工具自有标题 is None:
-        摘要=工具名+' · '+str(基底)
+        基文=缩写家目录路径(相对化到工作目录(派生摘要(变体,参数原文),工作区),主目录)
+    段=[]
+    if 标题键=='tool.title.generic' and 工具名!='':
+        段.append(工具名)
+    if 基文!='':
+        段.append(基文)
+    摘要=' · '.join(段)
+    if 已结算:
+        展平=结果文本(块)
+        输出=展平 if 展平!='' else None
     else:
-        摘要=str(基底)
-    输出=结果文本(块) if 已结算 else None
-    if 输出=='':
         输出=None
     错误摘要=首行(输出) if 状态=='error' and 输出 is not None else None
-    if isinstance(错误摘要,str):
-        错误摘要=去掉绝对路径(错误摘要)
-        if 错误摘要=='':
-            错误摘要=None
-    自动拒绝=None
-    if 已结算 and 'isError' in 块 and 块['isError'] and 错误 is not None:
-        错名=错误['name'] if 'name' in 错误 else None
-        if 错名=='AutoReviewDeniedError' and 错误码=='AUTO_REVIEW_DENIED':
-            原因=错误['reason'] if 'reason' in 错误 else None
-            自动拒绝={'reason':原因 if isinstance(原因,str) else None}
+    体原文=None if 参数原文=='' else 参数原文
     return {
-        'variant':变体,'title':工具自有标题 if 工具自有标题 is not None else 变体标题[变体],
-        'summary':摘要,'filePath':派生文件路径(变体,参数原文),
-        'body':派生正文(变体,参数原文),'output':输出,
-        'errorSummary':错误摘要,'autoReviewDenial':自动拒绝,'state':状态,
+        'variant':变体,
+        'titleKey':标题键,
+        'summary':摘要,
+        'filePath':文件路径,
+        'bodyRaw':体原文,
+        'output':输出,
+        'errorSummary':错误摘要,
+        'autoReviewDenial':派生自动拒绝(块),
+        'state':状态,
     }

@@ -87,7 +87,7 @@ def 尺寸(信息):
         return 0#零
     return 大小#原值
 
-def 读输出(读取器):
+def 读取输出(读取器):
     '从已收集的流开头读文本'
     if 读取器 is None:#没有这路
         return ''#空
@@ -558,7 +558,7 @@ def 创建宿主操作(选项):
         信息=兑现(文件系统().状态(解析后,操作上下文['signal']))#元数据
         if isinstance(信息,dict) and isinstance(信息.get('size'),(int,float)) and not isinstance(信息.get('size'),bool) and 信息['size']>文件最大字节:#太大
             raise RuntimeError('$.fs.read：'+路径+' 大于 '+str(文件最大字节)+' 字节')#拒绝
-        return 兑现(文件系统().读文本(解析后,操作上下文['signal']))#文本
+        return 兑现(文件系统().读取文本(解析后,操作上下文['signal']))#文本
 
     def 写文件(输入,操作上下文):
         '$.fs.write'
@@ -660,7 +660,7 @@ def 创建宿主操作(选项):
         if not isinstance(结局,dict) or 结局.get('exitCode') is None:#被信号杀掉
             信号名=结局.get('signal') if isinstance(结局,dict) else None#信号
             raise RuntimeError('$.process.run：'+程序+' 被信号 '+str(信号名)+' 终止')#终止
-        return {'exitCode':结局['exitCode'],'stdout':读输出(句柄.collected.stdout),'stderr':读输出(句柄.collected.stderr)}#结果
+        return {'exitCode':结局['exitCode'],'stdout':读取输出(句柄.collected.stdout),'stderr':读取输出(句柄.collected.stderr)}#结果
 
     def 请求(输入,操作上下文):
         '$.http.fetch。4xx 和 5xx 也是响应，不抛错。读正文时取消停不下来'

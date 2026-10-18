@@ -1,16 +1,18 @@
+import types
 from weakref import WeakKeyDictionary as 弱键字典
 from ..工具 import 设置内部数据,构建外层栈#内部槽写入与外层栈
 from .纤程 import 纤程,纤程运行时#纤程与同插件共用记录
 
 def 取入口(插件):
-    """按 Cordis 识别顺序取出插件入口：类、函数、对象的 apply。"""
+    """按 Cordis 识别顺序取出插件入口：类、函数、对象的 apply 或 应用。"""
     if isinstance(插件,type):
         return 插件#类插件
-    if callable(插件):
+    if callable(插件) and not isinstance(插件,types.ModuleType):
         return 插件#函数插件
-    入口=getattr(插件,'apply',None)#对象插件只读 apply
-    if callable(入口):
-        return 入口#对象入口
+    for 名字 in ('apply','应用'):#协议名和中文名
+        入口=getattr(插件,名字,None)#对象上的入口
+        if isinstance(入口,type) or (callable(入口) and not isinstance(入口,types.ModuleType)):
+            return 入口#可调用入口
     return None#不是插件
 
 def 声明依赖(服务名,配置=None):
@@ -43,6 +45,8 @@ def 收成依赖表(声明,结果=None):
             结果[服务名]=声明[服务名]#带拦截配置
         return 结果
     return 结果#其它形态视为没有
+
+解析依赖=收成依赖表#加载器并入插件配置声明的依赖时用的名字
 
 class 带依赖的插件:
     """把一个回调包成带 inject 与 apply 的对象插件。"""
@@ -111,6 +115,12 @@ class 插件注册表:
 
     def 启动插件(自身,插件,配置=None,外层栈=None):
         """在当前上下文启动插件，返回它的纤程。"""
+        if isinstance(插件,dict):#字典形态的对象插件
+            包装=带依赖的插件(插件.get('inject',插件.get('依赖')),插件.get('apply',插件.get('应用')))#收成对象
+            名称=插件.get('name',插件.get('名称'))#显示名
+            if 名称 is not None:#写了名字
+                包装.name=名称#框架槽
+            插件=包装#后面按对象走
         if 外层栈 is None:
             外层栈=构建外层栈()#捕获调用方调用栈
         入口=取入口(插件)#调用入口
@@ -125,4 +135,4 @@ class 插件注册表:
             记录=纤程运行时(名称,入口,getattr(插件,'Config',None))#新建运行时
             记录.插件=插件#身份是插件对象
             自身._运行记录表[插件]=记录#以插件对象为键
-        return 纤程(自身.所属上下文,配置,收成依赖表(getattr(插件,'inject',None)),记录,外层栈)#启动新纤程
+        return 纤程(自身.所属上下文,配置,收成依赖表(getattr(插件,'inject',None) if getattr(插件,'inject',None) is not None else getattr(插件,'依赖',None)),记录,外层栈)#启动新纤程

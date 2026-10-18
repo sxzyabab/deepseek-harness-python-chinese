@@ -1,9 +1,13 @@
 {
     "apply-injections":"应用注入",
+    "base":"基准",
     "boot":"启动",
     "boot-client":"启动客户端",
     "boot-page":"启动页",
+    "boot-page.module":"启动页.module",
     "loader-status":"加载器状态",
     "mount":"挂载",
-    "seed":"种子"
+    "platform":"平台",
+    "seed":"种子",
+    "window-drag":"窗口拖拽"
 }

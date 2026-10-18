@@ -6,15 +6,15 @@ from ...模型后端.llm import 创建用户消息#用户消息工厂
 from ...内核.作用域 import 获取载体键#作用域载体键
 from ...内核.会话 import 会话标识#会话 id 品牌构造
 
-__all__=['装备SDKJSONRPC服务端','成功状态','SDK服务端错误']#仅中文公开名
+__all__=['HarnessSdkJsonRpc服务端','映射成功状态','SDK服务端错误']#仅中文公开名
 
 from .异常 import SDK服务端错误#本包异常
 
-def 子智能体父(载体):
+def 取回父智能体(载体):
     '从服务所拥有的作用域载体上取回发起委托的父智能体'
     return 获取载体键(载体)#路由键
 
-def 成功状态(原因,选项):
+def 映射成功状态(原因,选项):
     '针对 SDK 回合与子智能体结局的部署侧状态映射。选项为 dict'
     if 原因=='completed':#正常完成
         return 'ok'#视为 ok
@@ -22,7 +22,7 @@ def 成功状态(原因,选项):
         return 'ok'#成功
     return 'error'#其余为 error
 
-class 装备SDKJSONRPC服务端:
+class HarnessSdkJsonRpc服务端:
     '基于一份已启动的 harness 上下文与一条传输对等端的 SDK 服务端。构造时订阅会话、智能体与子智能体生命周期事件，直至关闭；不支持再次初始化'
     def __init__(自身,上下文,传输,选项=None):
         '记下上下文、传输与选项，并挂上生命周期订阅。选项为 dict'
@@ -43,13 +43,13 @@ class 装备SDKJSONRPC服务端:
         服务选项=自身.选项#捕获选项供子智能体结束回调使用
         def 会话事件(会话,事件):
             '向客户端发出会话事件'
-            自身.传输.通知('session.event',{'sessionId':str(会话.id),'event':事件})#组装并发送
+            自身.传输.发送通知('session.event',{'sessionId':str(会话.id),'event':事件})#组装并发送
         自身.拆除列表.append(上下文.监听('session/event',会话事件))#登记拆除
         def 智能体状态(载荷):
             '发出会话状态通知。载荷为 dict'
             智能体=载荷['agent'] if 'agent' in 载荷 else None#智能体
             状态=载荷['status'] if 'status' in 载荷 else None#状态
-            自身.传输.通知('session.status',{'sessionId':str(智能体.session.id),'status':状态})#发出
+            自身.传输.发送通知('session.status',{'sessionId':str(智能体.session.id),'status':状态})#发出
         自身.拆除列表.append(上下文.监听('agent/status',智能体状态))#登记拆除
         def 会话已创建(会话):
             '子智能体才有父会话。会话为对象，头为 dict'
@@ -57,14 +57,14 @@ class 装备SDKJSONRPC服务端:
             父会话=头['parentSession'] if isinstance(头,dict) and 'parentSession' in 头 else None#读取父会话
             if 父会话 is None:#无父会话
                 return#不是子智能体启动
-            自身.传输.通知('subagent.started',{#发出子智能体启动通知
+            自身.传输.发送通知('subagent.started',{#发出子智能体启动通知
                 'parentSessionId':str(父会话),#父会话 id
                 'childSessionId':str(会话.id),#子会话 id
             })#通知结束
         自身.拆除列表.append(上下文.监听('session/created',会话已创建))#登记拆除
         def 子智能体结束(载体,信息):
             '本协议只报告进程内子会话。信息为 dict'
-            父=子智能体父(载体)#从作用域载体取父智能体
+            父=取回父智能体(载体)#从作用域载体取父智能体
             if 'local' not in 信息 or 信息['local'] is not True:#远程运行不报告
                 return#跳过
             载荷={#组装结束通知
@@ -72,12 +72,12 @@ class 装备SDKJSONRPC服务端:
                 'agentId':str(信息['id'] if 'id' in 信息 else None),#子智能体 id
                 'parentSessionId':str(父.session.id),#父会话 id
                 'childSessionId':str(信息['id'] if 'id' in 信息 else None),#子会话 id
-                'status':成功状态(信息['stopReason'] if 'stopReason' in 信息 else None,服务选项),#映射后的线状态
+                'status':映射成功状态(信息['stopReason'] if 'stopReason' in 信息 else None,服务选项),#映射后的线状态
                 'stopReason':信息['stopReason'] if 'stopReason' in 信息 else None,#原始停止原因
             }#载荷主体
             if 'lastAssistantMessage' in 信息 and 信息['lastAssistantMessage'] is not None:#有末条
                 载荷['lastAssistantMessage']=信息['lastAssistantMessage']#附带
-            传输.通知('subagent.finished',载荷)#发出
+            传输.发送通知('subagent.finished',载荷)#发出
         自身.拆除列表.append(上下文.监听('subagent/end',子智能体结束))#登记拆除
 
     def 初始化(自身,参数):
@@ -98,7 +98,7 @@ class 装备SDKJSONRPC服务端:
             自身.llm纤程=纤程#记下
         return {'serverInfo':{'name':'deepseek-harness-sdk-runtime','version':'0.0.1'}}#线稳定身份
 
-    def 提示(自身,参数):
+    def 排队提示(自身,参数):
         '排队一条已标识的提示，后续活动不归到该次调用。返回期约，兑现 {messageId}。参数为 dict'
         会话号=参数['sessionId'] if 'sessionId' in 参数 else None#目标会话 id
         def 投递(记录):
@@ -110,7 +110,7 @@ class 装备SDKJSONRPC服务端:
             消息=创建用户消息({'content':参数['contentBlocks'] if 'contentBlocks' in 参数 else None,'source':{'kind':'user'}})#构造用户消息
             智能体.后续(消息)#投入该会话智能体
             return {'messageId':消息.id}#返回已排队消息 id
-        return 自身.取或创建会话(会话号).然后(投递)#取已有会话或惰性创建后投递
+        return 自身.获取或创建会话(会话号).然后(投递)#取已有会话或惰性创建后投递
 
     def 关闭(自身):
         '拆除服务端拥有的智能体、适配器与订阅直至静止。外围上下文继续运行。返回期约，兑现空对象，拆除失败则拒绝'
@@ -165,14 +165,14 @@ class 装备SDKJSONRPC服务端:
                 return 结果期约#已落定
             结果期约.解决(握手结果)#握手成功
         elif 方法=='session/prompt':#会话提示
-            自身.提示(载荷).然后(结果期约.解决,结果期约.拒绝)#提示期约落定后跟随
+            自身.排队提示(载荷).然后(结果期约.解决,结果期约.拒绝)#提示期约落定后跟随
         elif 方法=='shutdown':#关闭
             自身.关闭().然后(结果期约.解决,结果期约.拒绝)#关闭期约落定后跟随
         else:#未知方法
             结果期约.拒绝(SDK服务端错误(f'未知的 DeepSeek Harness SDK 运行时方法：{方法}'))#拒绝
         return 结果期约#交给传输按落定写响应
 
-    def 取或创建会话(自身,会话号):
+    def 获取或创建会话(自身,会话号):
         '返回期约，兑现会话记录。已有则立刻兑现；创建中则共用同一期约；否则启动创建并去重并发；关闭中拒绝'
         if 自身.正在关闭:#关闭中拒绝新会话
             关闭中=期约()#上游 async 函数里的 throw 是拒绝

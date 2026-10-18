@@ -1,193 +1,194 @@
+'标签类型登记。扩展可以盖住内建，卸掉后再回来'
+import json
 import fnmatch
+from urllib.parse import urlparse as 解析网址
 from ....基础设施.通用工具 import 观察者集合
-from urllib.parse import urlparse as 解析URL
 from ..异常 import 右侧侧栏错误
 
 __all__=['右侧侧栏标签注册表','默认优先级带','优先级秩']
 
-默认优先级带='extension'#未声明时的带
-优先级秩={'extension':3,'builtin':2,'fallback':1}#带秩
+默认优先级带='extension'
+优先级秩={'extension':3,'builtin':2,'fallback':1}
 
 
-def _路径于(地址):
-    'URI 路径；非绝对 URI 则无'
-    解析=解析URL(地址)
-    if 解析.scheme=='':#非 URI
-        return None#无
-    return 解析.path#路径
-
-
-def _匹配器(模式):
-    '编译一声明模式：含 `:` 整址；否则路径或基名（`*.md`→基名）'
-    整址=':' in 模式#含方案分隔
-    折=模式.casefold()#折
+def 编译匹配(模式):
+    '含冒号匹配整段地址，否则匹配路径；没有斜杠时只匹配文件名'
+    整址=':' in 模式
+    折=模式.casefold()
 
     def 测(地址):
-        '测地址'
-        if 整址:#整址
-            return fnmatch.fnmatchcase(地址.casefold(),折)#匹配
-        路径=_路径于(地址)#路径
-        if 路径 is None:#非 URI
-            return False#否
-        if '/' in 模式:#路径型
-            return fnmatch.fnmatchcase(路径.casefold(),折)#路径
-        基=路径.rsplit('/',1)[-1]#末段
-        return fnmatch.fnmatchcase(基.casefold(),折)#基名
+        '这一条模式是否认这个地址'
+        if 整址:
+            return fnmatch.fnmatchcase(地址.casefold(),折)
+        try:
+            解析=解析网址(地址)
+        except ValueError:
+            return False
+        if 解析.scheme=='':
+            return False
+        路径=解析.path
+        if '/' in 模式:
+            return fnmatch.fnmatchcase(路径.casefold(),折)
+        基名=路径.rsplit('/',1)[-1]
+        return fnmatch.fnmatchcase(基名.casefold(),折)
 
-    return 测#可调用
+    return 测
 
 
-def _可共存(槽,带):
-    'extension 与 builtin 可一对；fallback 独占'
-    return 带!='fallback' and 槽['inForce']['band']!='fallback' and 槽['inForce']['band']!=带 and 槽['shadowed'] is None#可
-
-
-class 右侧侧栏标签注册表:#标签类型登记表
-    '按种类持生效定义；扩展可暂替内建'
+class 右侧侧栏标签注册表:
+    '按种类持有生效定义。扩展在场时内建退到影子里'
 
     def __init__(自身,上下文):
-        '记下上下文（effect 拥有登记寿命）'
-        自身.上下文=上下文#上下文
-        自身.种类表={}#kind → 槽
-        自身.标识集=set()#id 集
-        自身.监听者=观察者集合()#订阅
-        自身.登记序=0#全局序
-        自身.缓存=()#entries 稳定引用
-        自身.向导条目=()#guide 稳定引用
+        '登记寿命挂在这个上下文的副作用上'
+        自身.上下文=上下文
+        自身.种类表={}
+        自身.标识集=set()
+        自身.监听者=观察者集合()
+        自身.登记序=0
+        自身.缓存=()
+        自身.向导条目=()
 
     def 登记(自身,定义):
-        '登记一类型；返回幂等拆除器'
-        标识=定义['id']#实现 id
-        种类=定义['kind']#种类
-        入口表=定义['guide'] if 'guide' in 定义 and 定义['guide'] is not None else ()#入口
-        入口标识表=[入口['id'] for 入口 in 入口表]#id
-        if len(set(入口标识表))!=len(入口标识表):#重
-            raise 右侧侧栏错误('引导入口标识在 "'+标识+'" 中重复')
-        带=定义['priority'] if 'priority' in 定义 and 定义['priority'] is not None else 默认优先级带#带
-        if 标识 in 自身.标识集:#撞 id
-            raise 右侧侧栏错误('标签类型标识 "'+标识+'" 已登记')
-        持=自身.种类表[种类] if 种类 in 自身.种类表 else None#已持
-        if 持 is not None and not _可共存(持,带):#不可共存
-            raise 右侧侧栏错误('标签种类 "'+种类+'" 已登记（'+持['inForce']['band']+'）')
-        自身.登记序+=1#序
-        模式列表=定义['patterns'] if 'patterns' in 定义 and 定义['patterns'] is not None else ()#模式
-        条目={#已登记
+        '登记一种类型，返回拆除器'
+        标识=定义['id']
+        种类=定义['kind']
+        入口表=定义['guide'] if 定义.get('guide') is not None else ()
+        入口标识=[入口['id'] for 入口 in 入口表]
+        if len(set(入口标识))!=len(入口标识):
+            raise 右侧侧栏错误('sidebarRight: duplicate guide entry id in "'+标识+'"')
+        带=定义['priority'] if 定义.get('priority') is not None else 默认优先级带
+        if 标识 in 自身.标识集:
+            raise 右侧侧栏错误('sidebarRight: tab type id "'+标识+'" is already registered')
+        持有=自身.种类表.get(种类)
+        可共存=持有 is not None and 带!='fallback' and 持有['inForce']['band']!='fallback' and 持有['inForce']['band']!=带 and 持有['shadowed'] is None
+        if 持有 is not None and not 可共存:
+            raise 右侧侧栏错误('sidebarRight: tab kind "'+种类+'" is already registered ('+持有['inForce']['band']+')')
+        自身.登记序+=1
+        模式表=定义['patterns'] if 定义.get('patterns') is not None else ()
+        条目={
             'definition':定义,
             'band':带,
-            'matchers':[{'pattern':模,'test':_匹配器(模)} for 模 in 模式列表],
+            'matchers':[{'pattern':模式,'test':编译匹配(模式)} for 模式 in 模式表],
             'order':自身.登记序,
-        }#条目
+        }
 
         def 效应():
-            '挂入并刷新'
-            自身.标识集.add(标识)#id
-            槽=自身._进入(种类,条目)#进槽
-            自身._刷新()#刷新
-            def 拆除():
-                '离开'
-                自身.标识集.discard(标识)#id
-                自身._离开(种类,槽,条目)#离
-                自身._刷新()#刷新
-            return 拆除#拆除器
+            '挂进表，卸的时候再摘掉'
+            自身.标识集.add(标识)
+            槽=自身._进入(种类,条目)
+            自身._刷新()
 
-        拆=自身.上下文.副作用(效应,'sidebarRight.tabs.register('+repr(标识)+')')#效应
+            def 拆除():
+                '离开这个种类'
+                自身.标识集.discard(标识)
+                自身._离开(种类,槽,条目)
+                自身._刷新()
+
+            return 拆除
+
+        拆=自身.上下文.副作用(效应,'sidebarRight.tabs.register('+json.dumps(标识)+')')
 
         def 对外拆除():
-            '幂等'
-            拆()#拆
-        return 对外拆除#拆除器
+            '再拆一次也没有事'
+            拆()
+
+        return 对外拆除
 
     def _进入(自身,种类,条目):
-        '写入种类槽'
-        持=自身.种类表[种类] if 种类 in 自身.种类表 else None#已持
-        if 持 is None:#新槽
-            槽={'inForce':条目,'shadowed':None}#槽
-            自身.种类表[种类]=槽#写
-            return 槽#槽
-        if 优先级秩[条目['band']]>优先级秩[持['inForce']['band']]:#更高带
-            持['shadowed']=持['inForce']#影
-            持['inForce']=条目#效
-        else:#较低带
-            持['shadowed']=条目#影
-        return 持#槽
+        '更高的带成为生效项'
+        持有=自身.种类表.get(种类)
+        if 持有 is None:
+            槽={'inForce':条目,'shadowed':None}
+            自身.种类表[种类]=槽
+            return 槽
+        if 优先级秩[条目['band']]>优先级秩[持有['inForce']['band']]:
+            持有['shadowed']=持有['inForce']
+            持有['inForce']=条目
+        else:
+            持有['shadowed']=条目
+        return 持有
 
     def _离开(自身,种类,槽,条目):
-        '移出；影恢复或删槽'
-        if 槽['inForce'] is not 条目:#影离
+        '影子里的内建重新生效。种类空了就删槽'
+        if 槽['inForce'] is not 条目:
             槽['shadowed']=None
-        elif 槽['shadowed'] is None:#无影
-            del 自身.种类表[种类]#删槽
-        else:#恢复影
-            槽['inForce']=槽['shadowed']#恢复
-            槽['shadowed']=None
+            return
+        if 槽['shadowed'] is None:
+            del 自身.种类表[种类]
+            return
+        槽['inForce']=槽['shadowed']
+        槽['shadowed']=None
 
     def _生效(自身):
-        '生效登记，按登记序'
-        列表=[槽['inForce'] for 槽 in 自身.种类表.values()]#表
-        列表.sort(key=lambda 项:项['order'])#序
-        return 列表#列表
+        '生效登记，按登记顺序'
+        表=[槽['inForce'] for 槽 in 自身.种类表.values()]
+        表.sort(key=lambda 项: 项['order'])
+        return 表
 
     def 条目(自身):
-        '生效定义，引用稳定'
-        return 自身.缓存#缓存
+        '生效定义，引用保持稳定直到下一次变更'
+        return 自身.缓存
 
     def 向导(自身):
-        '向导入口盒，按 order'
-        return 自身.向导条目#缓存
+        '向导入口，按 order'
+        return 自身.向导条目
 
     def 取(自身,种类):
-        '生效定义或 None'
-        槽=自身.种类表[种类] if 种类 in 自身.种类表 else None#槽
-        if 槽 is None:#无
-            return None#无
-        return 槽['inForce']['definition']#定义
+        '这个种类当前生效的定义'
+        槽=自身.种类表.get(种类)
+        if 槽 is None:
+            return None
+        return 槽['inForce']['definition']
 
     def 候选(自身,地址):
-        '认领候选，优者在前'
-        排名=[]#表
-        for 项 in 自身._生效():#逐生效
-            定义=项['definition']#定义
-            长度=-1#最长命中
-            for 匹配 in 项['matchers']:#模式
-                if 匹配['test'](地址) and len(匹配['pattern'])>长度:#更长
-                    长度=len(匹配['pattern'])#记
-            if 长度<0:#未认
-                continue#跳
-            可开=定义['canOpen'] if 'canOpen' in 定义 else None#否决
-            if 可开 is not None and not 可开(地址):#否
-                continue#跳
-            排名.append({'definition':定义,'rank':优先级秩[项['band']],'length':长度,'order':项['order']})#记
-        排名.sort(key=lambda 甲:(-甲['rank'],-甲['length'],甲['order']))#排
-        return tuple(项['definition'] for 项 in 排名)#定义序
+        '能打开这个地址的类型，优者在前'
+        排名=[]
+        for 项 in 自身._生效():
+            长度=-1
+            for 匹配 in 项['matchers']:
+                if 匹配['test'](地址) and len(匹配['pattern'])>长度:
+                    长度=len(匹配['pattern'])
+            if 长度<0:
+                continue
+            定义=项['definition']
+            if 定义.get('canOpen') is not None and not 定义['canOpen'](地址):
+                continue
+            排名.append({'definition':定义,'rank':优先级秩[项['band']],'length':长度,'order':项['order']})
+        排名.sort(key=lambda 项: (-项['rank'],-项['length'],项['order']))
+        return tuple(项['definition'] for 项 in 排名)
 
     def 认领(自身,地址,种类=None):
-        '决定谁开；无认领则抛接线错误'
-        if 种类 is not None:#点名
-            定义=自身.取(种类)#定义
-            if 定义 is None:#无
-                raise 右侧侧栏错误('没有登记为 "'+种类+'" 的标签类型')
-            可开=定义['canOpen'] if 'canOpen' in 定义 else None#否决
-            if 可开 is not None and not 可开(地址):#拒
-                raise 右侧侧栏错误('标签类型 "'+种类+'" 拒绝 "'+地址+'"')
-            return {'kind':种类,'contentId':地址,'title':定义['title'](地址)}#认领
-        候选表=自身.候选(地址)#候选
-        if len(候选表)==0:#无
-            raise 右侧侧栏错误('没有已登记标签类型认领 "'+地址+'"')
-        选=候选表[0]#优
-        return {'kind':选['kind'],'contentId':地址,'title':选['title'](地址)}#认领
+        '决定谁来打开。点了种类就不再看模式'
+        if 种类 is not None:
+            定义=自身.取(种类)
+            if 定义 is None:
+                from ..异常 import 未登记种类
+                未登记种类(种类)
+            if 定义.get('canOpen') is not None and not 定义['canOpen'](地址):
+                raise 右侧侧栏错误('sidebarRight: tab type "'+种类+'" refuses "'+地址+'"')
+            return {'kind':种类,'contentId':地址,'title':定义['title'](地址)}
+        排名=自身.候选(地址)
+        if len(排名)==0:
+            from ..异常 import 无人认领
+            无人认领(地址)
+        选中=排名[0]
+        return {'kind':选中['kind'],'contentId':地址,'title':选中['title'](地址)}
 
     def 订阅(自身,监听):
-        '低频变更'
-        return 自身.监听者.订阅(监听)#退订器
+        '登记变更回调，返回退订'
+        return 自身.监听者.订阅(监听)
 
     def _刷新(自身):
         '重建缓存并通知'
-        自身.缓存=tuple(项['definition'] for 项 in 自身._生效())#定义
-        盒=[]#向导盒
-        for 定义 in 自身.缓存:#逐类型
-            条目表=定义['guide'] if 'guide' in 定义 and 定义['guide'] is not None else ()#入口
-            for 条目 in 条目表:#逐入口
-                盒.append({**条目,'kind':定义['kind'],'providerId':定义['id']})#带 kind 与实现
-        盒.sort(key=lambda 项:项['order'])#序
-        自身.向导条目=tuple(盒)#稳定
-        自身.监听者.通知()#通知
+        生效=自身._生效()
+        自身.缓存=tuple(项['definition'] for 项 in 生效)
+        入口=[]
+        for 定义 in 自身.缓存:
+            for 项 in (定义['guide'] if 定义.get('guide') is not None else ()):
+                盒子=dict(项)
+                盒子['kind']=定义['kind']
+                盒子['providerId']=定义['id']
+                入口.append(盒子)
+        入口.sort(key=lambda 项: 项['order'])
+        自身.向导条目=tuple(入口)
+        自身.监听者.通知()

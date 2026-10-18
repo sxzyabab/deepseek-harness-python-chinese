@@ -40,7 +40,7 @@ class 客户端对象存储:#Client对象存储
             raise 客户端运行时执行错误('object-not-found','Client RemoteObject was released')#已释放
         return 对象['value']#返回值
 
-    def 取组(自身,句柄):#取组
+    def 获取组(自身,句柄):#获取组
         '读取经一个句柄到达的值所继承的对象组'
         对象=自身.对象.get(句柄)#查表
         if 对象 is None:#已释放

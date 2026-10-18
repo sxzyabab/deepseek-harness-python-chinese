@@ -32,5 +32,9 @@
     "sandbox":"沙箱",
     "self":"自身",
     "timeout":"超时",
-    "wire":"线"
+    "wire":"线",
+    "persistent":"持久",
+    "persistent-process":"持久进程",
+    "persistent-process-entry":"持久进程入口",
+    "policy-processes":"策略进程"
 }

@@ -1,0 +1,43 @@
+'设置槽位的种类、范围和主人份额。槽位名保持上游原文。这里只声明，不登记实现。'
+
+__all__=[
+    '槽位图',
+    '通用条目主人份额',
+    '插件页签主人份额',
+    '触发器主人份额',
+    '页眉主人份额',
+    '分区主人份额',
+    '引导主人份额',
+    '启动器主人份额',
+]
+
+槽位图={
+    'settings.launcher':{'kind':'single','scope':'root'},#侧栏账号启动器
+    'settings.trigger':{'kind':'single','scope':'root'},#侧栏脚触发器内容
+    'settings.header':{'kind':'single','scope':'root'},#面板标题
+    'settings.action':{'kind':'list','scope':'root'},#关闭前的标题栏动作
+    'settings.close':{'kind':'single','scope':'root'},#关闭按钮的无障碍名称
+    'settings.section':{'kind':'list','scope':'root'},#一个设置页
+    'settings.plugins.tab':{'kind':'list','scope':'root'},#插件分区里的一页
+    'settings.onboarding':{'kind':'list','scope':'root'},#引导步骤
+    'settings.general.item':{'kind':'list','scope':'root'},#通用区里的一行偏好
+}
+
+通用条目主人份额={'children':None}#主人份额故意为空
+插件页签主人份额={'children':None}#主人份额故意为空
+触发器主人份额={'wide':True}#宽轨显示文字，窄轨只显示图标
+页眉主人份额={'children':None}#主人份额故意为空
+分区主人份额={'close':None}#关掉设置面板。开合状态属于外壳
+引导主人份额={
+    'stepId':'',#协调器当前选中的步骤
+    'explicit':False,#用户在首次引导之外重新打开
+    'complete':None,#完成或跳过，把所有权交给下一步
+    'openSection':None,#直接打开某个已登记分区
+}
+启动器主人份额={
+    'wide':True,#侧栏是否显示文字
+    'settingsOpen':False,#设置对话框是否盖住侧栏
+    'settingsShortcut':None,#未绑定时不给
+    'openSettings':None,#打开设置面板
+    'openOnboarding':None,#显式打开某个引导编辑器
+}

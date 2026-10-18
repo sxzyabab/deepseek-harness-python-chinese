@@ -1,8 +1,6 @@
-'会话检查器标签、表格控件和对象导航文案'
+'会话检查器标签、表格控件和对象导航文案。界面直接写中文，英文表只参与登记'
 
-__all__=['命名空间','中文','英文']
-
-命名空间='session-inspector'
+命名空间='session-inspector'#插件拥有的文案命名空间
 
 中文={
     'tab.title':'会话数据诊断',
@@ -57,7 +55,7 @@ __all__=['命名空间','中文','英文']
     'object.properties':'其他属性',
     'object.more':'显示更多',
     'object.navigation':'原始数据导航',
-}
+}#界面实际使用的中文原文
 
 英文={
     'tab.title':'Session Log',
@@ -112,4 +110,4 @@ __all__=['命名空间','中文','英文']
     'object.properties':'Other properties',
     'object.more':'Show more',
     'object.navigation':'Raw data navigation',
-}
+}#登记用英文表，显示不读它

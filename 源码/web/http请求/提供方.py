@@ -120,7 +120,7 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
                 当前=已校验#改当前 URL
                 已跟随=已跟随+1#跳数加一
                 continue#发下一跳
-            return 自身.读正文(响应,当前,信号)#读最终正文
+            return 自身.读取正文(响应,当前,信号)#读最终正文
 
     def 请求一次(自身,网址,信号):#单次 GET
         '发一次 GET，不自动跟随重定向'
@@ -158,7 +158,7 @@ class HTTP抓取提供方:#匿名的公开 HTTP(S) 抓取提供方
         except (OSError,HTTP异常) as 错误:#网络或中止拆套接字
             raise 翻译中止或网络(错误,信号)#分类成网络错误
 
-    def 读正文(自身,响应,最终网址,信号):#处理最终响应
+    def 读取正文(自身,响应,最终网址,信号):#处理最终响应
         '读取、按字节封顶、分类并解码最终响应正文'
         内容类型=响应['headers']['content-type'] if 'content-type' in 响应['headers'] else None#读 Content-Type
         种类=分类内容类型(内容类型)#html / text / 不支持

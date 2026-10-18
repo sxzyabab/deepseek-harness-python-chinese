@@ -1,9 +1,9 @@
-from . import (
-    异常,
-)
-from .客户端 import 应用,依赖
+from . import 客户端,异常
 
-__all__=['应用','依赖']
+__all__=['应用','客户端','异常']
+
+def 应用():
+    '宿主面无行为，只占 Loader 行'
+    return
 
 apply=应用
-inject=依赖

@@ -1,9 +1,12 @@
 {
-    "DockSurface":"停靠面",
-    "FloatLayer":"浮动层",
-    "PaneTree":"窗格树",
-    "TabMenu":"标签菜单",
-    "TabPanel":"标签面板",
-    "measure":"测量",
-    "pointer":"指针"
+    "DockSurface": "停靠面",
+    "FloatLayer": "浮动层",
+    "PaneTree": "窗格树",
+    "TabLayout": "标签布局",
+    "TabMenu": "标签菜单",
+    "TabPanel": "标签面板",
+    "TabTitle": "标签标题",
+    "dockkit.module": "停靠套件.module",
+    "measure": "测量",
+    "pointer": "指针"
 }

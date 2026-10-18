@@ -1,588 +1,556 @@
-'平台解析：把目录条目解析为本机已验证的启动器，并按看护窗口分离启动'
-import errno,os,re,subprocess,sys,threading#错误码、路径、正则、派生、平台与看护
-from dataclasses import dataclass#已解析启动与注册表视图
-from pathlib import Path#家目录
-from ...工具.原生命令 import 运行原生命令,可打开原生路径,打开原生路径#无 shell 宿主命令与打开器
-from ...工具.原生命令.异常 import 原生命令错误
-from ...工具.原生命令.桌面条目 import 桌面条目字段,桌面数据目录#共享桌面字段与数据目录
-from ...子进程.子进程 import 擦洗父环境#凭证擦洗环境
-from .目录 import 在应用中打开目录,路径令牌,参数启动#目录数据与 argv 启动
-from .异常 import 在应用中打开错误#本包异常基类
+'把目录条目解析成本机真实持有的启动器，并在看护窗口内分离启动'
+import errno,os,re,signal,subprocess,sys,threading#平台、派生与看护
+from ...工具.原生命令 import (
+    可打开原生路径,#有没有桌面会话
+    打开原生路径,#操作系统的打开动作
+    运行原生命令,#无 shell 的宿主命令
+)
+from ...工具.原生命令.桌面条目 import (
+    桌面条目字段,#Exec / TryExec / Icon
+    桌面数据目录,#XDG 数据目录
+)
+from ...子进程.子进程 import 擦洗父环境#去掉凭证形态和 DSH_ 名字
+from .异常 import 在应用中打开错误,断言穷尽#缺解析器时大声失败；封闭并集
+from .目录 import 路径令牌#工作区目录在 argv 里的占位
 
 __all__=[
-    '在应用中打开错误','图标来源','已解析启动','已完成内部事实',
     '分离启动应用','补全内部事实','取命令输出','是否目录','是否普通文件',
-    '展开候选','解析注册表转储','读Windows注册表视图','桌面条目',
-    'xdg数据目录列表','查找桌面条目','执行命令首段','平台规格于',
-    '解析启动','解析在应用中打开应用','启动已解析',
-]#公开面结束
+    '展开候选','展开注册表值','去掉两端引号','解析注册表转储','查找桌面条目',
+    'xdg数据目录','平台规格于','可执行图标','自然降序键','是否可执行缺失',
+    '执行启动','经注册表解析','启动已解析','注册表视图一次',
+]
 
-变量模式=re.compile(r'\$\{([^}]+)\}')#${VAR} 展开
-百分变量模式=re.compile(r'%([^%]+)%')#%VAR% 展开
-注册表值模式=re.compile(r'^\s+(.*?)\s+(REG_SZ|REG_EXPAND_SZ)\s+(.*)\Z',re.ASCII)#reg.exe 值行
-键路径模式=re.compile(r'^HK',re.ASCII)#注册表键路径行
-默认值名模式=re.compile(r'^\(.*\)\Z',re.ASCII)#本地化默认值名
-执行首段引号模式=re.compile(r'^"([^"]+)"',re.ASCII)#Exec 引号段
-执行首段裸名模式=re.compile(r'^\S+',re.ASCII)#Exec 裸段
-自然分段模式=re.compile(r'([0-9]+)',re.ASCII)#版本自然序分段
-图标后缀模式=re.compile(r',-?[0-9]+\Z',re.ASCII)#DisplayIcon 索引后缀
+变量模式=re.compile(r'\$\{([^}]+)\}')#${VAR}
+百分变量模式=re.compile(r'%([^%]+)%')#%VAR%
+注册表值模式=re.compile(r'^\s+(.*?)\s+(REG_SZ|REG_EXPAND_SZ)\s+(.*)$')#reg.exe 的值行
+键路径模式=re.compile(r'^HK')#子键路径行
+默认值名模式=re.compile(r'^\(.*\)$')#本地化的默认值名，两侧是括号
+执行首段引号模式=re.compile(r'^"([^"]+)"')#Exec 的引号路径
+执行首段裸名模式=re.compile(r'^\S+')#Exec 的裸第一段
+图标后缀模式=re.compile(r',-?\d+$')#DisplayIcon 末尾的图标索引
 
-应用路径根列表=(#App Paths：用户巢优先
-    r'HKCU\Software\Microsoft\Windows\CurrentVersion\App Paths',
-    r'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths',
-)#App Paths 根
-卸载根列表=(#Uninstall：用户、64 位机、32 位机视图
-    r'HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall',
-    r'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
-    r'HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall',
-)#卸载根
+应用路径根列表=(#用户巢优先，盖住机器巢
+    'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\App Paths',
+    'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths',
+)
+卸载根列表=(#用户、64 位机器、32 位机器视图
+    'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+    'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+    'HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+)
 
-@dataclass(frozen=True)
-class 图标来源:#已解析图标像素来源
-    '本机持有的图标像素来源'
-    种类:str#app-bundle 或 executable
-    路径:str#bundle 目录或可执行路径
+def 去掉两端引号(文本):
+    '去掉注册表值开头和结尾各一个引号'
+    if 文本.startswith('"'):#开头一个
+        文本=文本[1:]
+    if 文本.endswith('"'):#结尾一个
+        文本=文本[:-1]
+    return 文本
 
-@dataclass
-class 已解析启动:#一条已验证启动
-    '一条条目在本机的已验证启动器与图标来源'
-    启动:object#参数启动或外壳打开启动
-    回退启动:object|None=None#可选回退
-    图标:图标来源|None=None#可选图标来源
-
-@dataclass(frozen=True)
-class 已完成内部事实:#补全后的可覆盖事实
-    '公开入口处一次性补全后的平台事实'
-    平台:str#darwin/win32/linux/…
-    ssh:bool#SSH 拉起
-    应用根列表:tuple#macOS 应用目录根
-    环境:dict#环境表
-    家目录:str#家目录
-    运行:object#原生命令运行器
-    启动:object#分离启动器
-    解析可执行:object#PATH 解析回调
-
-@dataclass(frozen=True)
-class Windows安装记录:#Uninstall 相关字段
-    '一条 Windows Uninstall 记录中与启动器推导相关的字段'
-    显示名:str#DisplayName
-    安装位置:str|None=None#InstallLocation
-    显示图标:str|None=None#DisplayIcon
-
-@dataclass(frozen=True)
-class Windows注册表视图:#一批解析共享的注册表事实
-    '一次解析趟共享的 App Paths 与 Uninstall 视图'
-    应用路径表:dict#小写 exe → 目标路径
-    安装记录列表:tuple#Uninstall 记录
-
-@dataclass(frozen=True)
-class 桌面条目:#XDG desktop 字段
-    '解析出的 Desktop Entry 字段'
-    执行:str|None=None#Exec
-    尝试执行:str|None=None#TryExec
-    图标:str|None=None#Icon
-
-def 节点平台():
-    '把 sys.platform 粗映射到 Node 平台名'
-    名=sys.platform#本机
-    if 名=='win32':#Windows
-        return 'win32'#Node 名
-    if 名=='darwin':#macOS
-        return 'darwin'#Node 名
-    if 名.startswith('linux'):#Linux
-        return 'linux'#Node 名
-    return 名#原样
-
-def 限时信号(毫秒):
-    '在期限到时置位的中止事件'
-    信号=threading.Event()#中止事件
-    if isinstance(毫秒,(int,float)) and 毫秒>0:#有期限
-        定时=threading.Timer(毫秒/1000.0,信号.set)#到期置位
-        定时.daemon=True#不挡退出
-        定时.start()#开始计时
-    return 信号#返回信号
-
-def 分离启动应用(命令,参数列表,选项):#detached GUI 启动
-    '分离派生一条 GUI 启动：擦洗环境、无 stdio 管道，看护窗口内早失败则拒绝'
-    完成=threading.Event()#是否已结算
-    结果={'错误':None}#结算槽
-    环境=dict(擦洗父环境())#擦洗基线
-    if '环境' in 选项 and 选项['环境'] is not None:#显式环境
-        环境.update(选项['环境'])#叠加
-    关键字={#Popen 选项
-        'stdin':subprocess.DEVNULL,#无管道
-        'stdout':subprocess.DEVNULL,#无管道
-        'stderr':subprocess.DEVNULL,#无管道
-        'env':环境,#环境
-        'close_fds':True,#关闭多余 fd
-    }#结束选项
-    if os.name=='nt':#Windows
-        标志=subprocess.DETACHED_PROCESS|subprocess.CREATE_NEW_PROCESS_GROUP#分离
-        if '隐藏窗口' in 选项 and 选项['隐藏窗口'] is True:#隐藏 CLI
-            标志|=subprocess.CREATE_NO_WINDOW#无控制台
-        关键字['creationflags']=标志#创建标志
-    else:#POSIX
-        关键字['start_new_session']=True#新会话
-    try:#拉起
-        进程=subprocess.Popen([命令]+list(参数列表),**关键字)#派生
-    except OSError as 错误:#启动失败
-        if 错误.errno==errno.ENOENT:#缺失
+def 分离启动应用(命令,参数列表,选项):
+    '分离派生一条界面程序。看护窗口内早退或派生失败就抛出；窗口结束仍在跑则算成功，进程继续留着'
+    环境=擦洗父环境()#父环境去掉凭证
+    if 选项.get('env') is not None:#适配器自己的环境盖上去
+        环境.update(选项['env'])
+    关键字={
+        'stdin':subprocess.DEVNULL,#不接标准输入
+        'stdout':subprocess.DEVNULL,#不接标准输出
+        'stderr':subprocess.DEVNULL,#不接标准错误
+        'env':环境,#擦洗后再盖适配器环境
+        'shell':False,#argv，不是命令字符串
+    }
+    if os.name=='nt':#Windows 分离，并按适配器决定是否藏窗口
+        标志=0x00000008#DETACHED_PROCESS
+        if 选项.get('windowsHide') is True:#只有明确要求才藏
+            标志=标志|0x08000000#CREATE_NO_WINDOW
+        关键字['creationflags']=标志
+    else:#POSIX 新会话，父进程退出后子进程还在
+        关键字['start_new_session']=True
+    try:#派生失败在这里抛，相当于 Node 的 error 事件
+        子进程=subprocess.Popen([命令,*list(参数列表)],**关键字)
+    except FileNotFoundError as 错误:#可执行文件不在
+        错误.code='ENOENT'#让调用方认出陈旧解析
+        raise
+    except OSError as 错误:#其它派生错误；ENOENT 同样标上
+        if 错误.errno==errno.ENOENT:
             错误.code='ENOENT'
-        raise#原样抛出
+        raise
+    结束=threading.Event()#退出或等待失败
+    盒子={}#退出码或等待错误
 
-    def 结算(错误=None):#只结算一次
-        '看护结束：unref 式放行，不杀子进程'
-        if 完成.is_set():#已结算
-            return#忽略
-        完成.set()#标记
-        结果['错误']=错误#记下
-        try:#放开等待
-            进程.poll()#刷新
-        except OSError:#忽略
-            pass#放行
+    def 等退出():
+        '在旁路线程里等子进程，主路线程只等看护窗口'
+        try:
+            盒子['码']=子进程.wait()#退出码；信号在 POSIX 上是负数
+        except Exception as 错误:#等待本身失败
+            盒子['错误']=错误
+        结束.set()#通知主路
 
-    def 看护退出():#等早退出或看护到期
-        '子进程早退或看护窗口关闭'
-        看护毫秒=选项['看护毫秒'] if '看护毫秒' in 选项 else 0#窗口
-        截止=看护毫秒/1000.0 if 看护毫秒 else 0#秒
-        try:#等待
-            码=进程.wait(timeout=截止 if 截止>0 else None)#等退出或超时
-            if 码==0:#干净退出
-                结算()#成功
-            else:#非零
-                结算(在应用中打开错误('launcher exited with code '+str(码)+', signal None'))#失败
-        except subprocess.TimeoutExpired:#仍在跑 → 计为已启动
-            结算()#成功放行
-        except OSError as 错误:#等待失败
-            结算(错误)#失败
+    等待线程=threading.Thread(target=等退出,daemon=True)#不挡住进程退出
+    等待线程.start()#开始等
+    if not 结束.wait(选项['watchMs']/1000.0):#窗口结束仍在跑
+        return#算已启动，不杀进程
+    if '错误' in 盒子:#等待失败
+        raise 盒子['错误']
+    码=盒子['码']#退出码
+    if 码==0:#正常退出
+        return
+    if 码 is not None and 码<0:#被信号杀掉
+        try:
+            信号名=signal.Signals(-码).name#SIGTERM 这类名字
+        except ValueError:#不是已知信号
+            信号名=str(-码)
+        raise 在应用中打开错误('launcher exited with code null, signal '+信号名)
+    raise 在应用中打开错误('launcher exited with code '+str(码)+', signal null')
 
-    线程=threading.Thread(target=看护退出,daemon=True)#看护线程
-    线程.start()#开始
-    完成.wait()#阻塞到结算
-    if 结果['错误'] is not None:#失败
-        raise 结果['错误']#抛出
+def 补全内部事实(内部):
+    '按运行宿主补全可覆盖事实。没给解析可执行就大声失败'
+    if 内部 is None:#调用方省略
+        内部={}
+    家目录=内部.get('home')#测试可换家目录
+    if 家目录 is None:
+        家目录=os.path.expanduser('~')#本机家目录
+    解析可执行=内部.get('resolveExecutable')#必须由插件或测试给
+    if 解析可执行 is None:
+        raise 在应用中打开错误('open-in-app: internals.resolveExecutable is required (the subprocess capability provides it)')
+    平台=内部.get('platform')#Node 平台名
+    if 平台 is None:
+        系统名=sys.platform#本机
+        if 系统名.startswith('linux'):#linux 与带版本的名字都收成 linux
+            平台='linux'
+        else:
+            平台=系统名
+    ssh值=内部.get('ssh')#SSH 拉起时不探测
+    if ssh值 is None:
+        ssh值=False
+    应用根=内部.get('applicationRoots')#macOS 应用目录根
+    if 应用根 is None:
+        应用根=('/Applications',os.path.join(家目录,'Applications'))
+    环境=内部.get('env')#变量展开用的环境
+    if 环境 is None:
+        环境=os.environ
+    运行=内部.get('run')#宿主命令
+    if 运行 is None:
+        运行=运行原生命令
+    启动=内部.get('launch')#分离启动器
+    if 启动 is None:
+        启动=分离启动应用
+    return {
+        'platform':平台,
+        'ssh':ssh值,
+        'applicationRoots':应用根,
+        'env':环境,
+        'home':家目录,
+        'run':运行,
+        'launch':启动,
+        'resolveExecutable':解析可执行,
+    }
 
-def 补全内部事实(内部):#resolveInternals
-    '相对运行宿主补全可覆盖事实；缺解析可执行则大声失败'
-    内部={} if 内部 is None else 内部#默认空
-    家目录=内部['家目录'] if '家目录' in 内部 else str(Path.home())#家目录
-    if '解析可执行' not in 内部 or 内部['解析可执行'] is None:#必需
-        raise 在应用中打开错误('open-in-app: internals.resolveExecutable is required (the subprocess capability provides it)')#大声失败
-    return 已完成内部事实(#补全
-        平台=内部['平台'] if '平台' in 内部 else 节点平台(),#平台
-        ssh=bool(内部['ssh']) if 'ssh' in 内部 else False,#SSH 拉起
-        应用根列表=tuple(内部['应用根列表']) if '应用根列表' in 内部 else ('/Applications',os.path.join(家目录,'Applications')),#根
-        环境=dict(内部['环境']) if '环境' in 内部 else dict(os.environ),#环境
-        家目录=家目录,#家
-        运行=内部['运行'] if '运行' in 内部 else 运行原生命令,#运行器
-        启动=内部['启动'] if '启动' in 内部 else 分离启动应用,#启动器
-        解析可执行=内部['解析可执行'],#PATH
-    )#结束
+def 取命令输出(命令,参数列表,超时毫秒,事实):
+    '跑一条有期限的宿主命令。成功交回标准输出，派生失败、非零退出和到时都交回 None'
+    信号=threading.Event()#到时置位，运行器据此中止
+    定时=threading.Timer(超时毫秒/1000.0,信号.set)#期限
+    定时.daemon=True#不挡住进程退出
+    定时.start()
+    try:
+        结果=事实['run'](命令,参数列表,信号)#现有运行器不收第四个 hidden
+        return 结果['stdout']#退出码 0 的标准输出
+    except Exception as 失败:#派生、非零退出、到时，都是不可用
+        return None
+    finally:
+        定时.cancel()#命令已经结束就拆掉定时器
 
-def 断言穷尽(值):#closed union
-    '定位器/启动种类穷尽围栏'
-    raise 在应用中打开错误('unhandled open-in-app catalog kind: '+repr(值))#未处理
+def 是否目录(路径):
+    '路径存在并且是目录'
+    try:
+        return os.path.isdir(路径)#符号链接指向目录也算
+    except OSError as 错误:#读不到就不是 bundle
+        return False
 
-def 取命令输出(命令,参数列表,超时毫秒,事实):#bounded host command
-    '跑一条有界宿主命令；成功回 stdout，任何失败回 None'
-    try:#执行
-        结果=事实.运行(命令,list(参数列表),限时信号(超时毫秒))#同步跑
-        return 结果['stdout']#标准输出
-    except (原生命令错误,OSError,在应用中打开错误):#失败同义：不可用
-        return None#不可用
+def 是否普通文件(路径):
+    '路径存在并且是普通文件'
+    try:
+        return os.path.isfile(路径)#目录不算
+    except OSError as 错误:#读不到就不是启动器
+        return False
 
-def 是否目录(路径):#目录探针
-    '路径存在且为目录'
-    try:#探测
-        return os.path.isdir(路径)#目录
-    except OSError:#不可读
-        return False#不是
+def 展开候选(模板,事实):
+    '展开 ${VAR}，以及开头的 ~/。有变量没设置就没有结果'
+    未设=[]#没设置的变量名
 
-def 是否普通文件(路径):#文件探针
-    '路径存在且为普通文件'
-    try:#探测
-        return os.path.isfile(路径)#文件
-    except OSError:#不可读
-        return False#不是
-
-def 展开候选(模板,事实):#${VAR} 与 ~/
-    '展开候选模板；变量未设置则 None'
-    未设=[]#未设置名
-    def 换(匹配):#替换一处
-        '替换 ${VAR}'
+    def 替换(匹配):
+        '替换一个 ${变量}。没设置就先记下，整段稍后作废'
         名=匹配.group(1)#变量名
-        if 名 not in 事实.环境 or 事实.环境[名] is None:#缺席
-            未设.append(名)#记下
-            return 匹配.group(0)#保留原样
-        return 事实.环境[名]#展开
-    已展=变量模式.sub(换,模板)#全替
-    if len(未设)>0:#有未设
-        return None#失败
-    if 已展.startswith('~/'):#家目录前缀
-        return os.path.join(事实.家目录,已展[2:])#拼接
-    return 已展#原样
+        值=事实['env'].get(名)#缺席是 None
+        if 值 is None:
+            未设.append(名)#记一笔
+            return 匹配.group(0)#先留原文
+        return 值#换成变量值
 
-def 展开注册表值(值,事实):#%VAR%
-    '展开注册表值中的 %VAR%；未设则 None'
-    未设=[]#未设置
-    def 换(匹配):#替换
-        '替换 %VAR%'
-        名=匹配.group(1)#名
-        if 名 not in 事实.环境 or 事实.环境[名] is None:#缺席
-            未设.append(名)#记下
-            return 匹配.group(0)#保留
-        return 事实.环境[名]#展开
-    已展=百分变量模式.sub(换,值)#全替
-    return None if len(未设)>0 else 已展#结果
+    展开=变量模式.sub(替换,模板)#只做字符串替换
+    if len(未设)>0:#有变量没设置
+        return None
+    if 展开.startswith('~/'):#家目录前缀
+        return os.path.join(事实['home'],展开[2:])
+    return 展开
 
-def 解析注册表转储(转储):#reg.exe /s
-    '把 reg.exe query /s 输出解析成子键 → 值名 → 数据'
-    键表={}#路径 → 值表
-    当前=None#当前值表
-    for 行 in 转储.splitlines():#逐行
-        if 键路径模式.match(行):#键路径
-            当前={}#新表
-            键表[行.strip()]=当前#登记
-            continue#下一行
+def 展开注册表值(值,事实):
+    '展开注册表值里的 %VAR%。有变量没设置就没有结果'
+    未设=[]#没设置的变量名
+
+    def 替换(匹配):
+        '替换一个 %变量%'
+        名=匹配.group(1)#变量名
+        找到=事实['env'].get(名)#缺席是 None
+        if 找到 is None:
+            未设.append(名)#记一笔
+            return 匹配.group(0)#先留原文
+        return 找到
+
+    展开=百分变量模式.sub(替换,值)#字符串替换
+    if len(未设)>0:
+        return None
+    return 展开
+
+def 解析注册表转储(转储):
+    '把 reg.exe query /s 的输出收成子键到 REG_SZ / REG_EXPAND_SZ 值'
+    键表={}#子键路径 → 值名 → 数据
+    当前=None#当前子键
+    for 行 in re.split(r'\r?\n',转储):#按行
+        if 键路径模式.match(行):#新的子键
+            当前={}
+            键表[行.strip()]=当前
+            continue
         匹配=注册表值模式.match(行)#值行
-        if 匹配 is None or 当前 is None:#无关
-            continue#跳过
-        名,数据=匹配.group(1),匹配.group(3)#名与数据
-        当前['(Default)' if 默认值名模式.match(名) else 名]=数据.strip()#默认名归一
-    return 键表#视图
+        if 匹配 is None or 当前 is None:#不是字符串值，或还没有子键
+            continue
+        名=匹配.group(1)#值名。默认值的字样随语言变
+        数据=匹配.group(3)#值数据
+        if 默认值名模式.match(名):#各种语言都包在括号里
+            名='(Default)'
+        当前[名]=数据.strip()#去掉数据两端空白
+    return 键表
 
-def 读Windows注册表视图(超时毫秒,事实):#一批注册表
-    '一次解析趟：App Paths 与 Uninstall，每根至多一条 reg.exe'
-    应用路径表={}#exe → 路径
-    安装记录列表=[]#记录
-    for 根 in 应用路径根列表:#App Paths
-        转储=取命令输出('reg.exe',['query',根,'/s'],超时毫秒,事实)#查询
-        if 转储 is None:#失败
-            continue#下一根
-        for 键,值表 in 解析注册表转储(转储).items():#子键
-            可执行=键[键.rfind('\\')+1:].lower()#末段小写
-            目标=值表['(Default)'] if '(Default)' in 值表 else None#默认值
-            if (not 可执行.endswith('.exe')) or 目标 is None or 可执行 in 应用路径表:#跳过
-                continue#下一条
-            已展=展开注册表值(目标.strip('"'),事实)#去引号展开
-            if 已展 is not None:#有效
-                应用路径表[可执行]=已展#记下
-    for 根 in 卸载根列表:#Uninstall
-        转储=取命令输出('reg.exe',['query',根,'/s'],超时毫秒,事实)#查询
-        if 转储 is None:#失败
-            continue#下一根
-        for 值表 in 解析注册表转储(转储).values():#每条记录
-            if 'DisplayName' not in 值表:#无显示名
-                continue#跳过
-            安装记录列表.append(Windows安装记录(#收下
-                显示名=值表['DisplayName'],#名
-                安装位置=值表['InstallLocation'] if 'InstallLocation' in 值表 else None,#位置
-                显示图标=值表['DisplayIcon'] if 'DisplayIcon' in 值表 else None,#图标
-            ))#记录结束
-    return Windows注册表视图(应用路径表=应用路径表,安装记录列表=tuple(安装记录列表))#视图
+def 查找桌面条目(桌面标识,事实):
+    '在 XDG applications 目录里按标识读 desktop 条目。都没有则 None'
+    for 数据目录 in xdg数据目录(事实):#优先级从高到低
+        路径=os.path.join(数据目录,'applications',桌面标识+'.desktop')#条目文件
+        try:
+            with open(路径,'r',encoding='utf-8') as 文件:#读文本
+                文本=文件.read()
+        except OSError as 错误:#没有或读不到，试下一个数据目录
+            continue
+        字段=桌面条目字段(文本)#只认主节
+        条目={}#Exec / TryExec / Icon
+        if 'Exec' in 字段:
+            条目['exec']=字段['Exec']
+        if 'TryExec' in 字段:
+            条目['tryExec']=字段['TryExec']
+        if 'Icon' in 字段:
+            条目['icon']=字段['Icon']
+        return 条目#第一个读到的
+    return None
 
-class 注册表视图一次:#惰性共享
-    '一趟检测至多读一次注册表'
-    def __init__(自身,超时毫秒,事实):#绑定
-        '记下期限与事实'
-        自身.超时毫秒=超时毫秒#期限
-        自身.事实=事实#事实
-        自身.视图=None#惰性
+def xdg数据目录(事实):
+    '按优先级排列的 XDG 数据目录'
+    return 桌面数据目录(事实['home'],事实['env'])#含 freedesktop 默认
 
-    def 读取(自身):#首次读取
-        '返回本趟注册表视图'
-        if 自身.视图 is None:#未读
-            自身.视图=读Windows注册表视图(自身.超时毫秒,自身.事实)#读取
-        return 自身.视图#视图
+def 平台规格于(应用,平台):
+    '条目在 darwin、win32、linux 上的规格。其它平台没有'
+    if 平台 not in ('darwin','win32','linux'):#目录没声明的平台
+        return None
+    return 应用['platforms'].get(平台)#这一条可能也不声明该平台
 
-def 记录启动器(记录,相对启动器,事实):#Uninstall → exe
-    '一条 Uninstall 记录能证明的可执行路径，或 None'
-    if 相对启动器 is not None and 记录.安装位置 is not None and 记录.安装位置!='':#有位置
-        已展=展开注册表值(记录.安装位置.strip('"'),事实)#展开
-        if 已展 is not None:#有效
-            候选=os.path.join(已展,相对启动器)#拼接
-            if 是否普通文件(候选):#存在
-                return 候选#命中
-    if 记录.显示图标 is not None:#DisplayIcon
-        裸=图标后缀模式.sub('',记录.显示图标).strip().strip('"').strip()#去索引与引号
-        已展=展开注册表值(裸,事实)#展开
-        if 已展 is not None and 已展.lower().endswith('.exe') and 是否普通文件(已展):#exe
-            return 已展#命中
-    return None#无
+def 可执行图标(路径,事实):
+    '已解析可执行文件的图标来源。只有 Windows 从二进制本身取'
+    if 事实['platform']=='win32':
+        return {'kind':'executable','path':路径}
+    return None
 
-def 解析桌面条目文本(文本):#parseDesktopEntry
-    '解析 [Desktop Entry] 的 Exec/TryExec/Icon'
-    字段=桌面条目字段(文本)#主节字段
-    return 桌面条目(#只留这三项
-        执行=字段.get('Exec'),#Exec
-        尝试执行=字段.get('TryExec'),#TryExec
-        图标=字段.get('Icon'),#Icon
-    )#条目
+def 自然降序键(名称):
+    '版本名的比较键。数字段按整数，供从新到旧排序'
+    键=[]#段
+    for 段 in re.split(r'(\d+)',名称):#数字单独成段
+        if 段.isdigit():
+            键.append((0,int(段)))#按数值
+        else:
+            键.append((1,段))#其余按文本
+    return tuple(键)
 
-def xdg数据目录列表(事实):#XDG data dirs
-    '按优先级的 XDG 数据目录'
-    return 桌面数据目录(事实.家目录,事实.环境)#共享解析
+def 是否可执行缺失(错误):
+    '这次失败是不是可执行文件已经不在'
+    return isinstance(错误,BaseException) and getattr(错误,'code',None)=='ENOENT'
 
-def 查找桌面条目(桌面标识,事实):#按 id 找 .desktop
-    '在 XDG applications 下按 id 读 desktop 条目'
-    for 数据目录 in xdg数据目录列表(事实):#逐目录
-        路径=os.path.join(数据目录,'applications',桌面标识+'.desktop')#路径
-        try:#读取
-            with open(路径,'r',encoding='utf-8') as 文件:#打开
-                return 解析桌面条目文本(文件.read())#解析
-        except OSError:#ENOENT/EACCES
-            pass#试下一个
-    return None#未找到
+def 执行启动(启动,路径,看护毫秒,事实):
+    '跑一条启动器，并归成 launched、missing 或 failed'
+    种类=启动['kind']#argv 或 shell-open
+    if 种类=='shell-open':#交给操作系统的打开动作
+        盒子={'结局':'failed'}#窗口内若失败，默认失败
+        结束=threading.Event()#打开动作结束
 
-def 执行命令首段(执行):#Exec 首 token
-    'Exec= 值的第一个 token；缺席或空白则 None'
-    if 执行 is None:#缺席
-        return None#无
-    引号=执行首段引号模式.match(执行)#引号
-    if 引号 is not None:#有
-        return 引号.group(1)#路径
-    裸=执行首段裸名模式.match(执行)#裸
-    return None if 裸 is None else 裸.group(0)#结果
+        def 跑打开():
+            '在旁路等打开动作。窗口已经算成功之后，这里的失败不再改结果'
+            try:
+                打开原生路径(路径,threading.Event(),{#新的未中止信号
+                    'platform':事实['platform'],
+                    'run':事实['run'],
+                    'env':事实['env'],
+                })
+                盒子['结局']='launched'#打开动作自己结束了
+            except Exception as 错误:#窗口内失败
+                if 是否可执行缺失(错误):
+                    盒子['结局']='missing'
+                else:
+                    盒子['结局']='failed'
+            结束.set()
 
-def 桌面启动器(条目,事实):#desktop → exe
-    'desktop 条目证明的可执行：TryExec 或 Exec 首段'
-    候选=条目.尝试执行 if 条目.尝试执行 is not None else 执行命令首段(条目.执行)#候选
-    if 候选 is None or 候选=='':#空
-        return None#无
-    if os.path.isabs(候选):#绝对
-        return 候选 if 是否普通文件(候选) else None#核验
-    return 事实.解析可执行(候选)#PATH
+        打开线程=threading.Thread(target=跑打开,daemon=True)#晚到的结算不挡住请求
+        打开线程.start()
+        if not 结束.wait(看护毫秒/1000.0):#到时还在跑
+            return 'launched'#算已启动，晚到的失败丢掉
+        return 盒子['结局']
+    if 种类=='argv':#分离派生
+        参数=启动['args']#声明的 argv
+        if any(路径令牌 in 段 for 段 in 参数):#有占位就替换
+            实际参数=[段.replace(路径令牌,路径) for 段 in 参数]
+        else:#没有占位就把目录接在后面
+            实际参数=list(参数)+[路径]
+        选项={'watchMs':看护毫秒}#看护窗口
+        if 启动.get('env') is not None:#适配器环境
+            选项['env']=启动['env']
+        if 启动.get('windowsHide') is not None:#显式隐藏或显式不隐藏
+            选项['windowsHide']=启动['windowsHide']
+        try:
+            事实['launch'](启动['command'],实际参数,选项)#分离启动
+            return 'launched'
+        except Exception as 错误:#派生失败或窗口内早退
+            if 是否可执行缺失(错误):
+                return 'missing'#调用方会重解析这一条
+            return 'failed'
+    断言穷尽(启动)#封闭的启动种类
 
-def 平台规格于(应用,平台):#specFor
-    '条目在声明三平台上的规格；其它平台 None'
-    if 平台=='darwin' or 平台=='win32' or 平台=='linux':#声明平台
-        return 应用.平台表[平台] if 平台 in 应用.平台表 else None#规格
-    return None#空
+def 经注册表解析(应用,探测超时毫秒,注册表,事实):
+    '按本平台定位器的书写顺序，第一个核验通过的启动器胜出'
+    平台规格=平台规格于(应用,事实['platform'])#本机平台
+    if 平台规格 is None:#这条在本平台没有声明
+        return None
+    for 定位器 in 平台规格['locators']:#按序
+        种类=定位器['kind']#定位种类
+        找到=None#这一条没有核验通过
+        if 种类=='fixed':#随系统出货。图标路径不探测，变量没设置才丢掉图标
+            图标路径=展开候选(定位器['iconPath'],事实)
+            if 图标路径 is None:
+                图标=None
+            elif 事实['platform']=='win32':
+                图标={'kind':'executable','path':图标路径}
+            else:
+                图标={'kind':'app-bundle','path':图标路径}
+            找到={'launch':定位器['launch'],'icon':图标}
+        elif 种类=='app':#已知应用目录里的 bundle
+            for 根 in 事实['applicationRoots']:
+                if 找到 is not None:
+                    break
+                for 文件名 in 定位器['fsNames']:
+                    包=os.path.join(根,文件名)#bundle 目录
+                    if 是否目录(包):
+                        找到={
+                            'launch':{'kind':'argv','command':'open','args':('-a',包)},
+                            'icon':{'kind':'app-bundle','path':包},
+                        }
+                        break
+        elif 种类=='xcode':#跟随 xcode-select -p
+            开发者目录=取命令输出('xcode-select',['-p'],探测超时毫秒,事实)
+            if 开发者目录 is not None:
+                包=os.path.dirname(os.path.dirname(开发者目录.strip()))#Developer 的上两级
+                if 包.endswith('.app') and 是否目录(包):
+                    找到={
+                        'launch':{'kind':'argv','command':'xed','args':()},
+                        'fallbackLaunch':{'kind':'argv','command':'open','args':('-a',包)},
+                        'icon':{'kind':'app-bundle','path':包},
+                    }
+        elif 种类=='cli':#PATH 名
+            需要桌面=定位器.get('requiresDesktop') is True
+            桌面可用=True
+            if 需要桌面:#没有桌面会话就不提供
+                桌面可用=可打开原生路径({'platform':事实['platform'],'env':dict(事实['env'])})
+            if 桌面可用:
+                命中=事实['resolveExecutable'](定位器['name'])#进程内解析
+                if 命中 is not None:
+                    找到={
+                        'launch':{'kind':'argv','command':命中,'args':定位器['args']},
+                        'icon':可执行图标(命中,事实),
+                    }
+        elif 种类=='file':#第一个存在的候选
+            for 候选模板 in 定位器['candidates']:
+                路径=展开候选(候选模板,事实)
+                if 路径 is not None and 是否普通文件(路径):
+                    找到={
+                        'launch':{'kind':'argv','command':路径,'args':定位器['args']},
+                        'icon':可执行图标(路径,事实),
+                    }
+                    break
+        elif 种类=='scan':#版本目录，新的优先
+            根=展开候选(定位器['root'],事实)
+            if 根 is not None:
+                try:
+                    条目列表=os.listdir(根)#安装根下的名字
+                except OSError as 错误:#根不存在或读不到
+                    条目列表=None
+                if 条目列表 is not None:
+                    版本列表=sorted(
+                        [项 for 项 in 条目列表 if 项.startswith(定位器['namePrefix'])],
+                        key=自然降序键,
+                        reverse=True,
+                    )#数字感知，新的在前
+                    for 版本 in 版本列表:
+                        启动器=os.path.join(根,版本,定位器['relativeLauncher'])
+                        if 是否普通文件(启动器):
+                            找到={
+                                'launch':{'kind':'argv','command':启动器,'args':定位器['args']},
+                                'icon':可执行图标(启动器,事实),
+                            }
+                            break
+        elif 种类=='app-paths':#App Paths 默认值
+            目标=注册表.读取()['appPaths'].get(定位器['exe'].lower())
+            if 目标 is not None and 是否普通文件(目标):
+                找到={
+                    'launch':{'kind':'argv','command':目标,'args':定位器['args']},
+                    'icon':{'kind':'executable','path':目标},
+                }
+        elif 种类=='install-record':#Uninstall 记录证明的可执行文件
+            相对=定位器.get('relativeLauncher')
+            for 记录 in 注册表.读取()['installRecords']:
+                if not 记录['displayName'].startswith(定位器['displayNamePrefix']):
+                    continue
+                启动器路径=None#这条记录还没证明出文件
+                安装位置=记录.get('installLocation')
+                if 相对 is not None and 安装位置 not in (None,''):
+                    展开位置=展开注册表值(去掉两端引号(安装位置),事实)
+                    if 展开位置 is not None:
+                        候选=os.path.join(展开位置,相对)
+                        if 是否普通文件(候选):
+                            启动器路径=候选
+                if 启动器路径 is None and 记录.get('displayIcon') is not None:
+                    裸=图标后缀模式.sub('',记录['displayIcon'])#去掉 ,0 这类索引
+                    裸=去掉两端引号(裸).strip()#引号和空白
+                    展开图标=展开注册表值(裸,事实)
+                    if 展开图标 is not None and 展开图标.lower().endswith('.exe') and 是否普通文件(展开图标):
+                        启动器路径=展开图标
+                if 启动器路径 is not None:
+                    找到={
+                        'launch':{'kind':'argv','command':启动器路径,'args':定位器['args']},
+                        'icon':{'kind':'executable','path':启动器路径},
+                    }
+                    break
+        elif 种类=='github-desktop':#版本目录里的 exe 和 cli.js 要同时在
+            根=展开候选(定位器['root'],事实)
+            if 根 is not None:
+                try:
+                    版本列表=sorted(
+                        [项 for 项 in os.listdir(根) if 项.startswith('app-')],
+                        key=自然降序键,
+                        reverse=True,
+                    )#新的版本在前
+                except OSError as 错误:#安装根不存在或读不到
+                    版本列表=None
+                if 版本列表 is not None:
+                    for 版本 in 版本列表:
+                        目录路径=os.path.join(根,版本)
+                        可执行=os.path.join(目录路径,'GitHubDesktop.exe')
+                        命令行文件=os.path.join(目录路径,'resources','app','cli.js')
+                        if 是否普通文件(可执行) and 是否普通文件(命令行文件):
+                            找到={
+                                'launch':{
+                                    'kind':'argv',
+                                    'command':可执行,
+                                    'args':(命令行文件,'open'),
+                                    'env':{'ELECTRON_RUN_AS_NODE':'1'},
+                                    'windowsHide':True,
+                                },
+                                'icon':{'kind':'executable','path':可执行},
+                            }
+                            break
+        elif 种类=='desktop':#XDG 条目证明的可执行文件。TryExec 优先，否则 Exec 第一段
+            条目=查找桌面条目(定位器['desktopId'],事实)
+            if 条目 is not None:
+                候选=条目.get('tryExec')#有 TryExec 就用它，包括空串
+                if 候选 is None:
+                    执行=条目.get('exec')
+                    if 执行 is None:
+                        候选=None
+                    else:
+                        引号匹配=执行首段引号模式.match(执行)
+                        if 引号匹配 is not None:
+                            候选=引号匹配.group(1)#引号里的路径
+                        else:
+                            裸匹配=执行首段裸名模式.match(执行)
+                            候选=None if 裸匹配 is None else 裸匹配.group(0)
+                if 候选 is not None and 候选!='':
+                    if os.path.isabs(候选):
+                        启动器=候选 if 是否普通文件(候选) else None
+                    else:
+                        启动器=事实['resolveExecutable'](候选)#裸名走 PATH
+                    if 启动器 is not None:
+                        找到={'launch':{'kind':'argv','command':启动器,'args':定位器['args']}}
+        else:
+            断言穷尽(定位器)#封闭的定位种类
+        if 找到 is not None:#这一条已经核验通过
+            return 找到
+    return None#本平台的定位器都没证明出启动器
 
-def 可执行图标(路径,事实):#Windows 可执行图标
-    '已解析可执行的图标来源；仅 Windows'
-    return 图标来源(种类='executable',路径=路径) if 事实.平台=='win32' else None#来源
+def 启动已解析(已解析,路径,看护毫秒,内部=None):
+    '先跑主启动器。主启动器没打开且声明了回退，再跑回退。试过的可执行文件不见了就返回 missing'
+    if 内部 is None:#调用方省略
+        内部={}
+    完成=补全内部事实(内部)#补齐启动器
+    主结局=执行启动(已解析['launch'],路径,看护毫秒,完成)#主启动器
+    回退=已解析.get('fallbackLaunch')#没有回退就是 None
+    if 主结局=='launched' or 回退 is None:
+        return 主结局
+    回退结局=执行启动(回退,路径,看护毫秒,完成)#回退启动器
+    if 回退结局=='launched':
+        return 'launched'
+    if 主结局=='missing' or 回退结局=='missing':#任一文件不见了都要重解析
+        return 'missing'
+    return 'failed'
 
-def 自然降序(名称列表):#numeric localeCompare
-    '版本感知降序（新→旧）'
-    def 键(文本):#自然键
-        '分段：数字段转 int'
-        return [int(段) if 段.isdigit() else 段.lower() for 段 in 自然分段模式.split(文本)]#键
-    return sorted(名称列表,key=键,reverse=True)#降序
+class 注册表视图一次:
+    '一趟检测最多读一次注册表'
+    def __init__(自身,超时毫秒,事实):
+        '记下这一趟的期限和已补全事实'
+        自身.超时毫秒=超时毫秒#每条 reg.exe 的期限
+        自身.事实=事实#平台事实
+        自身.视图=None#还没读
 
-def 定位(定位器,探测超时毫秒,注册表,事实):#locate one
-    '把一条定位器解析为已验证启动，或 None'
-    种类=定位器.种类#判别
-    if 种类=='fixed':#固定
-        图标路径=展开候选(定位器.图标路径,事实)#展开
-        if 图标路径 is None:#变量未设
-            图标=None#无图标声称
-        elif 事实.平台=='win32':#Windows
-            图标=图标来源(种类='executable',路径=图标路径)#可执行
-        else:#macOS 等
-            图标=图标来源(种类='app-bundle',路径=图标路径)#bundle
-        return 已解析启动(启动=定位器.启动,图标=图标)#固定总成功
-    if 种类=='app':#macOS bundle
-        for 根 in 事实.应用根列表:#根
-            for 名 in 定位器.文件系统名列表:#拼写
-                包=os.path.join(根,名)#路径
-                if 是否目录(包):#存在
-                    return 已解析启动(#命中
-                        启动=参数启动(命令='open',参数列表=('-a',包)),#open -a
-                        图标=图标来源(种类='app-bundle',路径=包),#图标
-                    )#结束
-        return None#未找到
-    if 种类=='xcode':#xcode-select
-        开发者=取命令输出('xcode-select',['-p'],探测超时毫秒,事实)#路径
-        if 开发者 is None:#失败
-            return None#无
-        包=os.path.dirname(os.path.dirname(开发者.strip()))#上两级
-        if (not 包.endswith('.app')) or (not 是否目录(包)):#非 bundle
-            return None#无
-        return 已解析启动(#命中
-            启动=参数启动(命令='xed',参数列表=()),#xed
-            回退启动=参数启动(命令='open',参数列表=('-a',包)),#open -a
-            图标=图标来源(种类='app-bundle',路径=包),#图标
-        )#结束
-    if 种类=='cli':#PATH
-        if 定位器.需要桌面 is True and (not 可打开原生路径({'platform':事实.平台,'env':事实.环境})):#无桌面
-            return None#不提供
-        找到=事实.解析可执行(定位器.名称)#解析
-        if 找到 is None:#未找到
-            return None#无
-        return 已解析启动(#命中
-            启动=参数启动(命令=找到,参数列表=定位器.参数列表),#argv
-            图标=可执行图标(找到,事实),#图标
-        )#结束
-    if 种类=='file':#候选文件
-        for 候选 in 定位器.候选列表:#逐个
-            路径=展开候选(候选,事实)#展开
-            if 路径 is not None and 是否普通文件(路径):#存在
-                return 已解析启动(#命中
-                    启动=参数启动(命令=路径,参数列表=定位器.参数列表),#argv
-                    图标=可执行图标(路径,事实),#图标
-                )#结束
-        return None#无
-    if 种类=='scan':#版本扫描
-        根=展开候选(定位器.根,事实)#根
-        if 根 is None:#失败
-            return None#无
-        try:#列目录
-            条目列表=os.listdir(根)#条目
-        except OSError:#缺失
-            return None#无
-        版本列表=自然降序([名 for 名 in 条目列表 if 名.startswith(定位器.名称前缀)])#新→旧
-        for 版本 in 版本列表:#逐版本
-            启动器=os.path.join(根,版本,定位器.相对启动器)#路径
-            if 是否普通文件(启动器):#存在
-                return 已解析启动(#命中
-                    启动=参数启动(命令=启动器,参数列表=定位器.参数列表),#argv
-                    图标=可执行图标(启动器,事实),#图标
-                )#结束
-        return None#无
-    if 种类=='app-paths':#App Paths
-        目标=注册表.读取().应用路径表.get(定位器.可执行名.lower())#查表
-        if 目标 is None or (not 是否普通文件(目标)):#无效
-            return None#无
-        return 已解析启动(#命中
-            启动=参数启动(命令=目标,参数列表=定位器.参数列表),#argv
-            图标=图标来源(种类='executable',路径=目标),#图标
-        )#结束
-    if 种类=='install-record':#Uninstall
-        for 记录 in 注册表.读取().安装记录列表:#逐条
-            if not 记录.显示名.startswith(定位器.显示名前缀):#前缀不配
-                continue#下一条
-            启动器=记录启动器(记录,定位器.相对启动器,事实)#推导
-            if 启动器 is not None:#命中
-                return 已解析启动(#命中
-                    启动=参数启动(命令=启动器,参数列表=定位器.参数列表),#argv
-                    图标=图标来源(种类='executable',路径=启动器),#图标
-                )#结束
-        return None#无
-    if 种类=='github-desktop':#GitHub Desktop
-        根=展开候选(定位器.根,事实)#根
-        if 根 is None:#失败
-            return None#无
-        try:#列版本
-            版本列表=自然降序([名 for 名 in os.listdir(根) if 名.startswith('app-')])#app-*
-        except OSError:#缺失
-            return None#无
-        for 版本 in 版本列表:#逐版本
-            目录=os.path.join(根,版本)#目录
-            可执行=os.path.join(目录,'GitHubDesktop.exe')#exe
-            命令行脚本=os.path.join(目录,'resources','app','cli.js')#cli
-            if 是否普通文件(可执行) and 是否普通文件(命令行脚本):#齐备
-                return 已解析启动(#命中
-                    启动=参数启动(#argv
-                        命令=可执行,#exe
-                        参数列表=(命令行脚本,'open'),#cli open
-                        环境={'ELECTRON_RUN_AS_NODE':'1'},#Electron 作 Node
-                        隐藏窗口=True,#隐藏 CLI
-                    ),#启动
-                    图标=图标来源(种类='executable',路径=可执行),#图标
-                )#结束
-        return None#无
-    if 种类=='desktop':#XDG
-        条目=查找桌面条目(定位器.桌面标识,事实)#读
-        if 条目 is None:#无
-            return None#无
-        启动器=桌面启动器(条目,事实)#可执行
-        if 启动器 is None:#无
-            return None#无
-        return 已解析启动(启动=参数启动(命令=启动器,参数列表=定位器.参数列表))#无独立图标来源
-    return 断言穷尽(定位器)#穷尽
-
-def 经注册表解析(应用,探测超时毫秒,注册表,事实):#resolveWithRegistry
-    '相对共享注册表视图解析一条条目'
-    平台规格=平台规格于(应用,事实.平台)#规格
-    if 平台规格 is None:#无
-        return None#空
-    for 定位器 in 平台规格.定位器列表:#按序
-        找到=定位(定位器,探测超时毫秒,注册表,事实)#尝试
-        if 找到 is not None:#命中
-            return 找到#首个
-    return None#全失败
-
-def 解析启动(应用,探测超时毫秒,内部=None):#resolveLaunch
-    '解析一条目录条目；SSH 拉起或未安装则 None'
-    事实=补全内部事实(内部)#补全
-    if 事实.ssh:#SSH 下不探测
-        return None#空
-    return 经注册表解析(应用,探测超时毫秒,注册表视图一次(探测超时毫秒,事实),事实)#解析
-
-def 解析在应用中打开应用(探测超时毫秒,内部=None):#resolveOpenInAppApps
-    '解析整份目录一次：标识 → 已验证启动（目录顺序）。SSH 拉起时不探测，返回空映射'
-    事实=补全内部事实(内部)#补全
-    if 事实.ssh:#SSH 拉起
-        return {}#空表
-    注册表=注册表视图一次(探测超时毫秒,事实)#共享
-    映射={}#可变权威
-    for 应用 in 在应用中打开目录:#菜单序
-        启动=经注册表解析(应用,探测超时毫秒,注册表,事实)#解析
-        if 启动 is not None:#可用
-            映射[应用.标识]=启动#写入
-    return 映射#映射
-
-def 启动参数列表(参数列表,路径):#PATH_TOKEN 替换
-    '把目录令牌代入 argv；无令牌则追加目录'
-    列表=list(参数列表)#复制
-    if any(路径令牌 in 段 for 段 in 列表):#有令牌
-        return [段.replace(路径令牌,路径) for 段 in 列表]#全替
-    return 列表+[路径]#追加
-
-def 是否可执行缺失(错误):#ENOENT
-    '启动拒绝是否表示可执行文件缺失'
-    if isinstance(错误,OSError) and 错误.errno==errno.ENOENT:#系统 ENOENT
-        return True
-    码=getattr(错误,'code',None)#挂靠码
-    return 码=='ENOENT'
-
-def 执行外壳打开(路径,看护毫秒,事实):#shell-open
-    '在看护窗口下经 OS open verb 打开目录'
-    信号=threading.Event()#不主动中止
-    完成=threading.Event()#结算
-    结局={'值':'failed'}#默认失败
-
-    def 工作():#打开线程
-        '调用原生打开器'
-        try:#打开
-            打开原生路径(路径,信号,{'platform':事实.平台,'run':事实.运行,'env':事实.环境})#打开
-            结局['值']='launched'#成功
-        except (OSError,原生命令错误,在应用中打开错误) as 错误:
-            结局['值']='missing' if 是否可执行缺失(错误) else 'failed'
-        finally:#结算
-            完成.set()#完成
-
-    线程=threading.Thread(target=工作,daemon=True)#后台
-    线程.start()#开始
-    if 完成.wait(timeout=看护毫秒/1000.0 if 看护毫秒 else None):#窗口内结束
-        return 结局['值']#结局
-    return 'launched'#仍在跑 → 已启动
-
-def 执行启动器(启动,路径,看护毫秒,事实):#runLaunch
-    '执行一条启动器并归类结局'
-    if 启动.种类=='shell-open':#外壳
-        return 执行外壳打开(路径,看护毫秒,事实)#打开
-    if 启动.种类=='argv':#argv
-        try:#派生
-            选项={'看护毫秒':看护毫秒}#看护
-            if 启动.环境 is not None:#环境
-                选项['环境']=启动.环境#叠入
-            if 启动.隐藏窗口 is not None:#隐藏
-                选项['隐藏窗口']=启动.隐藏窗口#叠入
-            事实.启动(启动.命令,启动参数列表(启动.参数列表,路径),选项)#启动
-            return 'launched'#成功
-        except (OSError,原生命令错误,在应用中打开错误) as 错误:
-            return 'missing' if 是否可执行缺失(错误) else 'failed'
-    return 断言穷尽(启动)#穷尽
-
-def 启动已解析(已解析,路径,看护毫秒,内部=None):#launchResolved
-    '启动已解析应用：主启动器，失败则回退'
-    事实=补全内部事实(内部)#补全
-    主=执行启动器(已解析.启动,路径,看护毫秒,事实)#主
-    if 主=='launched' or 已解析.回退启动 is None:#成功或无回退
-        return 主#结局
-    回退=执行启动器(已解析.回退启动,路径,看护毫秒,事实)#回退
-    if 回退=='launched':#回退成功
-        return 'launched'#成功
-    return 'missing' if 主=='missing' or 回退=='missing' else 'failed'#缺失优先
+    def 读取(自身):
+        '第一次调用时读 App Paths 和 Uninstall。根失败或缺失就跳过'
+        if 自身.视图 is None:#这一趟还没读
+            应用路径表={}#小写 exe 名 → 默认值路径。先写入的用户巢保留
+            安装记录列表=[]#DisplayName 以及可选的位置和图标
+            for 根 in 应用路径根列表:#两条 App Paths
+                转储=取命令输出('reg.exe',['query',根,'/s'],自身.超时毫秒,自身.事实)
+                if 转储 is None:#这条根没有或查询失败
+                    continue
+                for 键,值表 in 解析注册表转储(转储).items():
+                    可执行名=键[键.rfind('\\')+1:].lower()#最后一段，测试在 POSIX 上也不用 basename
+                    目标=值表.get('(Default)')#默认值
+                    if (not 可执行名.endswith('.exe')) or 目标 is None or 可执行名 in 应用路径表:
+                        continue#不是 exe，没有默认值，或用户巢已经占了这个名字
+                    展开=展开注册表值(去掉两端引号(目标),自身.事实)
+                    if 展开 is not None:
+                        应用路径表[可执行名]=展开
+            for 根 in 卸载根列表:#三条 Uninstall
+                转储=取命令输出('reg.exe',['query',根,'/s'],自身.超时毫秒,自身.事实)
+                if 转储 is None:
+                    continue
+                for 值表 in 解析注册表转储(转储).values():
+                    显示名=值表.get('DisplayName')
+                    if 显示名 is None:#没有显示名就不是一条安装记录
+                        continue
+                    安装记录列表.append({
+                        'displayName':显示名,
+                        'installLocation':值表.get('InstallLocation'),
+                        'displayIcon':值表.get('DisplayIcon'),
+                    })
+            自身.视图={'appPaths':应用路径表,'installRecords':tuple(安装记录列表)}#这一趟的事实
+        return 自身.视图

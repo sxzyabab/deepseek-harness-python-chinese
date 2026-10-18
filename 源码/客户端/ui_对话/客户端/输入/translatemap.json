@@ -10,5 +10,9 @@
     "text-ref":"文本引用",
     "runtime":"运行时",
     "view-binding":"视图绑定",
-    "projection":"投影"
+    "projection":"投影",
+    "editor":"编辑器",
+    "blocks":"阻断",
+    "submission-policy":"提交策略",
+    "submission-analytics":"提交分析"
 }

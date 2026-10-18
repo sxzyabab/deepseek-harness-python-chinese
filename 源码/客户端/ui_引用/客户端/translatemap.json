@@ -1,3 +1,5 @@
 {
-    "locales":"文案"
+    "locales": "文案",
+    "FileReference": "文件引用",
+    "user-text-rules": "用户文本规则"
 }

@@ -1,5 +1,6 @@
 {
     "mount":"挂载",
     "locales":"文案",
-    "Band":"条带"
+    "Band":"条带",
+    "Band.module":"条带.module"
 }

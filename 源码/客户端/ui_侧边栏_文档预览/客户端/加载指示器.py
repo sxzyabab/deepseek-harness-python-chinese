@@ -1,31 +1,58 @@
-from nicegui import ui as 界面
+from ...模块.客户端.通告 import 取握手窗口
+import os
+from ...ui_对话.异常 import 注入模块样式文件,模块节点
 from ...ui_基础界面组件.状态点 import 状态点
+from .文案 import 中文
 
-__all__=['加载指示器','加载状态','样式表']
+__all__=['加载指示器']
 
-样式表='''
-.loading{display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;box-sizing:border-box;width:100%;height:100%;min-height:0;padding:24px;color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size,14px);line-height:1.5;text-align:center;white-space:normal}
-.inline{display:inline-flex;flex-direction:row;gap:8px;width:auto;height:auto;padding:0;vertical-align:middle}
-'''
-界面.add_css(样式表,shared=True)
+样式模块='document-loading'
 
-def 加载指示器(标签,类名=None):
-    '产出动画、可访问的加载状态结构'
-    return {'kind':'loading','label':标签,'className':类名,'role':'status'}#结构
+class 加载指示器:
+    '文档读取和绘制时的等待状态。inline 时是一行小转圈'
+    def __init__(自身,属性=None):
+        '记下标签和是否紧凑'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        if 'window' in 自身.属性:
+            自身.渲染()
 
-
-class 加载状态:
-    '居中或行内的加载状态'
-
-    def __init__(自身,标签,行内=False):
-        '记下状态文案与是否行内'
-        自身.标签=标签#文案
-        自身.行内=行内 is True#行内
+    def 更新(自身,属性):
+        '换成新的 props'
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
     def 渲染(自身):
-        '状态点；非行内时带文案'
-        类名='loading inline' if 自身.行内 else 'loading'
-        with 界面.element('span').classes(类名).props('role=status aria-label="'+自身.标签+'"'):
-            状态点({'state':'ongoing','size':14 if 自身.行内 else 28}).渲染()
-            if 自身.行内 is not True:
-                界面.label(自身.标签)
+        '居中的状态，或一行可访问的转圈'
+        if 自身.根 is not None:
+            自身.根.remove()
+        属性=自身.属性
+        窗口=属性['window'] if 'window' in 属性 else 取握手窗口()
+        文档=窗口.document
+        注入模块样式文件(
+            文档,
+            '文档加载指示器样式',
+            os.path.join(os.path.dirname(__file__),'加载指示器.module.css'),
+            样式模块,
+        )
+        标签=属性['label'] if 'label' in 属性 and 属性['label'] is not None else 中文['loading']
+        紧凑=属性.get('inline') is True
+        根=模块节点(文档,'span',样式模块,'loading inline' if 紧凑 else 'loading')
+        根.setAttribute('role','status')
+        根.setAttribute('aria-label',标签)
+        根.setAttribute('data-document-loading','')
+        点=状态点({'window':窗口,'state':'ongoing','size':14 if 紧凑 else 28}).渲染()
+        根.appendChild(点)
+        if not 紧凑:
+            文=文档.createElement('span')
+            文.textContent=标签
+            根.appendChild(文)
+        if 'parent' in 属性 and 属性['parent'] is not None:
+            属性['parent'].appendChild(根)
+        自身.根=根
+        return 自身.根
+
+    def __call__(自身,属性=None):
+        '再次调用时先换 props 再画'
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()

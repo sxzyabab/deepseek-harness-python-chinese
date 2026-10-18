@@ -1,0 +1,11 @@
+{
+    "MessageFeedbackActions":"反馈动作",
+    "FeedbackDialog":"反馈对话框",
+    "controller":"控制器",
+    "dialog":"对话框",
+    "locales":"文案",
+    "slots":"槽位",
+    "surface":"表面",
+    "MessageFeedbackActions.module":"反馈动作.module",
+    "FeedbackDialog.module":"反馈对话框.module"
+}

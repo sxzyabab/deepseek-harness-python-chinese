@@ -1,7 +1,7 @@
 import re
 from .异常 import 团队错误
 
-__all__=['必填文本','写范围']
+__all__=['必填文本','写入范围']
 
 盘符前缀=re.compile(r'^[a-z]:',re.I|re.ASCII)
 
@@ -14,7 +14,7 @@ def 必填文本(值,字段,最大长度):
         raise 团队错误(字段+' exceeds '+str(最大长度)+' characters','TEAM_INVALID_ARGUMENT')
     return 文本
 
-def 写范围(值):
+def 写入范围(值):
     '规范化一个工作区相对路径前缀，不把它当锁'
     规范化=值.replace('\\','/')
     if 规范化.startswith('./'):

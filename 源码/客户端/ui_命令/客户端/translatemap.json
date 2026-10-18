@@ -4,5 +4,9 @@
     "presentation":"呈现",
     "resolution":"解析",
     "directory":"目录",
-    "locales":"文案"
+    "locales":"文案",
+    "popup":"弹出层",
+    "option-groups":"选项组",
+    "PopupSelectView":"弹出选择视图",
+    "PopupSelectView.module":"弹出选择视图.module"
 }

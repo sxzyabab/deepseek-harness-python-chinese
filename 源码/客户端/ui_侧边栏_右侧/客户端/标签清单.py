@@ -1,62 +1,70 @@
-'已存与已采纳布局的元数据清单，不挂载其内容'
-from ...存储 import 创建快照存储#快照存储
-from .持久化 import 读侧栏布局,侧栏持久化前缀#读布局与前缀
-from ..异常 import 右侧侧栏错误
+'已存和已采纳布局里打开了哪些签，不把正文挂出来'
+from ...模块.客户端.通告 import 取握手窗口
+import json
+from ...存储 import 创建快照存储
+from .持久化 import 读侧栏布局,侧栏持久化前缀
 
-__all__=['侧栏标签清单']#仅中文公开名
+__all__=['侧栏标签清单']
 
-class 侧栏标签清单:#标签清单
-    '仅派生成员关系；布局存储仍是持久化权威'
 
-    def __init__(自身,存储=None):#构造时扫描
-        '在根服务发布前读一次已存布局'
-        自身.会话表={}#按会话
-        自身.快照=创建快照存储([])#可观察快照
-        自身.源=自身.快照#源
-        if 存储 is None:#无存储
-            return#空
-        try:#扫描键
-            长度=存储.length
-            for 下标 in range(长度):
-                键=存储.key(下标)
-                if 键 is None or not 键.startswith(侧栏持久化前缀+'.'):
+class 侧栏标签清单:
+    '成员关系从各会话布局摊平。布局存储仍是权威'
+
+    def __init__(自身):
+        '发布根服务之前先扫一遍已存布局'
+        自身.会话表={}
+        自身.快照=创建快照存储(())
+        自身.源=自身.快照
+        try:
+            存储=取握手窗口().localStorage
+            长度=存储['length']
+            序号=0
+            while 序号<长度:
+                键=存储.key(序号)
+                序号+=1
+                if 键 is None or not str(键).startswith(侧栏持久化前缀+'.'):
                     continue
-                会话标识=键[len(侧栏持久化前缀)+1:]
-                已存=读侧栏布局(会话标识,存储)
-                if 已存 is not None:
-                    布局=已存['layout']
-                    原表=布局['tabs'] if 'tabs' in 布局 else None
-                    标签表={} if 原表 is None else 原表
-                    自身.会话表[会话标识]=[{
+                会话标识=str(键)[len(侧栏持久化前缀)+1:]
+                已存=读侧栏布局(会话标识)
+                if 已存 is None:
+                    continue
+                行=[]
+                for 签 in 已存['layout']['tabs'].values():
+                    行.append({
                         'sessionId':会话标识,
-                        'tabId':标签['id'],
-                        'kind':标签['kind'],
-                        'contentId':标签['contentId'],
-                    } for 标签 in 标签表.values()]
-            自身.发布()
-        except (TypeError,AttributeError):
-            raise 右侧侧栏错误('已存布局没有列出来') from None
+                        'tabId':签['id'],
+                        'kind':签['kind'],
+                        'contentId':签['contentId'],
+                    })
+                自身.会话表[会话标识]=tuple(行)
+            自身._发布()
+        except Exception:
+            return
 
     def 更新(自身,会话标识,标签表):
-        '用窗口内权威存储替换成员关系'
-        自身.会话表[会话标识]=[{#行
-            'sessionId':会话标识,
-            'tabId':标签['id'],
-            'kind':标签['kind'],
-            'contentId':标签['contentId'],
-        } for 标签 in 标签表]
-        自身.发布()#发布
+        '用窗口里这份布局替换成员'
+        行=[]
+        for 签 in 标签表:
+            行.append({
+                'sessionId':会话标识,
+                'tabId':签['id'],
+                'kind':签['kind'],
+                'contentId':签['contentId'],
+            })
+        自身.会话表[会话标识]=tuple(行)
+        自身._发布()
 
     def 移除(自身,会话标识):
-        '忘记永久清空的作用域'
+        '忘掉这个被清掉的作用域'
         if 会话标识 in 自身.会话表:
-            del 自身.会话表[会话标识]#删
-        自身.发布()#发布
+            del 自身.会话表[会话标识]
+        自身._发布()
 
-    def 发布(自身):
-        '发布扁平表'
-        下一批=[]#扁平
-        for 表 in 自身.会话表.values():#逐会话
-            下一批.extend(表)#展平
-        if 下一批!=自身.快照.getSnapshot():
-            自身.快照.set(下一批)#写
+    def _发布(自身):
+        '摊平。内容没变就不换引用'
+        下一=[]
+        for 行 in 自身.会话表.values():
+            下一.extend(行)
+        下一=tuple(下一)
+        if json.dumps(下一,ensure_ascii=False)!=json.dumps(自身.快照.getSnapshot(),ensure_ascii=False):
+            自身.快照.set(下一)

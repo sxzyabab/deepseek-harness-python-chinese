@@ -1,47 +1,34 @@
-from .文本体 import 文本体,文本体面板#正文
-from . import (
-    行,
-)
+'纯文本实现，走和别的查看器同一套文档扩展点'
+from ..文案 import 中文
+from .文本体 import 文本体
 
-__all__=['纯文本体标识','文本体定义','应用','文本体','文本体面板']
-纯文本体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/text'#实现 id
+__all__=['纯文本体标识','应用']
 
+纯文本体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/text'
 
-def 文本体定义(标题):
-    '描述纯文本兜底。标题为无参可调用'
-    return {#元数据
-        'id':纯文本体标识,
-        'extensions':[],
-        'priority':'builtin',
-        'title':标题,
-        'loading':'text-pages',
-        'wrap':True,
-    }#定义结束
-
-
-def 应用(上下文):
-    '登记兜底元数据与带键正文'
-    翻译=上下文.locale.bind('sidebarDocumentPreview')#绑定
-
+def 应用(上下文,配置=None):
+    '登记纯文本回落的元数据和带键正文'
+    def 标题():
+        '实现名。用中文表原文，是纯文本'
+        return 中文['viewer.text']
     def 登记元数据():
-        '挂纯文本元数据'
-        return 上下文.documentPreviews.register(文本体定义(lambda:翻译('viewer.text')))#登记
-
-    上下文.副作用(登记元数据)#寿命
-
-    def 挂正文():
-        '正文进文档子槽'
-
-        def 登记正文():
-            '登记纯文本正文'
-            return 上下文.slots.register({#席位
+        '登记空后缀的 builtin 回落'
+        return 上下文.documentPreviews.登记({
+            'id':纯文本体标识,
+            'extensions':[],
+            'priority':'builtin',
+            'title':标题,
+            'loading':'text-pages',
+            'wrap':True,
+        })
+    上下文.副作用(登记元数据)
+    def 登记正文():
+        '挂上 sidebar.right.tab.document 的纯文本键'
+        def 登记():
+            '登记文本体'
+            return 上下文.slots.register({
                 'name':'sidebar.right.tab.document',
                 'key':纯文本体标识,
-            },文本体面板)#正文
-
-        return 上下文.slots.inject('sidebar.right.tab.document',登记正文)#等洞
-
-    上下文.副作用(挂正文)#寿命
-
-
-apply=应用#框架槽
+            },文本体)
+        return 上下文.slots.inject('sidebar.right.tab.document',登记)
+    上下文.副作用(登记正文)

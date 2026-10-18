@@ -1,194 +1,295 @@
-from .文案 import 命名空间,中文,英文,文案键
-from ....基础设施.通用工具 import 获取内部数据
-from .状态 import 取包,可见状态
-from .清单 import 创建清单源
-from .面板 import 面板,选定包标识,面板可见状态,阻塞优先,样式表 as 面板样式表
-from .卡片模型 import 定义卡片,运行卡片,动作卡片,调用状态
-from .运行卡片索引 import 工具视图键,创建仓,运行卡片注册表
-from .定义行 import 定义行,样式表 as 定义行样式表
-from .运行行 import 运行行,样式表 as 运行行样式表
-from .动作行 import 动作行
-from .槽位 import (
-    业务视图槽名,业务视图所有者字段,卡片面钩子,运行卡片面钩子,面板面钩子,面板面动词,业务视图键,
-)
-from .动态端口 import 动作结果成功,动作结果失败,端口动词,规范化动作结果
-from .事件 import (
-    审批请求标识,动态包标识,动态插件标识,动态运行标识,动态运行模式,
-    清单行字段,动态包公告字段,请求已落定字段,撤回公告字段,运行请求字段,
+from . import (
+    文案,
+    卡片模型,
+    状态,
+    事件,
+    槽位,
+    动态端口,
+    准备行,
+    定义行,
+    运行行,
+    动作行,
+    面板,
 )
 
-__all__=[#仅中文公开名
-    '依赖','应用','命名空间','中文','英文','文案键',
-    '取包','可见状态','创建清单源','面板',
-    '选定包标识','面板可见状态','阻塞优先','面板样式表',
-    '定义卡片','运行卡片','动作卡片','调用状态',
-    '工具视图键','创建仓','运行卡片注册表',
-    '定义行','运行行','动作行','定义行样式表','运行行样式表',
-    '业务视图槽名','业务视图所有者字段','卡片面钩子','运行卡片面钩子','面板面钩子','面板面动词','业务视图键',
-    '动作结果成功','动作结果失败','端口动词','规范化动作结果',
-    '审批请求标识','动态包标识','动态插件标识','动态运行标识','动态运行模式',
-    '清单行字段','动态包公告字段','请求已落定字段','撤回公告字段','运行请求字段',
+__all__=[
+    '文案','卡片模型','状态','事件','槽位','动态端口','准备行','定义行','运行行','动作行','面板',
+    '依赖','应用',
 ]
 
-依赖=['slots','locale','remote','remote.dynamicCordisRunner','dynamicCordisRunner']
+依赖=['slots','locale','remote','remote.dynamicCordisRunner','dynamicCordisRunner']#所需服务
 
-from ..异常 import 远端错误,页面失败文案#远端 RPC 载体失败
-
-def 读远端错(答):
-    """从 RPC 载体拼失败消息。
-    答为 dict
-    """
-    错=答['error'] if 'error' in 答 else {}
-    码=错['code'] if 'code' in 错 else ''
-    消息=错['message'] if 'message' in 错 else ''
-    if isinstance(消息,(str,BaseException)) and 消息!='':
-        消息=页面失败文案(消息)
-    return str(码)+': '+str(消息)
-
-def 应用(上下文):
-    """登记词典、清单端口、工具行与面板槽。
-    行组件为结构树面
-    """
+def 应用(上下文,配置=None):
+    '登记文案、清单、工具行和侧栏面板'
     def 挂词典():
-        '登记本包词典'
-        上下文.locale.register(命名空间,{'zh':中文,'en':英文})
-    上下文.副作用(挂词典,'ui-cordis: dictionaries')
-    远端=上下文.remote.dynamicCordisRunner
+        '登记中英文案。界面显示直接写中文，不走翻译函数'
+        return 上下文.locale.register(文案.命名空间,{'zh':文案.中文,'en':文案.英文})#拆除时卸掉
+    上下文.副作用(挂词典,'ui-cordis: dictionaries')#词典
+    远端=上下文.remote.dynamicCordisRunner#宿主运行器
 
     def 停止(会话标识,插件标识):
-        """经远端 stopFromPanel。
-        答为 RPC 载体 dict
-        """
-        答=远端.stopFromPanel(会话标识,插件标识)
-        if not 答['ok']:
-            return {'ok':False,'message':读远端错(答)}
-        值=答['value']
-        if 值['ok'] or ('reason' in 值 and 值['reason']=='not-running'):
-            return {'ok':True}
-        return {'ok':False,'message':值['message']}
+        '经远端停止。没在跑也算成功'
+        答=远端.stopFromPanel(会话标识,插件标识)#同步结果
+        if not 答['ok']:#载体失败
+            错误=答['error']#失败
+            if isinstance(错误,dict):#字典
+                说明=str(错误.get('code'))+': '+str(错误.get('message'))#码和消息
+            else:#远程错误对象
+                说明=str(getattr(错误,'code',''))+': '+str(getattr(错误,'message',错误))#码和消息
+            return {'ok':False,'message':说明}#失败
+        值=答['value']#业务结果
+        if 值['ok'] or 值.get('reason')=='not-running':#成功或本来没跑
+            return {'ok':True}#成功
+        return {'ok':False,'message':值['message']}#失败消息
 
     def 移除(会话标识,插件标识):
-        """经远端 undefineFromPanel。
-        答为 RPC 载体 dict
-        """
-        答=远端.undefineFromPanel(会话标识,插件标识)
-        if not 答['ok']:
-            return {'ok':False,'message':读远端错(答)}
-        值=答['value']
-        return {'ok':True} if 值['ok'] else {'ok':False,'message':值['message']}
+        '经远端移除插件和全部包'
+        答=远端.undefineFromPanel(会话标识,插件标识)#同步结果
+        if not 答['ok']:#载体失败
+            错误=答['error']#失败
+            if isinstance(错误,dict):#字典
+                说明=str(错误.get('code'))+': '+str(错误.get('message'))#码和消息
+            else:#远程错误对象
+                说明=str(getattr(错误,'code',''))+': '+str(getattr(错误,'message',错误))#码和消息
+            return {'ok':False,'message':说明}#失败
+        值=答['value']#业务结果
+        if 值['ok']:#成功
+            return {'ok':True}#成功
+        return {'ok':False,'message':值['message']}#失败消息
 
     def 拉清单():
-        """经远端 inventory。
-        答为 RPC 载体 dict
-        """
-        答=远端.inventory()
-        if not 答['ok']:
-            raise 远端错误(读远端错(答))
-        return 答['value']
+        '读取整帧插件清单。载体失败就抛出'
+        答=远端.inventory()#同步结果
+        if not 答['ok']:#载体失败
+            错误=答['error']#失败
+            if isinstance(错误,dict):#字典
+                说明=str(错误.get('code'))+': '+str(错误.get('message'))#码和消息
+            else:#远程错误对象
+                说明=str(getattr(错误,'code',''))+': '+str(getattr(错误,'message',错误))#码和消息
+            raise Exception(说明)#码和消息
+        return 答['value']#行
 
-    def 清单读失败(错):
-        '清单源读失败回调'
-        print('[ui-cordis] reading the Cordis inventory failed:',页面失败文案(错))
+    def 清单读失败(错误):
+        '把读取失败打出来'
+        print('[ui-cordis] reading the Cordis inventory failed:',错误)#上游原句
 
-    端口={'stop':停止,'remove':移除,'inventory':拉清单}
-    清单=创建清单源(端口,清单读失败)
-    运行器=上下文.dynamicCordisRunner
+    听众=set()#清单订阅
+    快照盒={'当前':{'rows':[],'removed':set(),'read':False}}#当前快照
+    飞行={'中':None}#正在读时不再另起一次
+    世代={'号':0}#重置后作废还没返回的那一次
+
+    def 取快照():
+        '当前清单快照'
+        return 快照盒['当前']#快照
+
+    def 订阅(函数):
+        '快照变了就调用。返回退订'
+        听众.add(函数)#加上
+        def 退订():
+            '不再通知'
+            听众.discard(函数)#拿掉
+        return 退订#拆除器
+
+    def 发布(下一):
+        '换上新快照并通知'
+        快照盒['当前']=下一#换引用
+        for 监听 in list(听众):#拷一份，监听里可以退订
+            监听()#通知
+
+    def 刷新():
+        '没有在读才再读。重置过的那一次不发布'
+        if 飞行['中'] is not None:#已经在读
+            return#不重复
+        发出=世代['号']#这一次的代
+        飞行['中']=True#占住
+        try:#读完一定放开
+            try:#失败留在快照上
+                行=拉清单()#行
+            except Exception as 错误:#读失败
+                if 发出!=世代['号']:#已经重置
+                    return#丢掉
+                清单读失败(错误)#打出来
+                消息=str(错误) if str(错误)!='' else 'reading the cordis inventory failed'#空消息用上游缺省句
+                当前=快照盒['当前']#还显示原来的行
+                发布({
+                    'rows':当前['rows'],
+                    'removed':当前['removed'],
+                    'read':当前['read'],
+                    'error':消息,
+                })#失败但不把行清空
+                return#结束
+            if 发出!=世代['号']:#已经重置
+                return#丢掉
+            当前=快照盒['当前']#上一份
+            已移除=set(当前['removed'])#沿用移除记录
+            活着=set()#这次还在的插件
+            for 行项 in 行:#逐行
+                活着.add(行项['pluginId'])#记下
+            for 先前 in 当前['rows']:#上一份里消失的
+                if 先前['pluginId'] not in 活着:#清单里没有了
+                    已移除.add(先前['pluginId'])#记成已移除
+            发布({'rows':行,'removed':已移除,'read':True})#读完
+        finally:#这一代还有效才放开飞行
+            if 发出==世代['号']:#没被重置
+                飞行['中']=None#可以再读
+
+    def 退役(插件标识):
+        '页面上移除成功后先从行里拿掉，并记入已移除'
+        当前=快照盒['当前']#当前
+        已移除=set(当前['removed'])#拷贝
+        已移除.add(插件标识)#加上
+        留下=[]#还显示的行
+        for 行项 in 当前['rows']:#逐行
+            if 行项['pluginId']!=插件标识:#不是这个
+                留下.append(行项)#留下
+        下一={'rows':留下,'removed':已移除,'read':当前['read']}#新快照
+        if 'error' in 当前:#沿用读取错误
+            下一['error']=当前['error']#留下
+        发布(下一)#通知
+
+    def 重置():
+        '丢掉已读的行。已移除记录留着。进行中的读取作废'
+        世代['号']=世代['号']+1#作废
+        飞行['中']=None#允许立刻再读
+        当前=快照盒['当前']#当前
+        发布({'rows':[],'removed':当前['removed'],'read':False})#清空行
+
+    清单={'getSnapshot':取快照,'subscribe':订阅,'refresh':刷新,'retire':退役,'reset':重置}#清单源
+    运行器=上下文.dynamicCordisRunner#本页运行面
 
     def 已加载快照():
-        '转发编排器快照'
-        return 运行器.getSnapshot()#编排器英文方法名属另一包
+        '本页已加载的包'
+        return 运行器.getSnapshot()#现场
 
     def 已加载订阅(函数):
-        '转发编排器订阅'
-        return 运行器.subscribe(函数)#编排器英文方法名属另一包
+        '现场变了就通知'
+        return 运行器.subscribe(函数)#退订器
 
-    已加载={'getSnapshot':已加载快照,'subscribe':已加载订阅}
-
-    运行卡=运行卡片注册表()
+    已加载={'getSnapshot':已加载快照,'subscribe':已加载订阅}#给钩子用的源
 
     def 对账():
-        '已读过才对账'
-        快=清单['getSnapshot']()
-        if 快['read']:
-            运行器.reconcileApprovals(快['rows'])
+        '已经读过清单才对账审批'
+        快照=清单['getSnapshot']()#当前
+        if 快照['read']:#读过
+            运行器.reconcileApprovals(快照['rows'])#对账
 
     def 订阅对账():
-        '副作用：订阅清单对账'
-        return 清单['subscribe'](对账)
+        '清单一变就对账'
+        return 清单['subscribe'](对账)#退订
 
-    上下文.副作用(订阅对账,'ui-cordis: reconcile pending approvals')
+    上下文.副作用(订阅对账,'ui-cordis: reconcile pending approvals')#对账
 
     def 包上线():
-        '动态包上线则重读清单'
-        清单['refresh']()
+        '有包公告就重读'
+        清单['refresh']()#重读
 
     def 包撤回():
-        '动态包撤回则重读清单'
-        清单['refresh']()
-
-    获取内部数据(上下文.remote,'on')('cordis/dynamic-package',包上线)
-    获取内部数据(上下文.remote,'on')('cordis/dynamic-retract',包撤回)
+        '有撤回就重读'
+        清单['refresh']()#重读
 
     def 新运行请求(请求):
-        """仅缺行时刷新。
-        请求为事件 dict
-        """
-        插件=请求['pluginId']
-        行列表=清单['getSnapshot']()['rows']
-        已有=False
-        for 行 in 行列表:
-            if 行['pluginId']==插件:
-                已有=True
-                break
-        if not 已有:
-            清单['refresh']()
+        '清单里还没有这个插件才重读'
+        插件=请求['pluginId']#插件
+        已有=False#是否已有行
+        for 行项 in 清单['getSnapshot']()['rows']:#逐行
+            if 行项['pluginId']==插件:#有了
+                已有=True#不用读
+                break#停
+        if not 已有:#缺行
+            清单['refresh']()#重读
 
     def 请求已落定():
-        '运行请求落定则重读'
-        清单['refresh']()
+        '审批落定就重读'
+        清单['refresh']()#重读
 
-    获取内部数据(上下文.remote,'on')('cordis/request-run',新运行请求)
-    获取内部数据(上下文.remote,'on')('cordis/request-run-resolved',请求已落定)
+    getattr(上下文.remote,'$on')('cordis/dynamic-package',包上线)#包公告
+    getattr(上下文.remote,'$on')('cordis/dynamic-retract',包撤回)#撤回
+    getattr(上下文.remote,'$on')('cordis/request-run',新运行请求)#新的运行请求
+    getattr(上下文.remote,'$on')('cordis/request-run-resolved',请求已落定)#请求落定
 
     def 重连():
-        '丢掉旧行并重读'
-        清单['reset']()
-        清单['refresh']()
+        '换了连接就丢掉旧行再读'
+        清单['reset']()#丢掉
+        清单['refresh']()#重读
 
-    上下文.监听('connection/reset',重连)
+    上下文.监听('connection/reset',重连)#连接重置
+    会话仓={}#每个会话一份运行卡索引
 
-    def 面板停止(会话,插件):
-        '经端口停止后刷新清单'
-        结果=端口['stop'](会话,插件)
-        清单['refresh']()
-        return 结果
+    def 运行卡面(会话标识):
+        '这个会话的运行卡共用一份索引'
+        仓=会话仓.get(会话标识)#已有
+        if 仓 is None:#第一次
+            指针表={}#键到最新指针
+            仓听众=set()#订阅
+            缓存={'值':None}#快照缓存
+            def 取仓快照():
+                '两次变更之间是同一份表'
+                if 缓存['值'] is None:#失效了
+                    缓存['值']=dict(指针表)#拷贝
+                return 缓存['值']#快照
+            def 订仓(监听):
+                '返回退订'
+                仓听众.add(监听)#加上
+                def 退订():
+                    '不再通知'
+                    仓听众.discard(监听)#拿掉
+                return 退订#拆除器
+            def 观察(指针):
+                '只有更大的日志序号能替换'
+                当前指针=指针表.get(指针['key'])#现有
+                if 当前指针 is not None and 当前指针['seq']>=指针['seq']:#不比现有新
+                    return#留下现有的
+                指针表[指针['key']]=指针#换上
+                缓存['值']=None#失效
+                for 监听 in list(仓听众):#通知
+                    监听()#变了
+            仓={'getSnapshot':取仓快照,'subscribe':订仓,'observe':观察}#这一会话的仓
+            会话仓[会话标识]=仓#留下
+        def 交给索引(指针):
+            '把这张成功的运行卡交给索引'
+            仓['observe'](指针)#发布
+        return {
+            'hooks':{
+                'inventory':清单,
+                'loaded':已加载,
+                'runCards':仓,
+                'activeRuns':运行器.activeRuns,
+            },
+            'onObserveRunCard':交给索引,
+        }#运行卡面
 
-    def 面板移除(会话,插件):
-        '成功则 retire'
-        结果=端口['remove'](会话,插件)
-        if 结果['ok']:
-            清单['retire'](插件)
-        清单['refresh']()
-        return 结果
+    def 面板停止(会话标识,插件标识):
+        '停止后重读清单'
+        结果=停止(会话标识,插件标识)#停止
+        清单['refresh']()#重读
+        return 结果#交给面板
 
-    def 面板批准(请求,批后续):
-        '转发编排器批准'
-        return 运行器.approve(请求,批后续)
+    def 面板移除(会话标识,插件标识):
+        '移除成功就先从清单拿掉，然后再重读'
+        结果=移除(会话标识,插件标识)#移除
+        if 结果['ok']:#成功
+            清单['retire'](插件标识)#先拿掉
+        清单['refresh']()#重读
+        return 结果#交给面板
 
-    def 面板拒绝(请求):
-        '转发编排器拒绝'
-        return 运行器.decline(请求)
+    def 面板批准(请求号,批后续):
+        '转发批准'
+        return 运行器.approve(请求号,批后续)#批准
+
+    def 面板拒绝(请求号):
+        '转发拒绝'
+        return 运行器.decline(请求号)#拒绝
 
     def 面板运行(请求):
-        '转发编排器用户运行'
-        return 运行器.startUserRun(请求)
+        '转发用户运行'
+        return 运行器.startUserRun(请求)#运行
 
     def 面板刷新():
         '重读清单'
-        清单['refresh']()
+        清单['refresh']()#重读
 
     def 面板注入():
-        '钩子与动作'
+        '面板要的钩子和动作'
         return {
             'hooks':{
                 'inventory':清单,
@@ -203,63 +304,60 @@ def 应用(上下文):
             'onStop':面板停止,
             'onRemove':面板移除,
             'onRefresh':面板刷新,
-        }
+        }#面
 
     def 登记面板():
-        '登记侧栏面板槽'
+        '登记到侧栏底部'
         return 上下文.slots.register({
-            'name':'sidebar.footer.action','id':'cordis-panel','locale':命名空间,
+            'name':'sidebar.footer.action',
+            'id':'cordis-panel',
+            'locale':文案.命名空间,
             'inject':面板注入,
-        },面板)
+        },面板.面板)#面板
 
-    上下文.slots.inject('sidebar.footer.action',登记面板)
+    上下文.slots.inject('sidebar.footer.action',登记面板)#等槽声明
 
     def 定义卡面():
-        'hooks: inventory + loaded'
-        return {'hooks':{'inventory':清单,'loaded':已加载}}
+        '定义卡只看清单和已加载'
+        return {'hooks':{'inventory':清单,'loaded':已加载}}#面
 
     def 登记定义行():
-        '登记定义工具视图'
+        '登记定义工具行'
         return 上下文.slots.register({
-            'name':'tool.call.toolview','key':'cordis_define','locale':命名空间,
+            'name':'tool.call.toolview',
+            'key':'cordis_define',
+            'locale':文案.命名空间,
             'inject':定义卡面,
-        },定义行)
+        },定义行.定义行)#定义行
 
-    上下文.slots.inject('tool.call.toolview',登记定义行)
+    上下文.slots.inject('tool.call.toolview',登记定义行)#等槽声明
 
-    def 观察运行卡(仓):
-        '闭包：把指针交给该会话仓'
-        def 观察(指针):
-            '发布运行卡片指针'
-            return 仓['observe'](指针)
-        return 观察
-
-    def 运行卡面(会话标识):#运行卡片面
-        'hooks + onObserveRunCard'
-        仓=运行卡.取会话(会话标识)
-        return {
-            'hooks':{'inventory':清单,'loaded':已加载,'runCards':仓,'activeRuns':运行器.activeRuns},
-            'onObserveRunCard':观察运行卡(仓),
-        }
-
-    def 登记运行行():#运行工具视图
-        '登记运行工具视图'
+    def 登记运行行():
+        '登记运行工具行，并声明包的业务视图槽'
         return 上下文.slots.register({
-            'name':'tool.call.toolview','key':'cordis_run','locale':命名空间,
-            'children':{'tool.view.cordis':{'kind':'keyed','scope':'session'}},
+            'name':'tool.call.toolview',
+            'key':'cordis_run',
+            'locale':文案.命名空间,
+            'children':{槽位.业务视图槽:{'kind':'keyed','scope':'session'}},
             'inject':运行卡面,
-        },运行行)
+        },运行行.运行行)#运行行
 
-    上下文.slots.inject('tool.call.toolview',登记运行行)
+    上下文.slots.inject('tool.call.toolview',登记运行行)#等槽声明
 
     def 登记动作行():
-        '生成器：cordis_stop / cordis_undefine'
+        '停止和移除共用一行，卸下时按相反顺序拆'
         yield 上下文.slots.register({
-            'name':'tool.call.toolview','key':'cordis_stop','locale':命名空间,
-        },动作行)
+            'name':'tool.call.toolview',
+            'key':'cordis_stop',
+            'locale':文案.命名空间,
+        },动作行.动作行)#停止
         yield 上下文.slots.register({
-            'name':'tool.call.toolview','key':'cordis_undefine','locale':命名空间,
-        },动作行)
+            'name':'tool.call.toolview',
+            'key':'cordis_undefine',
+            'locale':文案.命名空间,
+        },动作行.动作行)#移除
 
-    上下文.slots.inject('tool.call.toolview',登记动作行)
-    清单['refresh']()
+    上下文.slots.inject('tool.call.toolview',登记动作行)#等槽声明
+
+inject=依赖#框架槽
+apply=应用#框架槽

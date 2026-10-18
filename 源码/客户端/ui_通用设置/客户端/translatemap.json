@@ -1,0 +1,22 @@
+{
+    "chrome": "壳层",
+    "chrome.module": "壳层.module",
+    "CurrentVersionRow": "当前版本行",
+    "CurrentVersionRow.module": "当前版本行.module",
+    "desktop-update-source": "桌面更新",
+    "DesktopUpdateIndicator": "桌面更新指示器",
+    "DesktopUpdateIndicator.module": "桌面更新指示器.module",
+    "DeveloperToolsRow": "开发者工具行",
+    "DeveloperToolsRow.module": "开发者工具行.module",
+    "GeneralSection": "常规条目分区",
+    "GeneralSection.module": "通用分区.module",
+    "HostReleasePrompt": "宿主版本提示",
+    "HostReleasePrompt.module": "宿主版本提示.module",
+    "locales": "文案",
+    "settings-document-store": "文档存储",
+    "SettingsDocumentAction": "文档动作",
+    "SettingsDocumentAction.module": "文档动作.module",
+    "SettingsRoot": "设置根",
+    "SettingsRoot.module": "设置根.module",
+    "shell-contract": "壳层约定"
+}

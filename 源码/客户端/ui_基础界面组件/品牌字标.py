@@ -1,7 +1,6 @@
-from nicegui import ui as 界面
 from .icons.属性 import 取尺寸,取类名#尺寸/类
 
-__all__=['品牌字标','字标元素']#仅中文公开名
+__all__=['品牌字标','处理品牌字标','字标元素']#仅中文公开名
 
 # 元素表与上游 SVG 一一对应（path/rect/clip）
 字标元素=[#绘制序
@@ -31,50 +30,61 @@ __all__=['品牌字标','字标元素']#仅中文公开名
     ]},
 ]#元素结束
 
+def 处理品牌字标(window,属性):
+    '把字标元素画成 svg。有 parent 就挂上去'
+    文档=window.document
+    高=取尺寸(属性,24)#高
+    含标=True if 'includeMark' not in 属性 else bool(属性['includeMark'])#侧栏字标不含重复的鱼
+    视框='0 0 182 24' if 含标 else '26 0 156 24'#与上游 includeMark 相同
+    宽=(高*(182 if 含标 else 156))/24#宽
+    类名=取类名(属性)#类
+    def 转义(文):
+        '放进属性值'
+        return str(文).replace('&','&amp;').replace('<','&lt;').replace('"','&quot;')#转义
+    def 转元素(元素):
+        '一个 svg 元素'
+        标=元素['tag']#标签
+        段=[]#属性
+        for 键 in ('id','d','fill','x','y','width','height','rx','transform'):#几何与填色
+            if 键 in 元素 and 元素[键] is not None:
+                段.append(键+'="'+转义(元素[键])+'"')#写
+        if 'clip' in 元素 and 元素['clip'] is not None:#裁剪
+            段.append('clip-path="url(#'+转义(元素['clip'])+')"')#引用
+        属性串=' '.join(段)#拼
+        内=''#子
+        if 'children' in 元素 and 元素['children'] is not None:
+            for 子 in 元素['children']:#逐个
+                内=内+转元素(子)#递归
+        if 内=='' and 标 in ('path','rect'):#空叶
+            return '<'+标+' '+属性串+'/>'#自闭
+        return '<'+标+' '+属性串+'>'+内+'</'+标+'>'#成对
+    图='<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+视框+'" width="'+str(宽)+'" height="'+str(高)+'" aria-hidden="true">'+''.join(转元素(元) for 元 in 字标元素)+'</svg>'#字标
+    标记=文档.createElement('span')
+    标记.className='品牌字标' if not (isinstance(类名,str) and 类名!='') else '品牌字标 '+类名
+    标记.innerHTML=图
+    if 'parent' in 属性:
+        属性['parent'].appendChild(标记)
+    return 标记
+
 class 品牌字标:#字标 SVG 视图
     'aria-hidden 装饰品牌艺术'
 
     def __init__(自身,属性=None,**关键字参数):#构造
-        '合并 props'
+        '合并 props。构造不画'
         自身.属性=dict(属性 or {})#基础
         自身.属性.update(关键字参数)#覆盖
+        自身.根=None
 
     def 更新(自身,属性):#刷新
         '刷新'
         自身.属性=dict(属性)#最新
 
     def 渲染(自身):#画出字标
-        '把字标元素画成 svg'
-        高=取尺寸(自身.属性,24)#高
-        含标=True if 'includeMark' not in 自身.属性 else bool(自身.属性['includeMark'])#侧栏字标不含重复的鱼
-        视框='0 0 182 24' if 含标 else '26 0 156 24'#与上游 includeMark 相同
-        宽=(高*(182 if 含标 else 156))/24#宽
-        类名=取类名(自身.属性)#类
-        def 转义(文):
-            '放进属性值'
-            return str(文).replace('&','&amp;').replace('<','&lt;').replace('"','&quot;')#转义
-        def 转元素(元素):
-            '一个 svg 元素'
-            标=元素['tag']#标签
-            段=[]#属性
-            for 键 in ('id','d','fill','x','y','width','height','rx','transform'):#几何与填色
-                if 键 in 元素 and 元素[键] is not None:
-                    段.append(键+'="'+转义(元素[键])+'"')#写
-            if 'clip' in 元素 and 元素['clip'] is not None:#裁剪
-                段.append('clip-path="url(#'+转义(元素['clip'])+')"')#引用
-            属性串=' '.join(段)#拼
-            内=''#子
-            if 'children' in 元素 and 元素['children'] is not None:
-                for 子 in 元素['children']:#逐个
-                    内=内+转元素(子)#递归
-            if 内=='' and 标 in ('path','rect'):#空叶
-                return '<'+标+' '+属性串+'/>'#自闭
-            return '<'+标+' '+属性串+'>'+内+'</'+标+'>'#成对
-        图='<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+视框+'" width="'+str(宽)+'" height="'+str(高)+'" aria-hidden="true">'+''.join(转元素(元) for 元 in 字标元素)+'</svg>'#字标
-        标记=界面.html(图,sanitize=False)#画出
-        标记.classes('品牌字标')#类
-        if isinstance(类名,str) and 类名!='':#附加类
-            标记.classes(类名)#附
+        '拆掉旧标记，再画一次'
+        if 自身.根 is not None:
+            自身.根.remove()
+        自身.根=处理品牌字标(自身.属性['window'],自身.属性)
+        return 自身.根
 
     def __call__(自身,属性=None,**关键字参数):#调用形
         '对齐 React'

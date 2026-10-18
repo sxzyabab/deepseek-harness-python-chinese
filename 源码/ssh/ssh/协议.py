@@ -54,7 +54,7 @@ class ssh请求对等:#有界 JSON 帧对等
         自身.输入.on('error',流出错)#输入错
         自身.输出.on('error',流出错)#输出错
         自身.输出.on('close',流出错)#输出关
-        线程=threading.Thread(target=自身.读帧)#读循环
+        线程=threading.Thread(target=自身.读取帧)#读循环
         线程.start()#启动
 
     def 请求(自身,方法,参数,模式,信号=None):#发请求并校验
@@ -124,7 +124,7 @@ class ssh请求对等:#有界 JSON 帧对等
             自身.输出.write(字节)#写出
             自身.排队字节-=len(字节)#还账
 
-    def 读帧(自身):#读循环
+    def 读取帧(自身):#读循环
         '按长度帧切分'
         try:#读
             解码器=长度前缀帧解码器(自身.最大帧字节)#4字节长度

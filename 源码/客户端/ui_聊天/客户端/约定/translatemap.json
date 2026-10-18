@@ -7,5 +7,6 @@
     "chat-nodes":"聊天节点",
     "assistant-content":"助手内容",
     "chat-visibility":"聊天可见性",
-    "process-groups":"过程组"
+    "process-groups":"过程组",
+    "group-tree":"组树"
 }

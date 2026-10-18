@@ -395,7 +395,7 @@ def 读取分片列表(值,文件,位置):#读分片数组
             非法覆盖(文件,f'{位置}.chunks[{索引}]','must have a known StreamChunk type')#未知分片类型
     return 值#断言分片数组
 
-def 读回放条目(值,文件,位置):#读回放条目
+def 读取回放条目(值,文件,位置):#读取回放条目
     '解析一个 ReplayEntry'
     if not 是否记录(值):#必须对象
         非法覆盖(文件,位置,'must be an object')#必须对象
@@ -429,10 +429,10 @@ def 读回放条目(值,文件,位置):#读回放条目
         return {'kind':'hang',**({'readyFile':就绪} if 就绪 is not None else {})}#挂起条目
     非法覆盖(文件,位置,f'has unknown kind {种类!r}')#未知 kind
 
-def 读覆盖文档(值,文件):#读覆盖文档
+def 读取覆盖文档(值,文件):#读取覆盖文档
     '解析覆盖伴随文档'
     if isinstance(值,list):#整脚本替换
-        return [读回放条目(条目,文件,f'entry {索引}') for 索引,条目 in enumerate(值)]#整替换
+        return [读取回放条目(条目,文件,f'entry {索引}') for 索引,条目 in enumerate(值)]#整替换
     if not 是否记录(值) or not 恰好这些键(值,['patches']) or not isinstance(值.get('patches'),list):#形态非法
         非法覆盖(文件,'document','must be a ReplayEntry[] or { patches: [...] }')#非法
     补丁列表=[]#补丁列表
@@ -443,10 +443,10 @@ def 读覆盖文档(值,文件):#读覆盖文档
         位置索引=项['at']#索引
         if not isinstance(位置索引,int) or isinstance(位置索引,bool) or 位置索引<0:#非法
             非法覆盖(文件,位置,'at must be a non-negative safe integer')#非法
-        补丁列表.append({'at':位置索引,'entry':读回放条目(项['entry'],文件,f'{位置}.entry')})#补丁
+        补丁列表.append({'at':位置索引,'entry':读取回放条目(项['entry'],文件,f'{位置}.entry')})#补丁
     return {'patches':补丁列表}#增补形态
 
-def 读主夹具(配置):#读主 JSONL，整脚本覆盖占用同路径时跳过
+def 读取主夹具(配置):#读主 JSONL，整脚本覆盖占用同路径时跳过
     '主 JSONL 存在且不是覆盖文件时解析'
     文件=配置['file']#主路径
     if not os.path.exists(文件) or 文件==配置.get('overrideFile'):#缺失或同路径覆盖
@@ -465,7 +465,7 @@ def 解析回放脚本(配置,夹具):#覆盖或从夹具派生
     覆盖=配置.get('overrideFile')#覆盖路径
     if 覆盖 is not None and os.path.exists(覆盖):#有覆盖
         with open(覆盖,'r',encoding='utf-8') as 句柄:#读覆盖
-            文档=读覆盖文档(json.loads(句柄.read()),覆盖)#读覆盖
+            文档=读取覆盖文档(json.loads(句柄.read()),覆盖)#读覆盖
         if isinstance(文档,list):#整替换
             return 文档#整替换
         脚本=从夹具派生脚本(配置['file'],夹具)#派生基线
@@ -496,7 +496,7 @@ def 从文件派生脚本(文件):#从 JSONL 派生
 
 def 加载回放脚本(配置):#加载主回放脚本
     '加载主会话的回放脚本'
-    return 解析回放脚本(配置,读主夹具(配置))#主脚本
+    return 解析回放脚本(配置,读取主夹具(配置))#主脚本
 
 def 子脚本排序键(项):
     '按创建时刻与录制 id 排序'
@@ -504,7 +504,7 @@ def 子脚本排序键(项):
 
 def 加载会话脚本(配置):#加载主与子脚本
     '按绑定顺序加载主与子脚本'
-    主夹具=读主夹具(配置)#主夹具
+    主夹具=读取主夹具(配置)#主夹具
     主条目=解析回放脚本(配置,主夹具)#主条目
     主头=主夹具 if 主夹具 is not None else {'id':'','createdAt':0}#无头则默认
     主={'recordedId':主头['id'],'createdAt':主头['createdAt'],'entries':主条目,'primary':True}#主脚本

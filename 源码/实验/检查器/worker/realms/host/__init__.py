@@ -1,5 +1,5 @@
 import uuid#随机id
-from ...inspection.realm import 检查器realm描述,检查器realm上下文#realm类型
+from ...inspection.领域 import 检查器realm描述,检查器realm上下文#realm类型
 from .桥接 import Host检查器会话#原生会话
 from .运行时 import Host运行时后端#Runtime
 from .控制台 import Host控制台后端#Console

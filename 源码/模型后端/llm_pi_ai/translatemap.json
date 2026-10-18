@@ -9,5 +9,7 @@
     "models":"模型",
     "provider":"提供方",
     "replay":"回放",
-    "stream":"流"
+    "stream":"流",
+    "provider-data":"提供方数据",
+    "provider-data.generated":"提供方数据_生成"
 }

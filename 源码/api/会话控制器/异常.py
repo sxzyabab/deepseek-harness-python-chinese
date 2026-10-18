@@ -2,7 +2,7 @@
 import os
 
 __all__=[#仅中文公开名
-    '远程错误','会话未找到','子智能体会话所有权','cwd冲突','预设冲突',
+    '远程错误','会话未找到','子智能体会话所有权','当前工作目录冲突','预设冲突',
     '会话创建错误','会话分叉错误','会话线事件错误','去掉敏感文案',
 ]#公开面结束
 
@@ -80,7 +80,7 @@ class 子智能体会话所有权(Exception):
         super().__init__('session "'+str(会话标识)+'" is a subagent session; use subagent delivery')#消息
         自身.sessionId=会话标识#id
 
-class cwd冲突(Exception):
+class 当前工作目录冲突(Exception):
     'cwd 冲突'
     def __init__(自身,会话标识,请求cwd,已有cwd):
         '记下冲突 cwd'

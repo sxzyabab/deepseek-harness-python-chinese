@@ -9,7 +9,7 @@ from .异常 import 处理错误
 from .监视配置 import 监视配置 as 精确监视配置
 from ..app启动.异常 import 启动错误#应用启动失败
 from ..app启动 import (
-    读配置清单,配置补丁文件名,加载可选补丁,加载配置目录,
+    读取配置清单,配置补丁文件名,加载可选补丁,加载配置目录,
     启动包含表,未激活条目,激活诊断,组合条目,
 )
 
@@ -265,7 +265,7 @@ class 热更新(服务):
                     raise 启动错误(激活诊断('dsh','warning',失败).rstrip())#拒绝
             def 刷新配置档(仅清单):
                 '清单或补丁变化时重读并应用'
-                组合包=json.dumps((((读配置清单('dsh',配置档['dir']).get('dsh') or {}).get('profile') or {}).get('bundles') or []),ensure_ascii=False)#当前组合包
+                组合包=json.dumps((((读取配置清单('dsh',配置档['dir']).get('dsh') or {}).get('profile') or {}).get('bundles') or []),ensure_ascii=False)#当前组合包
                 if 仅清单 and 组合包==上次组合包[0]:#清单未变
                     return#跳过
                 片段=[组合包]#指纹片段

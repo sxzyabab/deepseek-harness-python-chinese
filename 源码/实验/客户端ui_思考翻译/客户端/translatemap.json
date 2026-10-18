@@ -5,5 +5,6 @@
     "preferences-form":"偏好表单",
     "TranslationBody":"思考正文",
     "TranslationSettings":"思考设置",
-    "Translation":"思考翻译"
+    "Translation":"思考翻译",
+    "Translation.module":"思考翻译.module"
 }

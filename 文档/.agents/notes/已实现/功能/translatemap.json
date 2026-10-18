@@ -257,5 +257,7 @@
     "2026-09-24-auto-review-user-approval-fallback":"2026-09-24-自动审查用户审批兜底",
     "2026-09-24-fixed-rate-floor-one-minute":"2026-09-24-固定速率下限一分钟",
     "2026-09-24-session-inspector":"2026-09-24-会话检查器",
-    "2026-09-13-explicit-worktree-creation":"2026-09-13-显式工作树创建"
+    "2026-09-13-explicit-worktree-creation":"2026-09-13-显式工作树创建",
+    "2026-09-20-spawn-agent-preset-selection":"2026-09-20-spawn智能体预设选择",
+    "2026-10-14-built-in-plugin-feature-previews":"2026-10-14-内置插件功能配图"
 }

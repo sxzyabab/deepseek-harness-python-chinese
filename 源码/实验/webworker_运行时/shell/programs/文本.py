@@ -4,7 +4,7 @@ from .选项 import 数值选项,解析选项,拆成行#选项工具
 
 __all__=['文本程序']#仅中文公开名
 
-def 读各输入(程序,操作数,io,state,fs):#读各输入源
+def 读取各输入(程序,操作数,io,state,fs):#读取各输入源
     '将每个操作数读为文件，报告失败者'
     if len(操作数)==0:#空则stdin
         return {'sources':[{'name':'-','text':io['stdin']}],'status':0}#stdin
@@ -59,7 +59,7 @@ def printf程序(argv,io,state=None,fs=None):#printf程序
 def cat程序(argv,io,state,fs):#cat程序
     '连接文件'
     选项=解析选项(argv)#解析选项
-    结果=读各输入('cat',选项['operands'],io,state,fs)#读源
+    结果=读取各输入('cat',选项['operands'],io,state,fs)#读源
     行号=1#行号
     for 源 in 结果['sources']:#逐源
         if 'n' not in 选项['flags']:#无编号
@@ -74,7 +74,7 @@ def head程序(argv,io,state,fs):#head程序
     '前N行'
     选项=解析选项(argv,{'n'})#解析带n
     行数=数值选项(选项,'n',10)#行数
-    结果=读各输入('head',选项['operands'],io,state,fs)#读源
+    结果=读取各输入('head',选项['operands'],io,state,fs)#读源
     for 索引,源 in enumerate(结果['sources']):#逐源
         if len(结果['sources'])>1:#多源标题
             io['out'](f"{chr(10) if 索引>0 else ''}==> {源['name']} <==\n")#标题
@@ -85,7 +85,7 @@ def tail程序(argv,io,state,fs):#tail程序
     '后N行'
     选项=解析选项(argv,{'n'})#解析带n
     行数=数值选项(选项,'n',10)#行数
-    结果=读各输入('tail',选项['operands'],io,state,fs)#读源
+    结果=读取各输入('tail',选项['operands'],io,state,fs)#读源
     for 索引,源 in enumerate(结果['sources']):#逐源
         if len(结果['sources'])>1:#多源标题
             io['out'](f"{chr(10) if 索引>0 else ''}==> {源['name']} <==\n")#标题
@@ -95,7 +95,7 @@ def tail程序(argv,io,state,fs):#tail程序
 def wc程序(argv,io,state,fs):#wc程序
     '计行词字符'
     选项=解析选项(argv)#解析选项
-    结果=读各输入('wc',选项['operands'],io,state,fs)#读源
+    结果=读取各输入('wc',选项['operands'],io,state,fs)#读源
     所选=[旗 for 旗 in ('l','w','c') if 旗 in 选项['flags']]#所选列
     列列表=所选 if len(所选)>0 else ['l','w','c']#默认全列
     for 源 in 结果['sources']:#逐源
@@ -183,7 +183,7 @@ def grep程序(argv,io,state,fs):#grep程序
 def sort程序(argv,io,state,fs):#sort程序
     '排序行'
     选项=解析选项(argv)#解析选项
-    结果=读各输入('sort',选项['operands'],io,state,fs)#读源
+    结果=读取各输入('sort',选项['operands'],io,state,fs)#读源
     行列表=[]#合并行
     for 源 in 结果['sources']:#逐源
         行列表.extend(拆成行(源['text']))#合并
@@ -211,7 +211,7 @@ def sort程序(argv,io,state,fs):#sort程序
 def uniq程序(argv,io,state,fs):#uniq程序
     '相邻去重'
     选项=解析选项(argv)#解析选项
-    结果=读各输入('uniq',选项['operands'],io,state,fs)#读源
+    结果=读取各输入('uniq',选项['operands'],io,state,fs)#读源
     行列表=[]#合并行
     for 源 in 结果['sources']:#逐源
         行列表.extend(拆成行(源['text']))#合并
@@ -243,7 +243,7 @@ def cut程序(argv,io,state,fs):#cut程序
         except ValueError:#非法
             pass#跳过
     字符范围=选项['values'].get('c')#字符范围
-    结果=读各输入('cut',选项['operands'],io,state,fs)#读源
+    结果=读取各输入('cut',选项['operands'],io,state,fs)#读源
     if len(字段列表)==0 and 字符范围 is None:#缺选择
         io['err']('cut: expected -f or -c\n')#诊断
         return 2#用法错
@@ -330,7 +330,7 @@ def sed程序(argv,io,state,fs):#sed程序
     except 正则.error as 错误:#非法
         io['err'](f'sed: invalid pattern: {错误}\n')#诊断
         return 2#用法错
-    结果=读各输入('sed',目标列表,io,state,fs)#读源
+    结果=读取各输入('sed',目标列表,io,state,fs)#读源
     def 转引用(匹配):#\\n → \\g<n>
         '把 JS 的 \\n 换成 Python 反向引用'
         return f'\\g<{匹配.group(1)}>'#Python反向引用

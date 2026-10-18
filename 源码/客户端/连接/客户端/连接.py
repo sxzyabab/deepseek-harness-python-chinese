@@ -1,305 +1,281 @@
-import math,random,threading,time#有限判定、抖动、后台循环、睡眠
-from ..异常 import 连接错误#本包异常
-from ..rpc import 已中止#中止
+'代际就绪、取消和持续恢复'
+from ...模块.客户端.通告 import 取握手窗口
+import random,threading,time#退避抖动与循环线程
+from ..恢复流程配置 import 解析连接配置#补齐时序
+from ..异常 import 连接错误#代际结束或超时
+from ..rpc import 中止控制器,同步等待#这一代的信号，以及源返回的期约
 
-__all__=['连接配置缺省','解析连接配置','连接控制器']#仅中文公开名
+手动重连=连接错误('connection: manual reconnect requested')#立即替换当前尝试
+网络状态变更=连接错误('connection: browser network state changed')#在线状态变了
 
-定时器上限毫秒=2_147_483_647#有符号 32 位定时器上限
-连接配置缺省={#配置缺省
-    'backoffBaseMs':500,#首次退避 500ms
-    'backoffFactor':2,#每次翻倍
-    'backoffMaxMs':10_000,#上限 10s
-    'generationReadyWarnMs':3_000,#握手过慢警告
-    'generationReadyTimeoutMs':15_000,#就绪硬截止
-}#连接配置缺省结束
 
-def 解析连接配置(配置=None):
-    '校验恢复输入并补齐时序默认值'
-    输入={} if 配置 is None else 配置#缺省空
-    if type(输入) is not dict:#须为对象
-        raise TypeError('connection recovery config must be an object')#入口失败
-    结果=dict(连接配置缺省)#拷默认
-    for 键 in 连接配置缺省:#逐字段
-        if 键 not in 输入:#省略
-            continue#默认
-        值=输入[键]#覆盖
-        if 键=='backoffFactor':#因子
-            if type(值) is bool or not isinstance(值,(int,float)):#须数字
-                raise TypeError('connection recovery backoffFactor must be a number')#失败
-            if 值<1:#至少 1
-                raise ValueError('connection recovery backoffFactor must be at least 1')#失败
-            结果[键]=float(值)#写入
-            continue#下一项
-        if type(值) is bool or type(值) is not int or 值<1 or 值>定时器上限毫秒:#自然数
-            raise ValueError('connection recovery '+键+' must be a natural number within the timer limit')#失败
-        结果[键]=值#写入
-    if not math.isfinite(结果['backoffFactor']):#因子须有限
-        raise ValueError('connection recovery backoffFactor must be finite')#失败
-    return 结果#完整配置
-
-def 可取消睡眠(毫秒,信号):#可取消睡眠
-    '到期或 abort 都返回'
-    截止=time.monotonic()+毫秒/1000#到期时刻
-    while time.monotonic()<截止:#未到期
-        if 已中止(信号):#已取消
-            return
-        time.sleep(min(0.05,(截止-time.monotonic())))#短睡
-
-def 等待中止(信号):
-    '等到信号置位'
-    if 已中止(信号):#已中止
-        return
-    信号.wait()#阻塞
-
-def 等待就绪(就绪事件,就绪宿主,就绪错误,源丢失事件,源丢失错误,配置,信号):
-    '就绪与源丢失赛跑，附警告与硬截止'
-    警告毫秒=配置['generationReadyWarnMs']#警告
-    超时毫秒=配置['generationReadyTimeoutMs']#硬截止
-    开始=time.monotonic()#起点
-    警告截止=开始+警告毫秒/1000#警告时刻
-    超时截止=开始+超时毫秒/1000#超时时刻
-    已警告=False#是否已报
-    while True:#直到结局
-        if 已中止(信号):#世代取消
-            raise 连接错误('connection generation aborted')#失败
-        if 就绪事件.is_set():#就绪或就绪失败
-            if 就绪宿主['v'] is not None:#有宿主
-                return 就绪宿主['v']#交出
-            错=就绪错误['v']#失败
-            raise 错 if 错 is not None else 连接错误('connection generation ended')#抛
-        if 源丢失事件.is_set():#源先结束
-            错=源丢失错误['v']#失败
-            raise 错 if 错 is not None else 连接错误('connection generation ended')#抛
-        现在=time.monotonic()#此刻
-        if 现在>=超时截止:#硬截止
-            消息='connection generation was not ready within '+str(超时毫秒)+'ms'#文案
-            print('[connection] '+消息+'; cancelling generation')#诊断
-            raise 连接错误(消息)#取消世代
-        if not 已警告 and 现在>=警告截止:#过慢
-            print('[connection] generation is still not ready after '+str(警告毫秒)+'ms')#警告
-            已警告=True#只报一次
-        就绪事件.wait(timeout=min(0.05,超时截止-现在))#短等
-
-class 连接控制器:#浏览器连接控制器
-    '打开已登记代际源并在丢失后按指数退避重连'
-    def __init__(自身,源,汇=None,配置=None):#绑定源、汇与配置
-        '合并默认后的配置'
+class 连接控制器:
+    '打开已登记的代际源，丢失后按指数退避重连。汇抛错不停止循环'
+    def __init__(自身,源,汇=None,配置=None):
+        '先把时序补齐'
         自身.源=源#代际源
-        自身.汇=汇 if 汇 is not None else {}#可选汇
-        自身.配置=解析连接配置(配置)#完整时序
-        自身.世代=0#当前世代序号
-        自身.尝试=0#连续失败次数
-        自身.当前=None#当前世代的取消器
-        自身._重试延迟=None#退避取消器
+        自身.汇=汇 if 汇 is not None else {}#状态回调
+        自身.配置=解析连接配置({} if 配置 is None else 配置)#完整时序
+        自身.世代=0#代际号
+        自身.尝试=0#重试次数
+        自身.当前=None#这一代的中止
+        自身._重试延迟=None#退避的中止
         自身.运行中=False#循环是否在跑
-        自身._立即重试=False#手动立即重试
-        自身._网络可用=True#浏览器网络
-        自身.上次状态=None#上次已发出的状态
-        自身._线程=None#后台循环线程
+        自身._立即重试=False#手动重连
+        自身._网络可用=True#浏览器是否在线
+        自身.上次状态=None#上次发出的状态
+        自身._线程=None#循环线程
 
-    def 启动(自身):#幂等开始连接/泵/重连循环
-        '已在跑则忽略'
-        if 自身.运行中:#已在跑
+    def 启动(自身):
+        '已经在跑则忽略'
+        if 自身.运行中:#已启动
+            return#不重复
+        自身.运行中=True#占上
+        自身._线程=threading.Thread(target=自身._循环,daemon=True)#不挡住调用方
+        自身._线程.start()#开始泵
+
+    def 停止(自身):
+        '停止循环并中止当前代际与退避'
+        自身.运行中=False#停下
+        if 自身.当前 is not None:#有一代
+            自身.当前.abort()#中止
+            自身.当前=None#清掉
+        if 自身._重试延迟 is not None:#在退避
+            自身._重试延迟.abort()#打断
+            自身._重试延迟=None#清掉
+
+    def 重连(自身):
+        '重置重试并立刻替换当前一代或退避'
+        if not 自身.运行中:#没在跑
             return#忽略
-        自身.运行中=True#标记运行
-        自身._线程=threading.Thread(target=自身._循环,name='connection-loop',daemon=True)#后台跑
-        自身._线程.start()#启动
+        自身.尝试=0#从头
+        自身._立即重试=True#不等退避
+        自身._发状态('connecting')#正在连接
+        if not 自身._仍运行():#汇里可能已经停止
+            return#结束
+        if 自身.当前 is not None:#有一代
+            自身.当前.abort(手动重连)#替换
+        if 自身._重试延迟 is not None:#在退避
+            自身._重试延迟.abort(手动重连)#打断睡眠
 
-    def 停止(自身):#停泵
-        '停止循环并 abort 当前世代与退避'
-        自身.运行中=False#循环条件失败
-        if 自身.当前 is not None:#有世代
-            自身.当前.set()#取消当前世代
-        自身.当前=None#丢掉取消器
-        if 自身._重试延迟 is not None:#有退避
-            自身._重试延迟.set()#取消退避
-        自身._重试延迟=None#丢掉
-
-    def 重连(自身):#立即替换当前世代
-        '重置重试进程并立即替换当前尝试'
-        if not 自身.运行中:#未跑
-            return#忽略
-        自身.尝试=0#清失败计数
-        自身._立即重试=True#立即
-        自身._发状态('connecting')#进入连接中
-        if not 自身._仍运行():#汇可能同步停
-            return#停
-        if 自身.当前 is not None:#有世代
-            自身.当前.set()#abort
-        if 自身._重试延迟 is not None:#有退避
-            自身._重试延迟.set()#abort
-
-    def 设网络可用(自身,可用):#浏览器网络可用性
-        '离线挂起自动重试；网络回来后重启退避'
-        if 自身._网络可用==可用:#未变
+    def 设网络可用(自身,可用):
+        '离线时挂起自动重试。网络回来后重新退避'
+        if 自身._网络可用==可用:#没变
             return#忽略
         自身._网络可用=可用#记下
-        自身.尝试=0#清失败计数
-        自身._立即重试=False#非手动
-        if not 自身.运行中:#未跑
-            return#忽略
+        自身.尝试=0#从头
+        自身._立即重试=False#不是手动
+        if not 自身.运行中:#没在跑
+            return#只改标志
         自身._发状态('connecting' if 可用 else 'disconnected')#状态
-        if not 自身._仍运行():#汇可能同步停
-            return#停
-        if 自身.当前 is not None:#有世代
-            自身.当前.set()#abort
-        if 自身._重试延迟 is not None:#有退避
-            自身._重试延迟.set()#abort
+        if not 自身._仍运行():#汇里可能已经停止
+            return#结束
+        if 自身.当前 is not None:#有一代
+            自身.当前.abort(网络状态变更)#替换
+        if 自身._重试延迟 is not None:#在退避或挂起
+            自身._重试延迟.abort(网络状态变更)#打断
 
-    def _退避帽(自身,尝试次数):#指数上限再封顶
-        '半到全抖动所用帽'
-        基础=自身.配置['backoffBaseMs']#基础
-        因子=自身.配置['backoffFactor']#因子
-        上限=自身.配置['backoffMaxMs']#封顶
-        return min(上限,基础*(因子**max(0,尝试次数-1)))#帽
+    def _仍运行(自身):
+        '停止会在等待之间把标志翻掉'
+        return 自身.运行中#当前标志
 
-    def _退避延迟(自身,尝试次数):#按失败次数算抖动退避
-        '半到全之间抖动'
-        帽=自身._退避帽(尝试次数)#帽
-        return 帽/2+random.random()*(帽/2)#抖动
+    def _世代仍活(自身,控制器):
+        '循环还在，且这一代还没中止'
+        return 自身._仍运行() and not 控制器.signal.aborted#两样都要
 
-    def _重试被打断(自身,立即):#重读可变重试输入
-        '立即重试或离线挂起'
-        return 自身._立即重试 or ((not 自身._网络可用) and (not 立即))#打断
+    def _警告(自身,文本):
+        '打到页面控制台'
+        取握手窗口().console.warn(文本)#警告
 
-    def _仍运行(自身):#当前是否仍该继续
-        '经方法读取：停止会在等待之间翻转旗标'
-        return 自身.运行中#每次重读
+    def _错误(自身,文本,错误):
+        '打到页面控制台'
+        取握手窗口().console.error(文本,错误)#错误
 
-    def _世代仍活(自身,信号):#本世代是否仍有效
-        '循环还在且本世代未 abort'
-        return 自身._仍运行() and (not 已中止(信号))#双守卫
+    def _调汇(自身,函数):
+        '业务层抛错只记日志'
+        try:#隔离
+            函数()#调用
+        except Exception as 错误:#不杀死循环
+            自身._错误('[connection] connection sink threw:',错误)#诊断
 
-    def _循环(自身):#连接世代循环
-        '直到停止'
-        重试=False#首次不退避
-        while 自身.运行中:#直到 stop
-            if (not 自身._网络可用) and (not 自身._立即重试):#离线挂起
-                延迟取消=threading.Event()#退避取消
-                自身._重试延迟=延迟取消#供 stop/重连
-                自身._发状态('disconnected')#断开
-                等待中止(延迟取消)#等到网络或停
-                if 自身._重试延迟 is 延迟取消:#仍是本次
-                    自身._重试延迟=None#清
-                if not 自身._仍运行():#停
-                    return#退出
-                重试=True#下一圈当重试
-                continue#再判网络
-            手动尝试=False#是否手动立刻
-            if 重试:#丢失后的下一圈
-                立即=自身._立即重试#快照
-                自身._立即重试=False#清
-                if 立即:#手动
-                    自身.尝试=0#清计数
-                手动尝试=立即#记下
-                自身.尝试+=1#失败次数
-                尝试次数=自身.尝试#本圈
-                自身._发状态('connecting')#连接中
-                if not 自身._仍运行():#停
-                    return#退出
-                if 自身._重试被打断(立即):#被新输入打断
-                    continue#再判
-                if not 立即:#自动退避
-                    延迟取消=threading.Event()#退避取消
-                    自身._重试延迟=延迟取消#供 abort
-                    可取消睡眠(自身._退避延迟(尝试次数),延迟取消)#抖动睡眠
-                    if 自身._重试延迟 is 延迟取消:#仍是本次
-                        自身._重试延迟=None#清
-                    if not 自身._仍运行():#停
-                        return#退出
-                    if 已中止(延迟取消):#退避被 abort
-                        continue#再判
-                print('[connection] connection lost, retry #'+str(尝试次数))#诊断
-                函=自身.汇['onReconnectRequested'] if 'onReconnectRequested' in 自身.汇 else None#汇
-                if 函 is not None:#有
-                    自身._调汇无参(函)#隔离
-                if not 自身._仍运行():#停
-                    return#退出
-            自身.世代+=1#新世代号
-            世代号=自身.世代#本世代
-            取消=threading.Event()#本世代取消
-            自身.当前=取消#供 stop 使用
-            源已就绪=False#一次性就绪
-            就绪宿主={'v':None}#宿主盒
-            就绪错误={'v':None}#就绪失败
-            就绪事件=threading.Event()#就绪或失败
-            源丢失错误={'v':None}#源结束错误
-            源丢失事件=threading.Event()#源结束
-            源结束=threading.Event()#线程落定
-
-            def 报告就绪(宿主):
-                '代际源一次性报告就绪'
-                nonlocal 源已就绪#写旗
-                if 源已就绪 or 世代号!=自身.世代 or (not 自身._世代仍活(取消)):#过期
-                    return#忽略
-                源已就绪=True#一次性
-                就绪宿主['v']=宿主#记下
-                就绪事件.set()#唤醒
-
-            def 跑源():
-                '阻塞跑代际源直至结束'
-                try:#源结算
-                    自身.源(取消,报告就绪)#阻塞
-                    错误=连接错误('connection generation ended')#正常结束亦失败就绪
-                    if not 源已就绪:#未就绪
-                        就绪错误['v']=错误#失败就绪
-                        就绪事件.set()#唤醒
-                    源丢失错误['v']=错误#源丢失
-                    源丢失事件.set()#唤醒赛跑
-                except Exception as 错误:#源失败
-                    if not 源已就绪:#未就绪
-                        就绪错误['v']=错误#失败就绪
-                        就绪事件.set()#唤醒
-                    源丢失错误['v']=错误#源丢失
-                    源丢失事件.set()#唤醒赛跑
-                if 世代号==自身.世代 and (not 已中止(取消)):#仍当前
-                    取消.set()#abort
-                源结束.set()#线程落定
-
-            threading.Thread(target=跑源,name='connection-generation',daemon=True).start()#后台源
-            try:#就绪握手
-                宿主=等待就绪(就绪事件,就绪宿主,就绪错误,源丢失事件,源丢失错误,自身.配置,取消)#赛跑
-                if 已中止(取消):#握手期间已被 abort
-                    raise 连接错误('generation aborted during readiness handshake')#失败
-                自身.尝试=0#成功则清失败计数
-                自身._发状态('connected')#通知 UI 已连接
-                if 自身._世代仍活(取消):#世代仍活
-                    自身._调已连接(宿主)#把宿主交给业务
-            except Exception:#传输失败：当作世代失败
-                if not 已中止(取消):#尚未 abort
-                    取消.set()#取消源
-            源结束.wait()#等源线程落定
-            if not 自身._仍运行():#stop 了就退出循环
-                return#退出
-            if 手动尝试:#手动重连不计连续失败
-                自身.尝试=0#清
-            重试=True#下一圈退避
-
-    def _发状态(自身,状态):#去重的状态发出
-        '只在变化时通知'
-        if 自身.上次状态==状态:#相同则跳过
+    def _发状态(自身,状态):
+        '相同状态不重复发'
+        if 自身.上次状态==状态:#没变
             return#跳过
         自身.上次状态=状态#记下
-        函=自身.汇['onStateChange'] if 'onStateChange' in 自身.汇 else None#汇
-        if 函 is not None:#有
-            自身._调汇(函,状态)#隔离汇抛错
 
-    def _调已连接(自身,值):#通知已连接
-        '汇抛错不杀泵'
-        函=自身.汇['onConnected'] if 'onConnected' in 自身.汇 else None#汇
-        if 函 is not None:#有
-            自身._调汇(函,值)#隔离
+        def 通知():
+            '交给 onStateChange'
+            回调=自身.汇.get('onStateChange')#回调
+            if 回调 is not None:#有
+                回调(状态)#通知
 
-    def _调汇(自身,函数,参数):#安全调用汇
-        '业务层抛错只记日志，从不影响泵或重连语义'
-        try:#汇可能抛
-            函数(参数)#执行
-        except Exception as 错误:#只记日志
-            print('[connection] connection sink threw:',错误)#诊断
+        自身._调汇(通知)#隔离
 
-    def _调汇无参(自身,函数):#无参汇
-        '业务层抛错只记日志'
-        try:#汇可能抛
-            函数()#执行
-        except Exception as 错误:#只记日志
-            print('[connection] connection sink threw:',错误)#诊断
+    def _循环(自身):
+        '直到停止。源在另一条线程里跑，这一条线程负责超时和退避'
+        重试=False#第一次不退避
+        while 自身._仍运行():#还在跑
+            if not 自身._网络可用 and not 自身._立即重试:#离线且不是手动
+                延迟=中止控制器()#挂起
+                自身._重试延迟=延迟#记下
+                自身._发状态('disconnected')#断开
+                if not 延迟.signal.aborted:#还没被打断
+                    延迟.signal._事件.wait()#等到中止
+                if 自身._重试延迟 is 延迟:#还是这一次
+                    自身._重试延迟=None#清掉
+                if not 自身._仍运行():#停了
+                    return#离开
+                重试=True#醒来后按重试走
+                continue#重新看网络
+            手动尝试=False#这一次是不是手动
+            if 重试:#丢失之后
+                立即=自身._立即重试#先读
+                自身._立即重试=False#用掉
+                if 立即:#手动
+                    自身.尝试=0#从头数
+                手动尝试=立即#记下来
+                自身.尝试=自身.尝试+1#这一次
+                尝试次数=自身.尝试#局部
+                自身._发状态('connecting')#正在连接
+                if not 自身._仍运行():#停了
+                    return#离开
+                if 自身._立即重试 or (not 自身._网络可用 and not 立即):#退避前又被打断
+                    continue#重来
+                if not 立即:#自动重试才睡
+                    延迟=中止控制器()#可打断的睡眠
+                    自身._重试延迟=延迟#记下
+                    帽=min(#半到全抖动用的帽
+                        自身.配置['backoffMaxMs'],
+                        自身.配置['backoffBaseMs']*(自身.配置['backoffFactor']**max(0,尝试次数-1)),
+                    )#帽结束
+                    毫秒=帽/2+random.random()*(帽/2)#半到全
+                    睡完=threading.Event()#到期
+
+                    def 睡醒(睡完=睡完):
+                        '到期或中止都放开'
+                        睡完.set()#放开
+
+                    定时=threading.Timer(毫秒/1000,睡醒)#到期
+                    定时.daemon=True#随进程
+                    定时.start()#开始
+                    延迟.signal.addEventListener('abort',睡醒,{'once':True})#中止
+                    睡完.wait()#等到其中一个
+                    定时.cancel()#不再响
+                    延迟.signal.removeEventListener('abort',睡醒)#摘掉
+                    if 自身._重试延迟 is 延迟:#还是这一次
+                        自身._重试延迟=None#清掉
+                    if not 自身._仍运行():#停了
+                        return#离开
+                    if 延迟.signal.aborted:#被打断
+                        continue#重来
+                自身._警告('[connection] connection lost, retry #'+str(尝试次数))#诊断
+
+                def 请求重连():
+                    '让消费者重开物理载体'
+                    回调=自身.汇.get('onReconnectRequested')#回调
+                    if 回调 is not None:#有
+                        回调()#调用
+
+                自身._调汇(请求重连)#隔离
+                if not 自身._仍运行():#停了
+                    return#离开
+            世代=自身.世代+1#新的一代
+            自身.世代=世代#记下
+            控制器=中止控制器()#这一代
+            自身.当前=控制器#记下
+            就绪事件=threading.Event()#源报告就绪
+            失败事件=threading.Event()#源结束
+            叫醒=threading.Event()#超时等待
+            就绪盒={}#宿主或错误
+            源已就绪={'值':False}#是否已经 ready
+
+            def 醒(叫醒=叫醒):
+                '让等待看一眼新状态'
+                叫醒.set()#放开
+
+            def 报告就绪(宿主信息,世代=世代,控制器=控制器,源已就绪=源已就绪,就绪盒=就绪盒,就绪事件=就绪事件,醒=醒):
+                '增量监听挂上之后只报告一次'
+                if 源已就绪['值'] or 世代!=自身.世代 or not 自身._世代仍活(控制器):#过期
+                    return#忽略
+                源已就绪['值']=True#占上
+                就绪盒['宿主']=宿主信息#记下
+                就绪事件.set()#就绪
+                醒()#叫醒
+
+            def 跑源(控制器=控制器,报告就绪=报告就绪,源已就绪=源已就绪,就绪盒=就绪盒,就绪事件=就绪事件,失败事件=失败事件,醒=醒):
+                '源结束或失败后通知循环。就绪之后的中止留给循环'
+                try:#源自己的寿命
+                    try:#正常结束或失败
+                        结果=自身.源(控制器.signal,报告就绪)#打开
+                        同步等待(结果)#期约则等到它结束
+                        错误=连接错误('connection generation ended')#正常结束
+                    except Exception as 捕到:#失败
+                        错误=捕到#原错误
+                    if not 源已就绪['值']:#还没就绪就结束了
+                        就绪盒['错误']=错误#给竞赛
+                        就绪事件.set()#放开竞赛
+                finally:#无论成败都要放开循环
+                    失败事件.set()#循环可以继续
+                    醒()#叫醒竞赛
+
+            控制器.signal.addEventListener('abort',醒,{'once':True})#中止也要叫醒
+            threading.Thread(target=跑源,daemon=True).start()#源不堵这一条线程
+            开始=time.monotonic()#起算
+            已警告=False#慢握手只警告一次
+            成功宿主=None#竞赛得到的宿主
+            竞赛错误=None#竞赛得到的错误
+            while 竞赛错误 is None and 成功宿主 is None:#还没分出胜负
+                经过=(time.monotonic()-开始)*1000#已过毫秒
+                if not 已警告 and 经过>=自身.配置['generationReadyWarnMs']:#到了警告
+                    已警告=True#只一次
+                    自身._警告('[connection] generation is still not ready after '+str(自身.配置['generationReadyWarnMs'])+'ms')#诊断
+                if 控制器.signal.aborted:#这一代被中止
+                    竞赛错误=连接错误('connection generation aborted')#握手中止
+                    if isinstance(控制器.signal.reason,BaseException):#有原因
+                        竞赛错误.__cause__=控制器.signal.reason#挂上
+                    break#离开竞赛
+                if 就绪事件.is_set():#源有结果
+                    if '错误' in 就绪盒:#失败
+                        竞赛错误=就绪盒['错误']#错误
+                    else:#就绪
+                        成功宿主=就绪盒['宿主']#宿主
+                    break#离开竞赛
+                if 失败事件.is_set():#源已经结束但没报告就绪
+                    竞赛错误=就绪盒['错误'] if '错误' in 就绪盒 else 连接错误('connection generation ended')#结束
+                    break#离开竞赛
+                if 经过>=自身.配置['generationReadyTimeoutMs']:#硬截止
+                    竞赛错误=连接错误('connection generation was not ready within '+str(自身.配置['generationReadyTimeoutMs'])+'ms')#超时
+                    自身._警告('[connection] '+str(竞赛错误)+'; cancelling generation')#诊断
+                    break#离开竞赛
+                下一刻=自身.配置['generationReadyWarnMs'] if not 已警告 else 自身.配置['generationReadyTimeoutMs']#下一次要看的时刻
+                叫醒.wait(max(0,(下一刻-经过)/1000))#睡到那一刻或被叫醒
+                叫醒.clear()#这次用掉
+            try:#握手结果
+                if 竞赛错误 is not None:#没连上
+                    raise 竞赛错误#交给下面的中止
+                if 控制器.signal.aborted:#就绪竞争期间被中止
+                    raise 连接错误('generation aborted during readiness handshake')#不算连上
+                自身.尝试=0#连上就清掉重试
+                自身._发状态('connected')#已连接
+                if 自身._世代仍活(控制器):#汇没有把这一代停掉
+                    宿主信息=成功宿主#闭包
+
+                    def 通知已连接():
+                        '交给 onConnected'
+                        回调=自身.汇.get('onConnected')#回调
+                        if 回调 is not None:#有
+                            回调(宿主信息)#宿主事实
+
+                    自身._调汇(通知已连接)#隔离
+            except Exception as 错误:#握手失败
+                if not 控制器.signal.aborted:#还没中止
+                    控制器.abort(错误)#取消这一代
+            失败事件.wait()#等到源结束
+            if 世代==自身.世代 and 自身.当前 is 控制器 and not 控制器.signal.aborted:#源结束时中止信号
+                控制器.abort()#没有额外原因
+            if not 自身._仍运行():#停了
+                return#离开
+            if 手动尝试:#手动的这一次不累计
+                自身.尝试=0#清掉
+            重试=True#下一圈走退避

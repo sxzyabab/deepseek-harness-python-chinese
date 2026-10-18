@@ -1,7 +1,1 @@
-'浏览器侧翻译偏好与 Remote 元数据'
-
-__all__=['思考翻译偏好字段','思考翻译快照字段','失败码']
-
-思考翻译偏好字段=('provider','targetLanguage')
-思考翻译快照字段=('maxTextChars','preferences','availableProviders')
-失败码='cotTranslation/failed'
+'浏览器侧翻译偏好与 Remote 元数据。线路字段是 provider、targetLanguage、maxTextChars、preferences、availableProviders。失败细节码 cotTranslation/failed 的抛出在控制器'

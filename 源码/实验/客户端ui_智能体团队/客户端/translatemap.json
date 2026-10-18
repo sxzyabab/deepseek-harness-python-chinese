@@ -1,4 +1,6 @@
 {
-    "locales":"文案",
-    "mount":"挂载"
+    "locales": "文案",
+    "mount": "挂载",
+    "TeamAction": "团队动作",
+    "TeamAction.module": "团队动作.module"
 }

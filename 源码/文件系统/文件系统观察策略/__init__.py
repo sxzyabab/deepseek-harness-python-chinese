@@ -29,7 +29,7 @@ class 观察态门:#按所有者记录观察并推导写/编辑意图
             return None#无法推导所有者
         return 智能体['session']#有智能体会话则以其为所有者
 
-    def 读取(自身,所有者对象,目标键):#读取某所有者对某目标的观察
+    def 读取观察(自身,所有者对象,目标键):#读取某所有者对某目标的观察
         '读取某所有者对某目标的观察；没有所有者表或没有该键则为 None'
         if 所有者对象 not in 自身.已观察:#尚无该所有者的目标表
             return None#未见过
@@ -38,7 +38,7 @@ class 观察态门:#按所有者记录观察并推导写/编辑意图
             return None#未见过
         return 目标表[目标键]#已记录的观察
 
-    def 写入(自身,所有者对象,目标键,观察):#写入某所有者对某目标的观察
+    def 写入观察(自身,所有者对象,目标键,观察):#写入某所有者对某目标的观察
         '写入某所有者对某目标的观察'
         if 所有者对象 not in 自身.已观察:#尚无目标表则新建
             自身.已观察[所有者对象]={}#新建目标键到观察的映射
@@ -53,7 +53,7 @@ class 观察态门:#按所有者记录观察并推导写/编辑意图
         目标与观察均为 dict
         """
         所有者对象=自身.所有者(行动者)#推导观察所有者
-        先前=自身.读取(所有者对象,目标['targetKey']) if 所有者对象 is not None else None#有所有者才取先前观察
+        先前=自身.读取观察(所有者对象,目标['targetKey']) if 所有者对象 is not None else None#有所有者才取先前观察
         if 先前 is not None and 先前['kind']=='present':#先前确认为存在
             return {'kind':'replaceIfVersion','version':先前['version']}#按观察版本做替换
         return {'kind':'createIfAbsent'}#否则只允许创建
@@ -63,7 +63,7 @@ class 观察态门:#按所有者记录观察并推导写/编辑意图
         目标与观察均为 dict
         """
         所有者对象=自身.所有者(行动者)#推导观察所有者
-        先前=自身.读取(所有者对象,目标['targetKey']) if 所有者对象 is not None else None#有所有者才取先前观察
+        先前=自身.读取观察(所有者对象,目标['targetKey']) if 所有者对象 is not None else None#有所有者才取先前观察
         if 所有者对象 is None or 先前 is None:#没有所有者或未见过该目标
             raise 文件系统错误('edit requires reading "'+目标['displayPath']+'" first','FS_NOT_OBSERVED')#编辑前必须先读
         if 先前['kind']=='absent':#先前确认缺失
@@ -76,7 +76,7 @@ class 观察态门:#按所有者记录观察并推导写/编辑意图
         """
         所有者对象=自身.所有者(行动者)#推导观察所有者
         if 所有者对象 is not None:#有所有者才写入观察
-            自身.写入(所有者对象,目标['targetKey'],观察载荷)#写入观察
+            自身.写入观察(所有者对象,目标['targetKey'],观察载荷)#写入观察
 
 def 应用(上下文):#安装观察策略监听器
     """注册三个 fs/* 监听器。

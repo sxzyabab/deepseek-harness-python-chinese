@@ -3,7 +3,7 @@ import json#JSON 解析
 from json import JSONDecodeError#畸形 JSON
 from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 
-__all__=('转派回放状态','读回放状态','转派助手','空派用量','解析参数')#仅中文公开名
+__all__=('转派回放状态','读取回放状态','转派助手','空派用量','解析参数')#仅中文公开名
 
 结束原因集合=('stop','length','toolUse','error','aborted')#合法结束原因
 块类型集合=('text','reasoning','tool-call')#合法回放块类型
@@ -86,7 +86,7 @@ def 非法回放(消息):
     '非法回放状态'
     raise 大模型错误(f'invalid pi-ai replay state: {消息}','INVALID_REPLAY_STATE')#带诊断抛出
 
-def 读回放状态(值):
+def 读取回放状态(值):
     '在适配器私有状态到达 pi-ai 之前校验它'
     if not isinstance(值,dict):#根必须是普通对象，数组与原语一律拒绝
         return 非法回放('expected a replay envelope')#必须是信封
@@ -170,7 +170,7 @@ def 外来助手(消息):
 
 def 回放助手(消息,来源,原始状态):
     '把持久 harness 内容与已校验的派爱回放元数据重新组合'
-    状态=读回放状态(原始状态)#先校验再重组；非法状态不得拼进派爱历史
+    状态=读取回放状态(原始状态)#先校验再重组；非法状态不得拼进派爱历史
     响应=状态['response']#响应半边
     来源提供方=来源['provider']#助手来源上的提供方
     来源模型=来源['model']#助手来源上的模型

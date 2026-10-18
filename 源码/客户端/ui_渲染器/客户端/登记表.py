@@ -129,7 +129,8 @@ class 槽登记表(服务):
         '服务名 slots；桥接变更事件'
         super().__init__(上下文,'slots')#服务名 slots
         自身._core=槽位登记表()#纯登记表
-        自身._stores={}#句柄轴
+        自身._stores={}#句柄轴，键是对象身份
+        自身._store身份={}#身份到句柄，避免身份号被复用
         自身._factoryStores={}#工厂 store 轴
         自身._storeScopeOwners={}#作用域拥有方
         自身._renderer=None#已安装渲染器
@@ -490,7 +491,7 @@ class 槽登记表(服务):
 
     def 解析存储(自身,句柄,作用域绑定):
         '解析（创建或复用）已登记句柄的 store 实例。句柄为对象'
-        记录=自身._stores[句柄] if 句柄 in 自身._stores else None#轴记录
+        记录=自身._stores.get(id(句柄))#轴记录
         if 记录 is None:#未登记
             raise 槽组装错误('store handle is not registered (entry unloaded, or the handle never went through register)')#未登记
         if 记录['scope']=='root':#根作用域
@@ -578,18 +579,22 @@ class 槽登记表(服务):
                 记录['instances'].pop(键,None)#删出现实例
 
     def _获取(自身,句柄,作用域):
-        '在轴上绑定（或再引用）句柄'
-        if 句柄 not in 自身._stores:#新建
-            自身._stores[句柄]={'scope':作用域,'refs':1,'instances':{}}#首引用
+        '在轴上绑定（或再引用）句柄。句柄按对象身份记账'
+        键=id(句柄)#对象身份
+        if 键 not in 自身._stores:#新建
+            自身._store身份[键]=句柄#留住对象
+            自身._stores[键]={'scope':作用域,'refs':1,'instances':{}}#首引用
             return
-        自身._stores[句柄]['refs']+=1#再引用
+        自身._stores[键]['refs']+=1#再引用
 
     def _拆除(自身,句柄):
         '最后持有者卸载丢掉记录'
-        if 句柄 not in 自身._stores:#无记录
+        键=id(句柄)#对象身份
+        if 键 not in 自身._stores:#无记录
             return
-        记录=自身._stores[句柄]#轴记录
+        记录=自身._stores[键]#轴记录
         记录['refs']-=1#减引用
         if 记录['refs']!=0:#仍有持有者
             return
-        del 自身._stores[句柄]#删记录
+        del 自身._stores[键]#删记录
+        自身._store身份.pop(键,None)#放开对象

@@ -1,7 +1,7 @@
 __all__=['中文','英文']
 
 中文={
-    'title':'表格','language':'zh','loading':'正在打开表格…',
+    'title':'表格','language':'zh','loading':'文档渲染中...',
     'invalid':'无法打开此表格。请检查文件格式、内容或密码保护。',
     'tooLarge':'此表格超过预览大小限制。','timeout':'打开表格超时。请缩小文件后重试。',
     'encoding':'无法识别此文本文件的编码。请另存为 UTF-8 或带 BOM 的 UTF-16 后重试。',

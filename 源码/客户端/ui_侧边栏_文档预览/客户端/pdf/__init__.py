@@ -1,6 +1,6 @@
 from .文案 import 中文,英文,pdf文案键#词典
 from .存储 import 创建pdf存储#存储
-from .pdf体 import pdf体,pdf面板,失败文案,样式表#正文
+from .pdf体 import pdf体,pdf面板,处理pdf面板,失败文案,样式表#正文
 from ..文档.标签寿命 import 保留文档标签#保留标签
 from . import (
     懒加载pdf体,
@@ -10,7 +10,7 @@ from . import (
     运行时,
 )
 
-__all__=['pdf体标识','pdf体定义','pdf体登记','应用','pdf体','pdf面板','失败文案','样式表','中文','英文','pdf文案键']
+__all__=['pdf体标识','pdf体定义','pdf体登记','应用','pdf体','pdf面板','处理pdf面板','失败文案','样式表','中文','英文','pdf文案键']
 pdf体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/pdf'#实现 id
 
 
@@ -42,7 +42,7 @@ def pdf体登记(上下文):
     return {'store':存储,'inject':注入}#呈现
 
 
-def 应用(上下文):
+def 应用(上下文,配置=None):
     '登记 PDF 词典、元数据与正文'
 
     def 登记词典():
@@ -52,9 +52,12 @@ def 应用(上下文):
     上下文.副作用(登记词典)#寿命
     翻译=上下文.locale.bind('sidebarPdf')#绑定
 
+    def 标题():
+        '实现名。是 PDF'
+        return 中文['title']
     def 登记元数据():
         '挂 PDF 元数据'
-        return 上下文.documentPreviews.register(pdf体定义(lambda:翻译('title')))#登记
+        return 上下文.documentPreviews.register(pdf体定义(标题))
 
     上下文.副作用(登记元数据)#寿命
     呈现=pdf体登记(上下文)#呈现

@@ -1,8 +1,6 @@
 '官方模型 API 会话日志上传偏好的文案'
 
-__all__=['命名空间','英文','中文']
-
-命名空间='settings.sessionLog'
+__all__=['英文','中文']
 
 英文={
     'title':'Upload Session Log when using the official model API',

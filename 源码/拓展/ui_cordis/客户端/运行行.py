@@ -1,226 +1,280 @@
+from ....客户端.模块.客户端.通告 import 取握手窗口
 import os
-from ..异常 import 页面失败文案
-from .准备行 import 准备行,画出根
+from ....客户端.ui_对话.异常 import 注入模块样式文件,标样式模块
+from ....客户端.ui_基础界面组件.icons import 描边图标,常规描边
+from ....客户端.ui_基础界面组件.icons.共享画稿 import 代码括号画稿
 from .卡片模型 import 运行卡片
-from .运行卡片索引 import 工具视图键
 from .状态 import 可见状态
+from .准备行 import 准备行
+from .槽位 import 业务视图槽
 
-__all__=['运行行','读数标签','样式表','前导图标']#仅中文公开名
+__all__=['运行行']
 
-读数标签={
-    'idle':'status.idle',
-    'awaiting-approval':'status.awaitingApproval',
-    'failed':'status.failed',
-    'client-pending':'status.clientPending',
-    'running':'status.running',
-    'removed':'status.removed',
-    'superseded':'status.superseded',
+样式模块='ui-cordis-run'#运行卡片样式
+代码路径=[#IconCodeOutlineRegular
+    'M6.27612 1.5L4.52612 14.5',
+    'M11.4739 1.5L9.72388 14.5',
+    'M2.39868 5.5H14.0681',
+    'M1.93188 10.5H13.6013',
+]
+读数文={#RunReading 的中文
+    'idle':'待激活',
+    'awaiting-approval':'待审批',
+    'failed':'运行失败',
+    'client-pending':'Client 待激活',
+    'running':'运行中',
+    'removed':'已移除',
+    'superseded':'已有更新',
 }
 
-本目录=os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(本目录,'运行行.module.css'),'r',encoding='utf-8') as 样式文件:
-    样式表=样式文件.read()
+def 确保样式(文档):
+    '运行行样式只插一次'
+    注入模块样式文件(
+        文档,
+        'ui-cordis-run-style',
+        os.path.join(os.path.dirname(__file__),'运行行.module.css'),
+        样式模块,
+    )
 
-def 前导图标(态):
-    'error→StateDot.error；stopped→warning；其余 IconCodeOutline16'
-    if 态=='error':
-        return {'type':'StateDot','state':'error'}
-    if 态=='stopped':
-        return {'type':'StateDot','state':'warning'}
-    return {'type':'IconCodeOutline16','size':14}
+def 节点(文档,标签,类名):
+    '带运行行样式模块的节点'
+    元素=文档.createElement(标签)#元素
+    if 类名:#有类
+        元素.className=类名#官方类名
+    标样式模块(元素,样式模块)#接上样式
+    return 元素#节点
 
-def 去掉空子节点(子节点列表):
-    '去掉 None 子节点'
-    return [子 for 子 in 子节点列表 if 子 is not None]
+def 画代码(窗口):
+    '常规描边代码图标'
+    return 描边图标({'window':窗口,'size':14},'0 0 16 16',代码路径,14,常规描边)
 
-def 原样键(键):
-    '无翻译函数时返回键本身'
-    return 键
+def 整份(快照):
+    '钩子选择器，返回整份快照'
+    return 快照
 
-def 恒等(值):
-    '钩子选择器：整份快照'
-    return 值
+def 写可选(元素,名,值):
+    '真写成 true，空和假拿掉，其余写成字符串'
+    if 值 is True:#布尔真
+        元素.setAttribute(名,'true')#出现
+        return
+    if 值 is None or 值 is False:#不出现
+        元素.removeAttribute(名)#拿掉
+        return
+    元素.setAttribute(名,str(值))#原值
 
 class 运行行:
-    '组装运行卡读数与业务视图座的嵌套 JSX 树。属性为 dict'
-
-    def __init__(自身,属性=None):
-        '记下 props'
-        自身.属性={} if 属性 is None else 属性
-        if 自身.属性:
-            自身.渲染()
+    '一次激活结果。还在跑时给包的业务视图留座位'
+    def __init__(自身,属性):
+        '记下属性并画出'
+        自身.属性=属性#宿主交来的属性
+        自身.根=None#还没画
+        自身.已订=False#还没订阅
+        自身.退订=[]#订阅拆除
+        自身.已观察=None#上次交给索引的指针
+        自身.绘制中=False#防止订阅重入
+        自身.待重画=False#画的时候又脏了
+        自身.渲染()#首画
 
     def 更新(自身,属性):
-        '刷新 props'
-        自身.属性={} if 属性 is None else 属性
+        '换成新属性'
+        自身.属性=属性#新属性
+
+    def 拆除(自身):
+        '退掉快照订阅'
+        for 退 in 自身.退订:#逐个
+            if callable(退):#是拆除器
+                退()#退订
+        自身.退订=[]#清空
 
     def 渲染(自身):
-        '与上游 JSX 同构；参数未齐时只画准备前缀'
-        p=自身.属性
-        if p.get('phase')=='preparing':
-            if 't' in p and p['t'] is not None:
-                翻译=p['t']
-            else:
-                翻译=原样键
-            return 准备行({
-                'toolName':'cordis_run','t':翻译,
-                'icon':{'type':'IconCodeOutline16','size':14},
-                'title':翻译('row.runTitle'),
-                'className':'card','rowClassName':'row','titleClassName':'title',
-            }).渲染()
-        块=p['block'] if 'block' in p else None
-        卡=运行卡片(块)
-        if 't' in p and p['t'] is not None:
-            翻译=p['t']
-        else:
-            翻译=原样键
-        调用标识=p['callId'] if 'callId' in p else None
-        清单钩=p['useInventory'] if 'useInventory' in p else None
-        加载钩=p['useLoaded'] if 'useLoaded' in p else None
-        卡仓钩=p['useRunCards'] if 'useRunCards' in p else None
-        活动钩=p['useActiveRuns'] if 'useActiveRuns' in p else None
-        if callable(清单钩):
-            清单=清单钩(恒等)
-        elif 'inventory' in p and p['inventory'] is not None:
-            清单=p['inventory']
-        else:
-            清单={'rows':[],'removed':set()}
-        if callable(加载钩):
-            已加载=加载钩(恒等)
-            if 已加载 is None:
-                已加载=[]
-        elif 'loaded' in p and p['loaded'] is not None:
-            已加载=p['loaded']
-        else:
-            已加载=[]
-        if callable(卡仓钩):
-            最新=卡仓钩(恒等)
-            if 最新 is None:
-                最新={}
-        elif 'runCards' in p and p['runCards'] is not None:
-            最新=p['runCards']
-        else:
-            最新={}
-        if callable(活动钩):
-            活动图=活动钩(恒等)
-            if 活动图 is None:
-                活动图={}
-        elif 'activeRuns' in p and p['activeRuns'] is not None:
-            活动图=p['activeRuns']
-        else:
-            活动图={}
-        卡插件=卡['pluginId'] if 'pluginId' in 卡 else None
-        卡包=卡['packageId'] if 'packageId' in 卡 else None
-        卡运行=卡['pluginRunId'] if 'pluginRunId' in 卡 else None
-        卡序号=卡['seq'] if 'seq' in 卡 else None
-        卡态=卡['state'] if 'state' in 卡 else None
-        键=None
-        if 卡态=='ok' and 卡插件 is not None and 卡包 is not None and 卡运行 is not None and 卡序号 is not None:
-            键=工具视图键(卡插件,卡包)
-            观察=p['onObserveRunCard'] if 'onObserveRunCard' in p else None
-            if callable(观察):
-                观察({'key':键,'callId':调用标识,'seq':卡序号,'pluginRunId':卡运行})
-        行=None
-        if 'rows' in 清单 and 清单['rows'] is not None:
-            for 候 in 清单['rows']:
-                if 'pluginId' in 候 and 候['pluginId']==卡插件:
-                    行=候
-                    break
-        指针=None
-        if 键 is not None and 键 in 最新:
-            指针=最新[键]
-        指针调用=指针['callId'] if 指针 is not None and 'callId' in 指针 else None
-        指针序号=指针['seq'] if 指针 is not None and 'seq' in 指针 else -1#指针序号；缺席当 -1
-        被替=指针 is not None and 指针调用!=调用标识 and 指针序号>=(卡序号 if 卡序号 is not None else -1)
-        活动=活动图[卡插件] if 卡插件 is not None and 卡插件 in 活动图 else None
-        最近=行['latestRun'] if 行 is not None and 'latestRun' in 行 else None
-        尝试=None
-        if 卡运行 is not None and 最近 is not None and 'pluginRunId' in 最近 and 最近['pluginRunId']==卡运行:
-            尝试=最近
-        活动阶段=活动['phase'] if 活动 is not None and 'phase' in 活动 else None
-        活动包=活动['packageId'] if 活动 is not None and 'packageId' in 活动 else None
-        活动模式=活动['mode'] if 活动 is not None and 'mode' in 活动 else None
-        卡模式=卡['mode'] if 'mode' in 卡 else None
-        尝试状态=尝试['status'] if 尝试 is not None and 'status' in 尝试 else None
-        等批=(尝试状态=='awaiting-approval'
-            or (卡包 is not None and 活动阶段=='awaiting-approval'
-                and 活动包==卡包
-                and (卡模式 is None or 活动模式==卡模式)))
-        if 'removed' in 清单 and 清单['removed'] is not None:
-            已移=清单['removed']
-        else:
-            已移=set()
-        if 卡插件 is not None and 卡插件 in 已移:
-            读数='removed'
-        elif 被替:
-            读数='superseded'
-        elif 等批:
-            读数='awaiting-approval'
-        elif 尝试状态=='failed':
-            读数='failed'
-        elif 行 is not None and 卡包 is not None:
-            读数=可见状态(行,卡包,已加载)
-        else:
-            读数='idle'
-        错摘要=卡['errorSummary'] if 'errorSummary' in 卡 else None
-        摘要=错摘要
-        if 摘要 is None:
-            if 卡插件 is None:
-                摘要=调用标识
-            elif 卡包 is not None:
-                摘要=卡插件+' · '+卡包
-            else:
-                摘要=卡插件
-        示业务=读数=='running' and 键 is not None
-        标题键='row.updateTitle' if 卡模式=='update' else 'row.runTitle'
-        读数键=读数标签[读数] if 读数 in 读数标签 else 读数
-        巡检=p['inspect'] if 'inspect' in p else None
-        行子=去掉空子节点([
-            {'type':'span','class':'icon','children':[前导图标(卡态)]},
-            {'type':'span','class':'title','children':[翻译(标题键)]},
-            {'type':'span','class':'separator','aria-hidden':True},
-            {'type':'span','class':'error' if 错摘要 is not None else 'summary','children':[摘要]},
-            {'type':'span','class':'status','children':[翻译(读数键)]},
-            {'type':'button','class':'inspect','aria-label':'Inspect','onClick':'inspect',
-             'children':[{'type':'IconInspectOutline12'}]} if 巡检 is not None else None,
-        ])
-        卡子=[
-            {'type':'div','class':'row','children':行子},
-        ]
-        if 读数=='removed':
-            卡子.append({'type':'div','class':'message','children':[翻译('run.removed')]})
-        if 读数=='superseded':
-            卡子.append({'type':'div','class':'message','children':[翻译('run.superseded')]})
-        尝试错=尝试['error'] if 尝试 is not None and 'error' in 尝试 else None
-        错消息=尝试错['message'] if isinstance(尝试错,dict) and 'message' in 尝试错 else None
-        if 读数=='failed' and 错消息 is not None:
-            卡子.append({'type':'div','class':'message','children':[页面失败文案(错消息)]})
-        输出=卡['output'] if 'output' in 卡 else None
-        if 示业务 and 卡插件 is not None and 卡包 is not None and 卡运行 is not None:
-            回退=None
-            if 输出 is not None:
-                回退={'type':'pre','class':'output','children':[输出]}
-            卡子.append({'type':'div','class':'business','data-cordis-business-view':键,'children':[
-                {'type':'renderSlot','name':'tool.view.cordis',
-                 'props':{'pluginId':卡插件,'packageId':卡包,
-                          'pluginRunId':卡运行},
-                 'entryKey':键,'fallback':回退},
-            ]})
-        if (not 示业务 and 读数 not in ('removed','superseded') and 输出 is not None):
-            卡子.append({'type':'pre','class':'output','children':[输出]})
-        渲染槽=p['renderSlot'] if 'renderSlot' in p else None
-        树={
-            'type':'div','class':'card','data-tool':'cordis_run','data-state':卡态,
-            'data-cordis-plugin-id':卡插件,'data-cordis-package-id':卡包,
-            'data-cordis-run-id':卡运行,'data-cordis-status':读数,
-            'children':卡子,'css':样式表,
-            'handlers':{'inspect':巡检,'renderSlot':渲染槽},
-            'note':'业务视图槽与图标需浏览器；Package React 半无法 Python·vm 执行',
-        }
-        return 画出根(树)
+        '准备中走前缀。落定后画出读数，符合条件时挂上业务视图'
+        if 自身.绘制中:#重入
+            自身.待重画=True#等这一轮结束
+            return 自身.根#当前根
+        自身.绘制中=True#占用
+        try:#结束时放开
+            新根=自身.画出()#这一轮
+        finally:#一定放开
+            自身.绘制中=False#放开
+        if 自身.待重画:#画的时候又脏了
+            自身.待重画=False#清标记
+            return 自身.渲染()#再画
+        return 新根#节点
 
-    def __call__(自身,属性=None):
-        '结构树面'
-        if 属性 is not None:
-            自身.更新(属性)
-        return 自身.渲染()
+    def 画出(自身):
+        '按当前阶段组装节点'
+        属性=自身.属性#当前属性
+        if 'window' in 属性 and 属性['window'] is not None:#调用方窗口
+            窗口=属性['window']#用它
+        else:#没有单独窗口
+            窗口=取握手窗口()#当前页
+        文档=窗口.document#文档
+        确保样式(文档)#样式
+        if 自身.已订 is not True:#只订一次
+            def 重画():
+                '快照变了就重画'
+                自身.渲染()#重画
+            for 名 in ('useInventory','useLoaded','useRunCards','useActiveRuns'):#四份钩子
+                钩=属性.get(名)#钩子
+                订=getattr(钩,'_subscribe',None) if callable(钩) else None#订阅
+                if callable(订):#有订阅
+                    自身.退订.append(订(重画))#记下
+            自身.已订=True#已订
+        if 属性.get('phase')=='preparing':#参数还没到
+            准备=准备行({
+                'window':窗口,
+                'toolName':属性.get('toolName'),
+                'icon':画代码(窗口),
+                'title':'运行 Cordis 插件',
+                'className':'card',
+                'rowClassName':'row',
+                'titleClassName':'title',
+                '样式模块':样式模块,
+            })#前缀
+            新根=准备.根#前缀根
+        else:#已开始
+            卡片=运行卡片(属性['block'])#卡片数据
+            清单快照=属性['useInventory'](整份)#清单
+            已加载=属性['useLoaded'](整份)#本页已加载
+            最新=属性['useRunCards'](整份)#会话里最新的运行卡
+            活动表=属性['useActiveRuns'](整份)#活动
+            调用标识=属性['callId']#这次调用
+            键=None#业务视图键
+            if 卡片['state']=='ok' and 卡片['pluginId'] is not None and 卡片['packageId'] is not None and 卡片['pluginRunId'] is not None and 卡片['seq'] is not None:#成功且身份齐全
+                键=卡片['pluginId']+'.'+卡片['packageId']#pluginId.packageId
+            观察=属性.get('onObserveRunCard')#交给索引
+            标记=(键,调用标识,卡片['seq'],卡片['pluginRunId'],观察)#这次要观察的内容
+            if 键 is not None and 卡片['seq'] is not None and 卡片['pluginRunId'] is not None and callable(观察):#可以发布
+                if 标记!=自身.已观察:#内容变了才再交
+                    自身.已观察=标记#记下
+                    观察({
+                        'key':键,
+                        'callId':调用标识,
+                        'seq':卡片['seq'],
+                        'pluginRunId':卡片['pluginRunId'],
+                    })#发布指针
+            else:#这张卡不参与索引
+                自身.已观察=None#清掉
+            行数据=None#清单行
+            if 卡片['pluginId'] is not None:#有插件
+                for 候选 in 清单快照['rows']:#找行
+                    if 候选['pluginId']==卡片['pluginId']:#同一插件
+                        行数据=候选#命中
+                        break#停
+            指针=None if 键 is None else 最新.get(键)#这把键的最新卡
+            序号=卡片['seq'] if 卡片['seq'] is not None else -1#没有序号时比不过正序号
+            被取代=指针 is not None and 指针.get('callId')!=调用标识 and 指针.get('seq',-1)>=序号#有更新的卡
+            活动=None if 卡片['pluginId'] is None else 活动表.get(卡片['pluginId'])#这个插件的活动
+            尝试=None#同一次激活的最近运行
+            if 卡片['pluginRunId'] is not None and 行数据 is not None:#能对上
+                最近=行数据.get('latestRun')#最近一次
+                if isinstance(最近,dict) and 最近.get('pluginRunId')==卡片['pluginRunId']:#同一次
+                    尝试=最近#用它
+            等审批=False#是否在等审批
+            if 尝试 is not None and 尝试.get('status')=='awaiting-approval':#这次还在等
+                等审批=True#等审批
+            elif 卡片['packageId'] is not None and 活动 is not None and 活动.get('phase')=='awaiting-approval' and 活动.get('packageId')==卡片['packageId'] and (卡片['mode'] is None or 活动.get('mode')==卡片['mode']):#活动对得上这张卡
+                等审批=True#等审批
+            已移除=卡片['pluginId'] is not None and 卡片['pluginId'] in 清单快照['removed']#这页移除过
+            if 已移除:#已移除
+                读数='removed'#包没了
+            elif 被取代:#有更新
+                读数='superseded'#看下方
+            elif 等审批:#等审批
+                读数='awaiting-approval'#待审批
+            elif 尝试 is not None and 尝试.get('status')=='failed':#这次失败
+                读数='failed'#失败
+            elif 行数据 is not None and 卡片['packageId'] is not None:#能读可见状态
+                读数=可见状态(行数据,卡片['packageId'],已加载)#idle / pending / running
+            else:#对不上
+                读数='idle'#待激活
+            if 卡片['errorSummary'] is not None:#错误摘要
+                摘要=卡片['errorSummary']#用它
+            elif 卡片['pluginId'] is None:#没有插件
+                摘要=调用标识#调用号
+            else:#插件和包
+                摘要=卡片['pluginId']#插件
+                if 卡片['packageId'] is not None:#有包
+                    摘要=摘要+' · '+卡片['packageId']#插件 · 包
+            新根=节点(文档,'div','card')#卡片
+            新根.setAttribute('data-tool','cordis_run')#工具
+            新根.setAttribute('data-state',卡片['state'])#调用状态
+            写可选(新根,'data-cordis-plugin-id',卡片['pluginId'])#插件
+            写可选(新根,'data-cordis-package-id',卡片['packageId'])#包
+            写可选(新根,'data-cordis-run-id',卡片['pluginRunId'])#激活
+            新根.setAttribute('data-cordis-status',读数)#读数
+            行=节点(文档,'div','row')#一行
+            图标座=节点(文档,'span','icon')#图标
+            图标座.appendChild(画代码(窗口))#代码图标
+            行.appendChild(图标座)#图标
+            题=节点(文档,'span','title')#标题
+            题.textContent='更新 Cordis 插件' if 卡片['mode']=='update' else '运行 Cordis 插件'#中文标题
+            行.appendChild(题)#标题
+            隔=节点(文档,'span','separator')#分隔点
+            隔.setAttribute('aria-hidden','true')#装饰
+            行.appendChild(隔)#点
+            要=节点(文档,'span','error' if 卡片['errorSummary'] is not None else 'summary')#摘要
+            要.textContent=摘要#文字
+            行.appendChild(要)#摘要
+            态=节点(文档,'span','status')#状态
+            态.textContent=读数文[读数]#中文状态
+            行.appendChild(态)#状态
+            检视=属性.get('inspect')#检查回调
+            if 检视 is not None:#有检查
+                钮=节点(文档,'button','inspect')#检查按钮
+                钮.type='button'#按钮
+                钮.setAttribute('aria-label','查看')#无障碍名
+                钮.appendChild(代码括号画稿({'window':窗口,'size':12},常规描边))#检视图标
+                def 点查看(事件):
+                    '打开这一次调用的检查'
+                    检视()#回调
+                钮.addEventListener('click',点查看)#点击
+                行.appendChild(钮)#按钮
+            新根.appendChild(行)#行
+            if 读数=='removed':#包没了
+                讯=节点(文档,'div','message')#说明
+                讯.textContent='包已不存在'#中文
+                新根.appendChild(讯)#说明
+            if 读数=='superseded':#有更新的卡
+                讯=节点(文档,'div','message')#说明
+                讯.textContent='已有更新的运行卡片，请查看下方'#中文
+                新根.appendChild(讯)#说明
+            if 读数=='failed' and 尝试 is not None and 尝试.get('error') is not None:#失败说明
+                讯=节点(文档,'div','message')#说明
+                讯.textContent=尝试['error']['message']#宿主错误
+                新根.appendChild(讯)#说明
+            展示业务=读数=='running' and 键 is not None#还在跑才给业务视图
+            if 展示业务 and 卡片['pluginId'] is not None and 卡片['packageId'] is not None and 卡片['pluginRunId'] is not None:#身份齐全
+                座=节点(文档,'div','business')#座位
+                座.setAttribute('data-cordis-business-view',键)#这把键
+                回退=None#没有结果就不回退
+                if 卡片['output'] is not None:#有结果
+                    回退=节点(文档,'pre','output')#回退结果
+                    回退.textContent=卡片['output']#原文
+                子槽=属性['renderSlot'](业务视图槽,{
+                    'pluginId':卡片['pluginId'],
+                    'packageId':卡片['packageId'],
+                    'pluginRunId':卡片['pluginRunId'],
+                    'window':窗口,
+                },{
+                    'entryKey':键,
+                    'fallback':回退,
+                })#子槽包裹
+                if 子槽 is not None and hasattr(子槽,'tagName'):#是节点
+                    座.appendChild(子槽)#放进座位
+                新根.appendChild(座)#座位
+            if 展示业务 is not True and 读数!='removed' and 读数!='superseded' and 卡片['output'] is not None:#结果直接放在卡上
+                预=节点(文档,'pre','output')#结果
+                预.textContent=卡片['output']#原文
+                新根.appendChild(预)#结果
+        旧=自身.根#上一棵
+        父=None#挂载点
+        if 旧 is not None:#换掉
+            父=旧.parentNode#记住位置
+            旧.remove()#拆掉
+        自身.根=新根#新根
+        if 父 is None and 'parent' in 属性:#宿主指定的父节点
+            父=属性['parent']#用它
+        if 父 is not None and 新根 is not None and 新根.parentNode is not 父:#还没挂上
+            父.appendChild(新根)#挂上
+        return 新根#节点

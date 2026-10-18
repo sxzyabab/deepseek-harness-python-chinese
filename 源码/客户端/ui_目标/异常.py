@@ -1,19 +1,11 @@
-import os
-
 class 目标错误(Exception):
-    '本包异常基类'
+    '目标界面抛出的失败'
+
     def __init__(自身,消息):
-        '记下英文消息'
-        super().__init__(消息)#消息原样英文
+        '记下上游英文消息'
+        super().__init__(消息)#消息原样
 
-def 去掉敏感(文本):
-    '原文原样返回。'
-    return str(文本)
 
-def 页面失败文案(错误):
-    '类型名加原文。'
-    名=type(错误).__name__
-    说明=去掉敏感(错误)
-    if 说明=='' or 说明==名:
-        return 名
-    return 名+'：'+说明
+def 抛出会话不可用(会话标识):
+    '绑定已经不在，不能读或改这一会话的目标'
+    raise 目标错误('ui-goal: session "'+str(会话标识)+'" is unavailable')#两处共用

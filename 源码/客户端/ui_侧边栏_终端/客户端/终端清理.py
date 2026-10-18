@@ -1,88 +1,73 @@
-import importlib.resources as 包资源
-from nicegui import ui as 界面
-from ..异常 import 去掉敏感,页面失败文案
+from ...模块.客户端.通告 import 取握手窗口
+import os
+from ...ui_对话.异常 import 注入模块样式文件,模块节点
 
 __all__=['终端清理']
 
-def _读样式():
-    '读同目录清理样式。打不开时只报样式读不到，不含路径'
-    try:
-        return 包资源.files(__package__).joinpath('终端清理.module.css').read_text(encoding='utf-8')
-    except OSError:
-        raise OSError('样式读不到') from None
-
-样式表=_读样式()
-界面.add_css(样式表,shared=True)
-
-def _键齐(属性):
-    '失败列表和文案都在才画'
-    return isinstance(属性,dict) and 'useCloseFailures' in 属性 and 't' in 属性
+样式路径=os.path.join(os.path.dirname(__file__),'终端清理.module.css')
+样式模块='TerminalCleanup'
 
 class 终端清理:
     '失败清理可重试，不重建标签'
-    def __init__(自身,属性):
-        '记下 props。槽位只调用构造，键齐了就画'
+    def __init__(自身,属性=None):
+        '记下份额并画出'
         自身.属性=属性 if isinstance(属性,dict) else {}
         自身.根=None
-        if _键齐(自身.属性):
-            自身.渲染()
+        自身.已订=False
+        自身.渲染()
+        用=自身.属性.get('useCloseFailures')
+        if callable(getattr(用,'_subscribe',None)):
+            def 变更(*参数):
+                '失败列表变了就重画'
+                自身.渲染()
+            用._subscribe(变更)
+            自身.已订=True
 
     def 更新(自身,属性):
-        '刷新合成 props'
+        '换上一份份额'
         自身.属性=属性 if isinstance(属性,dict) else {}
 
-    def 重试关闭(自身,标识):
-        '请求重试结束'
-        自身.属性['retryClose'](标识)
-
-    def _失败表(自身):
-        '读当前失败列表'
-        def 取失败(值):
-            '交还原列表'
-            return 值
-        值=自身.属性['useCloseFailures'](取失败)
-        if isinstance(值,list):
-            return 值
-        return []
-
-    def _腾出(自身):
-        '清空仍挂着的根。父级已拆掉时丢掉根，并返回要显示的失败句'
-        旧=自身.根
-        if 旧 is None:
-            return None
-        try:
-            旧.clear()
-        except Exception as 错:
-            自身.根=None
-            return 页面失败文案(错)
-        return None
-
     def 渲染(自身):
-        '每条失败通知带一句说明和重试。说明去掉绝对路径'
-        if not _键齐(自身.属性):
-            return
-        清除失败=自身._腾出()
-        失败表=自身._失败表()
-        if len(失败表)==0 and not isinstance(清除失败,str):
-            return
-        if 自身.根 is None:
-            自身.根=界面.element('div').classes('dsh-term-clean-stack')
-        翻译=自身.属性['t']
-        with 自身.根:
-            if isinstance(清除失败,str) and 清除失败!='':
-                界面.label(清除失败).classes('dsh-term-clean-notice')
-            for 失败 in 失败表:
-                if not isinstance(失败,dict) or 'id' not in 失败:
-                    continue
-                标识=失败['id']
-                标题=失败['title'] if 'title' in 失败 else ''
-                说明=去掉敏感(失败['message']) if 'message' in 失败 else ''
-                def 点重试(当前=标识):
-                    '重试这一条'
-                    自身.重试关闭(当前)
-                with 界面.element('div').classes('dsh-term-clean-notice'):
-                    界面.label(翻译('cleanupFailed',{'title':标题,'message':说明}))
-                    界面.button(翻译('retry'), on_click=点重试).props('flat no-caps')
+        '没有失败就不留节点'
+        属性=自身.属性
+        if isinstance(属性,dict) and 属性.get('window') is not None:
+            窗=属性['window']
+        else:
+            窗=取握手窗口()
+        文档=窗.document
+
+        def 原样(值):
+            '失败列表'
+            return 值
+
+        失败表=属性['useCloseFailures'](原样)
+        if 自身.根 is not None:
+            自身.根.remove()
+            自身.根=None
+        if not isinstance(失败表,(list,tuple)) or len(失败表)==0:
+            return None
+        注入模块样式文件(文档,'终端清理样式',样式路径,样式模块)
+        根=模块节点(文档,'div',样式模块,'stack')
+        for 失败 in 失败表:
+            条=模块节点(文档,'div',样式模块,'notice')
+            条.setAttribute('role','alert')
+            字=文档.createElement('span')
+            字.textContent='终端「'+str(失败['title'])+'」未能结束：'+str(失败['message'])
+            钮=文档.createElement('button')
+            钮.type='button'
+            钮.textContent='重试'
+            def 点(事件,标识=失败['id']):
+                '再请求结束这一路'
+                属性['retryClose'](标识)
+            钮.addEventListener('click',点)
+            条.appendChild(字)
+            条.appendChild(钮)
+            根.appendChild(条)
+        自身.根=根
+        父=属性.get('parent')
+        if 父 is not None:
+            父.appendChild(根)
+        return 根
 
     def __call__(自身,属性=None):
         '有新属性先更新，再画出'

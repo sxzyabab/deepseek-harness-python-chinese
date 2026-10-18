@@ -17,7 +17,7 @@ __all__=['应用','配置','语音转写','依赖']
     'language':字符串字段(最小长度=1,默认值='auto'),
 })
 
-def 读易失(字段):
+def 读取易失(字段):
     '插件配置易失字段；有 get 则调，否则当值'
     if hasattr(字段,'get') and callable(字段.get):
         return 字段.get()
@@ -142,8 +142,8 @@ class 语音转写(服务):
         return {
             'providers':视图,
             'selection':{
-                'providerId':语音提供方标识(读易失(自身.配置['defaultProvider'])),
-                'language':读易失(自身.配置['language']),
+                'providerId':语音提供方标识(读取易失(自身.配置['defaultProvider'])),
+                'language':读取易失(自身.配置['language']),
             },
         }
 
@@ -153,8 +153,8 @@ class 语音转写(服务):
         条目=自身.条目标识
         if 设置 is None or 条目 is None:
             raise RuntimeError('Speech selection requires the settings service and a profile entry')
-        标识=补丁['providerId'] if 'providerId' in 补丁 and 补丁['providerId'] is not None else 语音提供方标识(读易失(自身.配置['defaultProvider']))
-        语言=补丁['language'] if 'language' in 补丁 and 补丁['language'] is not None else 读易失(自身.配置['language'])
+        标识=补丁['providerId'] if 'providerId' in 补丁 and 补丁['providerId'] is not None else 语音提供方标识(读取易失(自身.配置['defaultProvider']))
+        语言=补丁['language'] if 'language' in 补丁 and 补丁['language'] is not None else 读取易失(自身.配置['language'])
         自身.选定提供方(标识,语言)
         更新={}
         if 'providerId' in 补丁 and 补丁['providerId'] is not None:
@@ -195,8 +195,8 @@ class 语音转写(服务):
 
     def 解析(自身,请求):
         '套组合默认并钉死已登记提供方'
-        标识=请求['providerId'] if 'providerId' in 请求 and 请求['providerId'] is not None else 语音提供方标识(读易失(自身.配置['defaultProvider']))
-        语言=请求['language'] if 'language' in 请求 and 请求['language'] is not None else 读易失(自身.配置['language'])
+        标识=请求['providerId'] if 'providerId' in 请求 and 请求['providerId'] is not None else 语音提供方标识(读取易失(自身.配置['defaultProvider']))
+        语言=请求['language'] if 'language' in 请求 and 请求['language'] is not None else 读取易失(自身.配置['language'])
         return {
             'provider':自身.选定提供方(标识,语言),
             'audio':请求['audio'],

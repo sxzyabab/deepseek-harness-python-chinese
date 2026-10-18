@@ -22,7 +22,7 @@ __all__=['会话媒体引用']#仅中文公开名
     'FS_ABORTED':499,
 }#错误状态表结束
 
-def _失败(请求,状态,文本):
+def _失败响应(请求,状态,文本):
     '失败响应；HEAD 无体'
     方法=请求['method'] if 'method' in 请求 else 'GET'#方法
     正文=None if 方法=='HEAD' else 文本.encode('utf-8')#体
@@ -35,9 +35,9 @@ def 提供文件(请求,文件系统,最大字节):
     路径列表=参数['path'] if 'path' in 参数 else []#path
     路径=路径列表[0] if len(路径列表)>0 else None#首值
     if 路径 is None or 路径=='':#缺路径
-        return _失败(请求,400,'missing path')#缺路径
+        return _失败响应(请求,400,'missing path')#缺路径
     if '\0' in 路径 or not os.path.isabs(路径):#须绝对路径
-        return _失败(请求,400,'absolute path required')#须绝对路径
+        return _失败响应(请求,400,'absolute path required')#须绝对路径
     信号=请求['signal'] if 'signal' in 请求 else None#中止
     方法=请求['method'] if 'method' in 请求 else 'GET'#方法
     try:
@@ -48,21 +48,21 @@ def 提供文件(请求,文件系统,最大字节):
         if 方法=='HEAD':#仅元数据
             信息=文件系统.状态(目标,信号)#stat
             if 信息 is None:#不存在
-                return _失败(请求,404,'not found')#不存在
+                return _失败响应(请求,404,'not found')#不存在
             if 信息['type']!='file':#非普通文件
-                return _失败(请求,403,'not a regular file')#非普通文件
+                return _失败响应(请求,403,'not a regular file')#非普通文件
             if 'size' in 信息 and 信息['size'] is not None:#已知大小
                 if 信息['size']>最大字节:#超限
-                    return _失败(请求,413,'file exceeds byte limit')#超限
+                    return _失败响应(请求,413,'file exceeds byte limit')#超限
                 头['Content-Length']=str(信息['size'])#长度
             return {'status':200,'headers':头,'body':None}#HEAD 无体
-        字节=文件系统.读字节(目标,信号,最大字节)#读字节
+        字节=文件系统.读取字节(目标,信号,最大字节)#读字节
         字节=bytes(字节)#切片拷贝
         头['Content-Length']=str(len(字节))#长度
         return {'status':200,'headers':头,'body':字节}#返回体
     except 文件系统错误 as 错误:
         状态=错误状态表[错误.code] if 错误.code in 错误状态表 else 500#映射
-        return _失败(请求,状态,错误.code)#映射失败
+        return _失败响应(请求,状态,错误.code)#映射失败
 
 依赖=['connection','fs','attachments']
 

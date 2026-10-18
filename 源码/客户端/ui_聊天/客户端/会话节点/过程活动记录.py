@@ -1,32 +1,28 @@
-import json,re
 from ..约定.聊天节点 import 是运行中工具
 
-__all__=['过程活动记录']
+__all__=['过程活动']
 
-空白折叠=re.compile(r'\s+',re.ASCII)
-段落切开=re.compile(r'\r?\n[\t ]*\r?\n')
-
-现场工具详情最大字=160
-现场工具详情键=(
+细节上限=160
+前缀上限=512
+细节键=(
     'title','description','objective','task','task_name','name','question','questions','prompt','message',
     'command','cmd','queries','query','pattern','url','uri','file_path','path','target','action','status',
 )
-命令名表=frozenset(['bash','pwsh','exec_command','write_stdin'])
-计划名表=frozenset(['todo_write','create_goal','update_goal','get_goal'])
+
 
 def 活动种类(名称):
-    '工具名 → 过程活动类别'
+    '工具名归到过程活动类别'
     if 名称=='read':
         return 'read'
     if 名称=='read_image':
         return 'readImage'
-    if 名称=='grep' or 名称=='glob' or 名称.endswith('_inspect'):
+    if 名称=='grep' or 名称=='glob' or (isinstance(名称,str) and 名称.endswith('_inspect')):
         return 'search'
     if 名称=='write':
         return 'write'
     if 名称=='edit' or 名称=='apply_patch':
         return 'edit'
-    if 名称 in 命令名表 or 名称.startswith('terminal_'):
+    if 名称 in ('bash','pwsh','exec_command','write_stdin') or (isinstance(名称,str) and 名称.startswith('terminal_')):
         return 'commands'
     if 名称=='run_code':
         return 'code'
@@ -34,125 +30,158 @@ def 活动种类(名称):
         return 'webSearch'
     if 名称=='web_fetch':
         return 'webFetch'
-    if 名称=='subagent' or 名称.startswith('subagent_'):
+    if 名称=='subagent' or (isinstance(名称,str) and 名称.startswith('subagent_')):
         return 'subagents'
-    if 名称 in 计划名表:
+    if 名称 in ('todo_write','create_goal','update_goal','get_goal'):
         return 'plan'
     if 名称=='ask_user_question' or 名称=='request_user_input':
         return 'questions'
     return 'tools'
 
-def 规范现场工具详情(值):
-    '压空白并按码点截到上限'
-    if isinstance(值,str):
-        文本=值
-    elif isinstance(值,list) and all(isinstance(项,str) for 项 in 值):
-        文本=', '.join(值)
-    else:
-        文本=''
-    规范化=空白折叠.sub(' ',文本,count=0).strip()
-    字列表=list(规范化)
-    if len(字列表)<=现场工具详情最大字:
-        return 规范化
-    return ''.join(字列表[:现场工具详情最大字-1]).rstrip()+'…'
 
-def 提问详情(值):
-    '问题列表里第一条非空 question'
+def 规范化文本(文):
+    '压空白。超过上限按字符截断并加省略号'
+    规范=' '.join(文.split())
+    if len(规范)<=细节上限:
+        return 规范
+    return 规范[:细节上限-1].rstrip()+'…'
+
+
+def 规范化细节(值):
+    '字符串或全字符串列表才做成一行细节'
+    if isinstance(值,str):
+        文=值
+    elif isinstance(值,list) and all(isinstance(项,str) for 项 in 值):
+        文=', '.join(值)
+    else:
+        文=''
+    return 规范化文本(文)
+
+
+def 问题细节(值):
+    '提问列表里第一条有字的问题'
     if not isinstance(值,list):
         return ''
     for 项 in 值:
         if not isinstance(项,dict):
             continue
-        详情=规范现场工具详情(项['question'] if 'question' in 项 else None)
-        if 详情!='':
-            return 详情
+        细节=规范化细节(项.get('question'))
+        if 细节!='':
+            return 细节
     return ''
 
-def 现场推理详情(节点列表):
-    '自后向前取运行中助手步骤的推理段'
-    下标=len(节点列表)-1
+
+def 参数文本细节(参数,键):
+    '按参数视图读这个键已经到达的文本'
+    上限=前缀上限
+    while True:
+        前缀=参数.textPrefix(键,上限)
+        if 前缀 is None:
+            return None
+        if len(前缀)>0:
+            末=ord(前缀[-1])
+            if 0xD800<=末<=0xDBFF:
+                延伸=参数.textPrefix(键,上限+1)
+                if isinstance(延伸,str) and len(延伸)>len(前缀):
+                    下=ord(延伸[len(前缀)])
+                    if 0xDC00<=下<=0xDFFF:
+                        前缀=延伸
+                        上限+=1
+                elif isinstance(延伸,str) and len(延伸)==len(前缀) and not 参数.isSealed and not 参数.complete(键):
+                    前缀=前缀[:-1]
+        细节=规范化文本(前缀)
+        超了=参数.stringExceeds(键,上限)
+        if 细节.endswith('…') or not 超了:
+            return 细节
+        上限*=2
+
+
+def 推理细节(节点表):
+    '从后往前找正在跑的推理，取最后一段非空文字'
+    下标=len(节点表)-1
     while 下标>=0:
-        节点=节点列表[下标]
+        节点=节点表[下标]
+        数据=节点.get('data') if isinstance(节点,dict) else None
+        if isinstance(节点,dict) and 节点.get('kind')=='assistant-step' and isinstance(数据,dict) and 数据.get('status')=='running':
+            块表=数据.get('blocks') if isinstance(数据.get('blocks'),list) else []
+            块下标=len(块表)-1
+            while 块下标>=0:
+                块=块表[块下标]
+                if isinstance(块,dict) and 块.get('kind')=='reasoning' and isinstance(块.get('text'),str):
+                    段=块['text'].replace('\r\n','\n').split('\n')
+                    段下标=len(段)-1
+                    while 段下标>=0:
+                        细节=规范化细节(段[段下标].replace('**','').strip())
+                        if 细节!='':
+                            return 细节
+                        段下标-=1
+                块下标-=1
         下标-=1
-        if 节点['kind']!='assistant-step':
-            continue
-        数据=节点['data']
-        if 数据['status']!='running':
-            continue
-        块列表=数据['blocks']
-        块下=len(块列表)-1
-        while 块下>=0:
-            块=块列表[块下]
-            块下-=1
-            if 块['kind']!='reasoning':
-                continue
-            段落表=段落切开.split(块['text'])
-            段下=len(段落表)-1
-            while 段下>=0:
-                段=段落表[段下].replace('**','')
-                段下-=1
-                详情=规范现场工具详情(段)
-                if 详情!='':
-                    return 详情
     return ''
 
-def 现场工具详情(名称,参数原文):
-    '从参数对象按键序抽出一行任务详情'
-    try:
-        参数=json.loads(参数原文)
-    except (TypeError,ValueError,json.JSONDecodeError):
-        return 规范现场工具详情(名称)
-    if not isinstance(参数,dict):
-        return 规范现场工具详情(名称)
-    for 键 in 现场工具详情键:
-        if 键 not in 参数:
-            continue
-        值=参数[键]
-        详情=提问详情(值) if 键=='questions' else 规范现场工具详情(值)
-        if 详情!='':
-            return 详情
-    return 规范现场工具详情(名称)
 
-def 过程活动记录(节点列表):
-    '按不同调用计数排名，并列按首次出现；并给出最近运行中工具类别与有界任务详情'
-    计数表={}
+def 工具细节(名称,参数):
+    '第一个已经有字的细节键。没有且参数已关闭时用工具名'
+    for 键 in 细节键:
+        if not 参数.has(键):
+            continue
+        if 键=='questions':
+            细节=问题细节(参数.value(键))
+        else:
+            文本=参数文本细节(参数,键)
+            细节=文本 if 文本 is not None else 规范化细节(参数.value(键))
+        if 细节!='':
+            return 细节
+    if 参数.closed():
+        return 规范化细节(名称)
+    return ''
+
+
+def 过程活动(节点表):
+    '按互不相同的调用次数给类别排序，并给出最新正在跑的任务细节'
+    计数={}
+    顺序=[]
     已见=set()
-    运行中=None
-    运行详情=''
-    运行时刻=float('-inf')
+    正在=None
+    正在细节=''
+    正在时间=None
     准备中=None
+
     def 访问(工具):
-        '递归计入一次调用'
-        nonlocal 运行中,运行详情,运行时刻,准备中
-        调用标识=工具['callId']
-        if 调用标识 in 已见:
+        '深度优先看这次调用和它的子调用'
+        nonlocal 正在,正在细节,正在时间,准备中
+        if not isinstance(工具,dict) or 工具.get('callId') in 已见:
             return
-        已见.add(调用标识)
-        调用=工具 if 是运行中工具(工具) else 工具['call']
-        if 调用 is not None:
-            种=活动种类(调用['name'])
-            if 是运行中工具(工具) and 工具['time']>=运行时刻:
-                运行中=种
-                准备中=工具['phase']=='preparing'
-                if 工具['phase']=='preparing':
-                    运行详情=工具['name'] if 种=='tools' else ''
-                else:
-                    运行详情=现场工具详情(工具['name'],工具['argsRaw'])
-                运行时刻=工具['time']
-            计数表[种]=(计数表[种] if 种 in 计数表 else 0)+1
-        for 子 in 工具['subCalls']:
+        已见.add(工具.get('callId'))
+        调用=工具 if 是运行中工具(工具) else 工具.get('call')
+        if isinstance(调用,dict):
+            种类=活动种类(调用.get('name'))
+            if 是运行中工具(工具) and (正在时间 is None or 工具.get('time')>=正在时间):
+                正在=种类
+                准备中=工具.get('phase')=='preparing'
+                正在细节=工具细节(工具.get('name'),工具.get('args'))
+                正在时间=工具.get('time')
+            计数[种类]=计数.get(种类,0)+1
+            if 种类 not in 顺序:
+                顺序.append(种类)
+        子表=工具.get('subCalls') if isinstance(工具.get('subCalls'),list) else []
+        for 子 in 子表:
             访问(子)
-    for 节点 in 节点列表:
-        if 节点['kind']=='tool-call':
-            访问(节点['data']['root'])
-    if 运行中 is None:
-        运行详情=现场推理详情(节点列表)
-    def 按计数(项):
-        '排名键：调用次数'
-        return 项['count']
-    排名=[{'kind':种,'count':计数表[种]} for 种 in 计数表]
-    排名.sort(key=按计数,reverse=True)
-    结果={'counts':排名,'running':运行中,'runningDetail':运行详情}
-    if 准备中 is True:
+
+    for 节点 in 节点表:
+        if isinstance(节点,dict) and 节点.get('kind')=='tool-call':
+            数据=节点.get('data') if isinstance(节点.get('data'),dict) else {}
+            访问(数据.get('root'))
+    if 正在 is None:
+        正在细节=推理细节(节点表)
+    计数表=[{'kind':种类,'count':计数[种类]} for 种类 in 顺序]
+    计数表.sort(key=按次数)
+    结果={'counts':计数表,'running':正在,'runningDetail':正在细节}
+    if 准备中:
         结果['preparing']=True
     return 结果
+
+
+def 按次数(项):
+    '次数多的排前面'
+    return -项['count']

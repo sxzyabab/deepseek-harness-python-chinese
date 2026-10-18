@@ -1,164 +1,199 @@
-'右侧栏拥有的命令：对着当前已挂载页解析'
+'右侧栏自己的快捷键，对着当前挂着的页面解析'
+from ...模块.客户端.通告 import 取握手窗口
+from ...ui_基础界面组件.模态层 import 关栈顶模态
+from .文案 import 中文
 
-__all__=['登记右侧侧栏快捷键']#仅中文公开名
+__all__=['登记右侧侧栏快捷键']
 
-def 关闭顶层模态(文档):
-    '对齐 closeTopModal：关掉最前登记模态的 onClose'
-    closeTopModal(文档)#关顶层
 
-def 登记右侧侧栏快捷键(快捷键,侧栏,译,关闭窗口):
-    """在可见控件所用控制器上登记侧栏命令。
-    快捷键为本窗口有效绑定注册表；侧栏为当前会话与页拥有方；
-    译为 sidebarRight 命名空间翻译；关闭窗口用当前配置修订号的私有原生关窗。
-    返回命令释放回调
-    """
+def 登记右侧侧栏快捷键(快捷键,侧栏,翻译,关闭窗口):
+    '登记展开、分栏、全屏、关闭和刷新。显示用中文表'
     def 原因(种类,目标):
-        '分栏/全屏不可用时的阻断文案，可用则 None'
-        if 种类=='split':#分栏
-            阻断=侧栏.splitBlock(目标)#阻断键
-            return None if 阻断 is None else 译('command.'+阻断)#文案
-        if 目标['host']=='float':#浮层
-            return 译('command.float')#浮层不可全屏
-        return None#可用
-    拆除表=[]#释放器表
-    def 切换解析(_面=None):
-        '展开／收起右侧栏'
-        目标=侧栏.commandTarget(None)#命令目标
-        if 目标 is None:#无会话
-            return {'status':'blocked','reason':译('command.noSession')}#阻断
-        def 跑():
-            '当前目标才切换'
-            if 侧栏.isTargetCurrent(目标):#仍当前
-                侧栏.toggleExpanded()#切
-        return {'status':'handled','run':跑}#已处理
+        '分栏和全屏现在为什么不能做'
+        if 种类=='split':
+            阻断=侧栏.分栏阻断(目标)
+            if 阻断 is None:
+                return None
+            return 中文['command.'+阻断]
+        if 目标['host']=='float':
+            return 中文['command.float']
+        return None
+
+    拆除表=[]
+
     def 切换标签():
-        '切换右侧栏标签'
-        return 译('command.toggle')#标签
-    拆除表.append(快捷键.register({#切换右侧栏
-        'id':'sidebar.right.toggle',#命令 id
-        'label':切换标签,#标签
-        'aliases':['right sidebar','toggle right panel'],#别名
-        'defaults':{#各平台
+        '展开或收起'
+        return 中文['command.toggle']
+
+    def 切换解析():
+        '没有会话就挡住'
+        目标=侧栏.命令目标(None)
+        if 目标 is None:
+            return {'status':'blocked','reason':中文['command.noSession']}
+
+        def 执行():
+            '目标还在才切换'
+            if 侧栏.目标仍当前(目标):
+                侧栏.切换展开()
+
+        return {'status':'handled','run':执行}
+
+    拆除表.append(快捷键.register({
+        'id':'sidebar.right.toggle',
+        'label':切换标签,
+        'aliases':['right sidebar','toggle right panel'],
+        'defaults':{
             'desktop:macos':{'code':'KeyB','modifiers':['primary','alt']},
             'desktop:windows':{'code':'KeyB','modifiers':['primary','alt']},
             'desktop:linux':{'code':'KeyB','modifiers':['primary','alt']},
             'web:macos':{'code':'KeyB','modifiers':['primary','shift']},
             'web:windows':{'code':'KeyB','modifiers':['primary','shift']},
-        },#默认结束
-        'regions':['page','editable','terminal'],#区域
-        'modals':[],#模态
-        'resolve':切换解析,#解析
-    }))#登记结束
-    for 种类 in ('split','fullscreen'):#分栏与全屏
-        绑定=({'code':'Backslash','modifiers':['primary']} if 种类=='split'
-            else {'code':'Enter','modifiers':['primary','alt']})#绑定
-        def 造标签(种=种类):
-            '闭包固定种类的标签'
-            def 标签():
-                '分栏或全屏标签'
-                return 译('dock.splitPane' if 种=='split' else 'command.fullscreen')#标签
-            return 标签#标签器
-        def 造解析(种=种类):
-            '闭包固定种类'
-            def 解析(面):
-                '分栏或全屏'
-                元素=面['target'] if isinstance(面,dict) else 面.target#元素
-                目标=侧栏.focusedTarget(元素)#焦点目标
-                if 目标 is None:#无焦点
-                    return {'status':'blocked','reason':译('command.noFocus')}#阻断
-                不可用=原因(种,目标)#阻断文案
-                if 不可用 is not None:#不可用
-                    return {'status':'blocked','reason':不可用}#阻断
-                def 跑():
-                    '当前目标才执行'
-                    if not 侧栏.isTargetCurrent(目标):#已过期
-                        return#止
-                    if 种=='split':#分栏
-                        侧栏.split(目标['paneId'])#分
-                    else:#全屏
-                        侧栏.toggleFullscreen(目标)#切
-                return {'status':'handled','run':跑}#已处理
-            return 解析#解析器
-        拆除表.append(快捷键.register({#分栏或全屏
-            'id':'pane.split' if 种类=='split' else 'pane.fullscreen.toggle',#命令 id
-            'label':造标签(),#标签
-            'aliases':[种类,'panel'],#别名
-            'defaults':{#各平台同绑定
-                'desktop:macos':绑定,'desktop:windows':绑定,'desktop:linux':绑定,
-                'web:macos':绑定,'web:windows':绑定,
-            },#默认结束
-            'regions':['page','editable','terminal'],#区域
-            'modals':[],#模态
-            'resolve':造解析(),#解析
-        }))#登记结束
-    for 种类 in ('close','refresh'):#关闭与刷新
-        桌面={'code':'KeyW' if 种类=='close' else 'KeyR','modifiers':['primary']}#桌面
-        网页={**桌面,'modifiers':['primary','alt']}#网页
-        默认={#各平台
-            'desktop:macos':桌面,'desktop:windows':桌面,'desktop:linux':桌面,
+        },
+        'regions':['page','editable','terminal'],
+        'modals':[],
+        'resolve':切换解析,
+    }))
+    for 种类 in ('split','fullscreen'):
+        if 种类=='split':
+            绑定={'code':'Backslash','modifiers':['primary']}
+            命令标识='pane.split'
+
+            def 分栏标签():
+                '分栏'
+                return 中文['dock.splitPane']
+
+            标签=分栏标签
+        else:
+            绑定={'code':'Enter','modifiers':['primary','alt']}
+            命令标识='pane.fullscreen.toggle'
+
+            def 全屏标签():
+                '全屏'
+                return 中文['command.fullscreen']
+
+            标签=全屏标签
+
+        def 做解析(输入,种类=种类):
+            '先看焦点，再看这一格能不能做'
+            元素=输入.get('target') if isinstance(输入,dict) else None
+            目标=侧栏.聚焦目标(元素)
+            if 目标 is None:
+                return {'status':'blocked','reason':中文['command.noFocus']}
+            不可=原因(种类,目标)
+            if 不可 is not None:
+                return {'status':'blocked','reason':不可}
+
+            def 执行():
+                '目标换过就停'
+                if not 侧栏.目标仍当前(目标):
+                    return
+                if 种类=='split':
+                    侧栏.分栏(目标['paneId'])
+                else:
+                    侧栏.切换全屏(目标)
+
+            return {'status':'handled','run':执行}
+
+        拆除表.append(快捷键.register({
+            'id':命令标识,
+            'label':标签,
+            'aliases':[种类,'panel'],
+            'defaults':{
+                'desktop:macos':绑定,
+                'desktop:windows':绑定,
+                'desktop:linux':绑定,
+                'web:macos':绑定,
+                'web:windows':绑定,
+            },
+            'regions':['page','editable','terminal'],
+            'modals':[],
+            'resolve':做解析,
+        }))
+    for 种类 in ('close','refresh'):
+        桌面={'code':'KeyW' if 种类=='close' else 'KeyR','modifiers':['primary']}
+        网页={'code':桌面['code'],'modifiers':['primary','alt']}
+        默认={
+            'desktop:macos':桌面,
+            'desktop:windows':桌面,
+            'desktop:linux':桌面,
             'web:windows':网页,
-        }#默认
-        if 种类=='close':#关闭才绑 web mac
-            默认['web:macos']=网页#web mac
-        def 造页标签(种=种类):
-            '闭包固定种类的页命令标签'
-            def 标签():
-                '关页或刷新标签'
-                return 译('command.'+种)#标签
-            return 标签#标签器
-        def 造页解析(种=种类):
-            '闭包固定种类'
-            def 解析(面):
-                '关页或刷新'
-                元素=面['target'] if isinstance(面,dict) else 面.target#元素
-                来源=面['source'] if isinstance(面,dict) else 面.source#来源
-                模态=面['modal'] if isinstance(面,dict) else 面.modal#模态
-                if 种=='close' and 模态 is not None:#关模态优先
-                    def 关模态():
-                        '关顶层模态'
-                        关闭顶层模态(document)#关
-                    return {'status':'handled','run':关模态}#已处理
-                目标=侧栏.focusedTarget(元素)#焦点目标
-                if 目标 is None and (来源=='iframe' or (元素 is not None
-                    and 元素.closest('[data-sidebar-right-session]'))):#陈旧
-                    return {'status':'blocked','reason':译('command.stale')}#阻断
-                if 种=='refresh':#刷新
-                    出现=目标['occurrence'] if 目标 is not None else None#出现次
-                    命令=出现['commands'] if 出现 is not None else None#命令表
-                    刷新=命令['refresh'] if 命令 is not None and 'refresh' in 命令 else None#刷新
-                    if 目标 is None or 刷新 is None:#无刷新
-                        return {'status':'blocked','reason':译('command.noRefresh')}#阻断
-                    def 跑刷新(目=目标,刷=刷新):
-                        '仍当前且刷新句柄未换才刷'
-                        现出现=目['occurrence']#现出现
-                        现刷=现出现['commands']['refresh'] if 现出现 is not None else None#现刷
-                        if 侧栏.isTargetCurrent(目) and 现刷 is 刷:#仍有效
-                            刷()#刷
-                    return {'status':'handled','run':跑刷新}#已处理
-                if 目标 is not None and 侧栏.canCloseTarget(目标):#可关页
-                    def 跑关(目=目标):
-                        '关目标'
-                        侧栏.closeTarget(目)#关
-                    return {'status':'handled','run':跑关}#已处理
-                if 快捷键.runtime!='desktop':#非桌面无退路
-                    return {'status':'blocked','reason':译('command.noFocus')}#阻断
-                def 跑关窗(目=目标):
-                    '无目标或仍当前则关窗'
-                    if 目 is None or 侧栏.isTargetCurrent(目):#可关窗
-                        关闭窗口()#关窗
-                return {'status':'handled','run':跑关窗}#已处理
-            return 解析#解析器
-        拆除表.append(快捷键.register({#关页或刷新
-            'id':'page.'+种类,#命令 id
-            'label':造页标签(),#标签
-            'aliases':[种类,'page'],#别名
-            'defaults':默认,#默认
-            'regions':['page','editable','terminal'],#区域
-            'modals':['settings','shortcuts','other'] if 种类=='close' else [],#关闭参与模态
-            'resolve':造页解析(),#解析
-        }))#登记结束
+        }
+        if 种类=='close':
+            默认['web:macos']=网页
+
+            def 关闭标签():
+                '关闭'
+                return 中文['command.close']
+
+            标签=关闭标签
+            模态=['settings','shortcuts','other']
+        else:
+            def 刷新标签():
+                '刷新'
+                return 中文['command.refresh']
+
+            标签=刷新标签
+            模态=[]
+
+        def 页解析(输入,种类=种类):
+            '模态里的关闭先关模态。刷新只跑页面自己的刷新'
+            元素=输入.get('target') if isinstance(输入,dict) else None
+            来源=输入.get('source') if isinstance(输入,dict) else None
+            模态名=输入.get('modal') if isinstance(输入,dict) else None
+            if 种类=='close' and 模态名 is not None:
+                def 关模态():
+                    '关掉最前的模态'
+                    关栈顶模态(取握手窗口().document)
+                return {'status':'handled','run':关模态}
+            目标=侧栏.聚焦目标(元素)
+            在侧栏里=False
+            if 元素 is not None:
+                在侧栏里=元素.closest('[data-sidebar-right-session]') is not None
+            if 目标 is None and (来源=='iframe' or 在侧栏里):
+                return {'status':'blocked','reason':中文['command.stale']}
+            if 种类=='refresh':
+                刷新=None
+                if 目标 is not None and 目标.get('occurrence') is not None:
+                    刷新=目标['occurrence']['commands'].get('refresh')
+                if 目标 is None or 刷新 is None:
+                    return {'status':'blocked','reason':中文['command.noRefresh']}
+
+                def 执行刷新(刷新=刷新,目标=目标):
+                    '还是这一页才刷新'
+                    出现=目标.get('occurrence')
+                    仍是=出现 is not None and 出现['commands'].get('refresh') is 刷新
+                    if 侧栏.目标仍当前(目标) and 仍是:
+                        刷新()
+
+                return {'status':'handled','run':执行刷新}
+            if 目标 is not None and 侧栏.可关闭目标(目标):
+                def 执行关闭(目标=目标):
+                    '关掉捕获到的这一页'
+                    侧栏.关闭目标(目标)
+                return {'status':'handled','run':执行关闭}
+            if 快捷键.runtime!='desktop':
+                return {'status':'blocked','reason':中文['command.noFocus']}
+
+            def 关窗口(目标=目标):
+                '桌面下，焦点不在侧栏或还是这一页，就关窗口'
+                if 目标 is None or 侧栏.目标仍当前(目标):
+                    关闭窗口()
+
+            return {'status':'handled','run':关窗口}
+
+        拆除表.append(快捷键.register({
+            'id':'page.'+种类,
+            'label':标签,
+            'aliases':[种类,'page'],
+            'defaults':默认,
+            'regions':['page','editable','terminal'],
+            'modals':模态,
+            'resolve':页解析,
+        }))
+
     def 拆除():
-        '逆序释放全部命令'
-        for 卸 in reversed(拆除表):#逆序
-            卸()#卸
-    return 拆除#拆除器
+        '按登记的反序摘掉'
+        for 拆 in reversed(拆除表):
+            拆()
+
+    return 拆除

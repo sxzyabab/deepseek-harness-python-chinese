@@ -1,8 +1,8 @@
-from ....基础设施.通用工具 import 观察者集合
-from .约束 import 可分割#限额
-from .初值 import 创建标识铸造,创建初始状态#初值
-from .规划 import (#规划
-    活动停靠窗格标识 as _活动停靠,
+'一块停靠面的有状态嵌入。每个方法都是规划、记录、再通知一次'
+from .约束 import 可分割
+from .初值 import 创建标识铸造,创建初始状态
+from .规划 import (
+    活动停靠窗格标识 as 停靠活动窗格,
     规划加标签,
     规划投放标签,
     规划复制标签,
@@ -14,175 +14,177 @@ from .规划 import (#规划
     规划设模式,
     规划分窗格,
     规划收回浮窗,
-)#规划结束
-from .序列 import 序列器#历史
+)
+from .序列 import 序列器
 
-__all__=['停靠快照','停靠控制器']#仅中文公开名
-
-
-class 停靠快照:
-    '渲染层只读的一份布局与限额快照'
-
-    def __init__(自身,状态,可撤销,可重做,可分割标志,操作数,游标):
-        '记下字段'
-        自身.状态=状态#layout
-        自身.可撤销=可撤销#undo
-        自身.可重做=可重做#redo
-        自身.可分割=可分割标志#budget
-        自身.操作数=操作数#含重做枝
-        自身.游标=游标#已施加意图数
-
+__all__=['停靠控制器']
 
 class 停靠控制器:
-    '一面：历史、限额、变更通知；满足停靠意图约定方法名'
-
+    '一块停靠面的历史、交互上限和变更通知。快照引用在布局没变时保持不变'
     def __init__(自身,选项=None):
-        '选项 dict 可含 makeInitialTab / makePaneTab / mode'
-        if 选项 is None:#默认
-            选项={}#空
-        自身._铸造=创建标识铸造()#可调用
-        自身._造窗格标签=选项['makePaneTab'] if 'makePaneTab' in 选项 else None#工厂
-        模式=选项['mode'] if 'mode' in 选项 else None#模式
-        造首=选项['makeInitialTab'] if 'makeInitialTab' in 选项 else None#首
-        if 模式 is None:#默认推挤
-            初=创建初始状态(自身._铸造,造首)#初
-        else:#显式模式
-            初=创建初始状态(自身._铸造,造首,模式)#初
-        自身._序列=序列器(初)#序列
-        自身._监听者=观察者集合()#订阅
-        自身._快照=自身._建快照()#首快照
+        '用嵌入方的种子工厂造出折叠的初始状态'
+        if 选项 is None:
+            选项={}
+        自身._铸造=创建标识铸造()
+        if 'makePaneTab' in 选项:
+            自身._窗格标签=选项['makePaneTab']
+        else:
+            自身._窗格标签=None
+        if 'makeInitialTab' in 选项:
+            初始标签=选项['makeInitialTab']
+        else:
+            初始标签=None
+        if 'mode' in 选项:
+            模式=选项['mode']
+        else:
+            模式='push'
+        自身._序列=序列器(创建初始状态(自身._铸造,初始标签,模式))
+        自身._听者=set()
+        自身._快照=自身.建快照()
 
-    def 订阅(自身,监听):
-        '观察布局变更；返回拆除器'
-        return 自身._监听者.订阅(监听)#拆除器
+    def 订阅(自身,听者):
+        '布局提交之后调用听者。返回摘掉听者的函数'
+        自身._听者.add(听者)
+        def 退订():
+            '摘掉这个听者'
+            自身._听者.discard(听者)
+        return 退订
 
     def 取快照(自身):
-        '当前快照；布局不变则同一引用'
-        return 自身._快照#快照
+        '当前快照。布局没变时是同一个对象'
+        return 自身._快照
 
     @property
     def 操作表(自身):
-        '已记操作（含重做枝）'
-        return 自身._序列.操作表#表
+        '记过的操作，含未重做的一支'
+        return 自身._序列.操作表
 
-    def _建快照(自身):
-        '自序列器建快照'
-        状态=自身._序列.状态#态
-        return 停靠快照(#快照
-            状态,
-            自身._序列.可撤销,
-            自身._序列.可重做,
-            可分割(状态),
-            len(自身._序列.操作表),
-            自身._序列.游标,
-        )#结束
+    def 建快照(自身):
+        '按序列器现在的状态组一份快照'
+        状态=自身._序列.状态
+        return {
+            'state':状态,
+            'canUndo':自身._序列.可撤销,
+            'canRedo':自身._序列.可重做,
+            'canSplit':可分割(状态),
+            'opCount':len(自身._序列.操作表),
+            'cursor':自身._序列.游标,
+        }
 
-    def _提交(自身):
-        '换快照并通知'
-        自身._快照=自身._建快照()#新
-        自身._监听者.通知()#回调
+    def 提交(自身):
+        '换成新快照，再通知已经在听的人'
+        自身._快照=自身.建快照()
+        for 听者 in list(自身._听者):
+            听者()
 
-    @property
-    def _状态(自身):
-        '当前布局'
-        return 自身._序列.状态#态
+    def 取状态(自身):
+        '序列器里的当前布局'
+        return 自身._序列.状态
 
-    def _运行(自身,操作表):
-        '录一意图；空则 False'
-        if 操作表 is None or len(操作表)==0:#空
-            return False#未录
-        自身._序列.派发全部(操作表)#录
-        自身._提交()#通知
-        return True#已录
+    def 铸造(自身):
+        '下一枚标识'
+        return 自身._铸造['next']
+
+    def 运行(自身,操作表):
+        '把规划出的操作记成一条。空规划不记录、不通知'
+        if len(操作表)==0:
+            return False
+        自身._序列.派发全部(操作表)
+        自身.提交()
+        return True
 
     def 设展开(自身,展开):
-        '展开或折叠停靠区'
-        自身._运行(规划设展开(自身._状态,展开))#跑
+        '展开或折叠停靠区。浮动面板不受影响'
+        自身.运行(规划设展开(自身.取状态(),展开))
 
     def 切换展开(自身):
-        '翻转展开'
-        自身.设展开(not 自身._状态['expanded'])#翻
+        '在展开和折叠之间翻一面'
+        自身.设展开(not 自身.取状态()['expanded'])
 
     def 设模式(自身,模式):
-        '切换呈现'
-        自身._运行(规划设模式(自身._状态,模式))#跑
+        '切换停靠区怎么呈现'
+        自身.运行(规划设模式(自身.取状态(),模式))
 
-    def 打开内容(自身,入):
-        '打开或聚焦；返回 tabId。入为 dict'
-        规划=规划打开内容(自身._状态,自身._铸造,入)#规划
-        自身._运行(规划['ops'])#跑
-        return 规划['tabId']#落点
+    def splitPane(自身,窗格标识=None):
+        '在窗格右侧切开并种入窗格标签。到了窗格上限就返回 False'
+        return 自身.运行(规划分窗格(自身.取状态(),自身.铸造(),窗格标识,自身._窗格标签))
+
+    def addTab(自身,窗格标识):
+        '把窗格标签工厂的标签加到条带末尾'
+        return 自身.运行(规划加标签(自身.取状态(),自身.铸造(),窗格标识,自身._窗格标签))
+
+    def 打开内容(自身,输入):
+        '打开内容，或聚焦已经显示它的标签。返回现在聚焦的标签标识'
+        计划=规划打开内容(自身.取状态(),自身.铸造(),输入)
+        自身.运行(计划['ops'])
+        return 计划['tabId']
+
+    def duplicateTab(自身,标签标识):
+        '对同一内容再开一张独立标签'
+        计划=规划复制标签(自身.取状态(),自身.铸造(),标签标识)
+        自身.运行(计划['ops'])
+        return 计划['tabId']
+
+    def closeTab(自身,标签标识):
+        '关掉标签。浮动宿主面板跟着走'
+        自身.运行([{'type':'closeTab','tabId':标签标识}])
+
+    def focusTab(自身,标签标识):
+        '聚焦标签和它的窗格。浮动的会抬到顶'
+        自身.运行([{'type':'focusTab','tabId':标签标识}])
+
+    def focusPane(自身,窗格标识):
+        '聚焦窗格。浮动的会抬到顶'
+        自身.运行([{'type':'focusPane','paneId':窗格标识}])
+
+    def reorderTab(自身,标签标识,下标):
+        '在自己的窗格里移动标签。下标按拿开这张之后的位置计'
+        自身.运行([{'type':'reorderTab','tabId':标签标识,'index':下标}])
+
+    def placeTab(自身,标签标识,到窗格,下标):
+        '放到明确槽位。没变化就返回 False'
+        return 自身.运行(规划安置标签(自身.取状态(),标签标识,到窗格,下标))
+
+    def dropTab(自身,标签标识,目标窗格,区):
+        '在停靠区里松开标签'
+        return 自身.运行(规划投放标签(自身.取状态(),自身.铸造(),标签标识,目标窗格,区))
+
+    def floatTab(自身,标签标识,矩形=None):
+        '把标签拿成浮动面板，返回新窗格标识'
+        计划=规划浮出标签(自身.取状态(),自身.铸造(),标签标识,矩形)
+        自身.运行(计划['ops'])
+        return 计划['paneId']
+
+    def unfloatPane(自身,窗格标识,到窗格=None):
+        '把浮动面板的标签送回停靠树'
+        自身.运行(规划收回浮窗(自身.取状态(),窗格标识,到窗格))
+
+    def moveFloat(自身,窗格标识,横,纵):
+        '记下浮动面板拖完的位置。这一笔同时聚焦并抬到顶'
+        自身.运行([{'type':'moveFloat','paneId':窗格标识,'x':横,'y':纵}])
+
+    def resizeFloat(自身,窗格标识,矩形):
+        '记下浮动面板缩放完的矩形。这一笔同时聚焦并抬到顶'
+        自身.运行([{'type':'resizeFloat','paneId':窗格标识,'rect':矩形}])
+
+    def resizeSplit(自身,分割标识,份额表):
+        '记下分割条拖完的份额'
+        自身.运行(规划调整分割(分割标识,份额表))
 
     def 撤销(自身):
-        '撤销；无可退返回 False'
-        if not 自身._序列.撤销():#无
-            return False#否
-        自身._提交()#通知
-        return True#成
+        '后退一条意图，或一整段连续的纯焦点意图'
+        if not 自身._序列.撤销():
+            return False
+        自身.提交()
+        return True
 
     def 重做(自身):
-        '重做；无可进返回 False'
-        if not 自身._序列.重做():#无
-            return False#否
-        自身._提交()#通知
-        return True#成
+        '重做刚才撤销的那些意图'
+        if not 自身._序列.重做():
+            return False
+        自身.提交()
+        return True
 
     def 活动停靠窗格标识(自身):
-        '新标签落点窗格'
-        return _活动停靠(自身._状态)#窗
-
-    def focusTab(自身,tabId):
-        '聚焦标签'
-        自身._运行([{'type':'focusTab','tabId':tabId}])#跑
-
-    def focusPane(自身,paneId):
-        '聚焦窗格'
-        自身._运行([{'type':'focusPane','paneId':paneId}])#跑
-
-    def splitPane(自身,paneId=None):
-        '分割窗格'
-        return 自身._运行(规划分窗格(自身._状态,自身._铸造,paneId,自身._造窗格标签))#跑
-
-    def addTab(自身,paneId):
-        '条带加签'
-        return 自身._运行(规划加标签(自身._状态,自身._铸造,paneId,自身._造窗格标签))#跑
-
-    def closeTab(自身,tabId):
-        '关标签'
-        自身._运行([{'type':'closeTab','tabId':tabId}])#跑
-
-    def duplicateTab(自身,tabId):
-        '复制；返回新 tabId'
-        规划=规划复制标签(自身._状态,自身._铸造,tabId)#规划
-        自身._运行(规划['ops'])#跑
-        return 规划['tabId']#新
-
-    def floatTab(自身,tabId,rect=None):
-        '浮出；返回新 paneId'
-        规划=规划浮出标签(自身._状态,自身._铸造,tabId,rect)#规划
-        自身._运行(规划['ops'])#跑
-        return 规划['paneId']#浮窗
-
-    def unfloatPane(自身,paneId,toPaneId=None):
-        '收回浮动'
-        自身._运行(规划收回浮窗(自身._状态,paneId,toPaneId))#跑
-
-    def placeTab(自身,tabId,toPaneId,index):
-        '安放；无变返回 False'
-        return 自身._运行(规划安置标签(自身._状态,tabId,toPaneId,index))#跑
-
-    def dropTab(自身,tabId,targetPaneId,zone):
-        '投放；无变返回 False'
-        return 自身._运行(规划投放标签(自身._状态,自身._铸造,tabId,targetPaneId,zone))#跑
-
-    def moveFloat(自身,paneId,x,y):
-        '浮窗平移净位置'
-        自身._运行([{'type':'moveFloat','paneId':paneId,'x':x,'y':y}])#跑
-
-    def resizeFloat(自身,paneId,rect):
-        '浮窗缩放净矩形'
-        自身._运行([{'type':'resizeFloat','paneId':paneId,'rect':rect}])#跑
-
-    def resizeSplit(自身,splitId,sizes):
-        '分隔净份额'
-        自身._运行(规划调整分割(splitId,sizes))#跑
+        '新标签会落到的那一格'
+        return 停靠活动窗格(自身.取状态())

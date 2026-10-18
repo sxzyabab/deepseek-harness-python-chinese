@@ -1,9 +1,12 @@
 
+from ..缩放.文案 import 中文 as 缩放中文,英文 as 缩放英文
+
 __all__=['中文','英文','pdf文案键']
 中文={
+    **缩放中文,
     'title':'PDF',
     'pageImage':'PDF 第 {page} 页',
-    'loading':'正在读取…',
+    'loading':'文档渲染中...',
     'rendering':'正在绘制页面…',
     'failed':'无法显示 PDF：{message}',
     'password':'此 PDF 需要密码，暂不支持预览',
@@ -15,9 +18,10 @@ __all__=['中文','英文','pdf文案键']
 pdf文案键=tuple(中文.keys())
 
 英文={
+    **缩放英文,
     'title':'PDF',
     'pageImage':'PDF page {page}',
-    'loading':'Reading…',
+    'loading':'Rendering document...',
     'rendering':'Rendering page…',
     'failed':'Cannot display PDF: {message}',
     'password':'This PDF requires a password; password-protected previews are not supported.',

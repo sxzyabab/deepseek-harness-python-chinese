@@ -1,5 +1,6 @@
 {
     "FilesBody":"文件体",
+    "FilesBody.module":"文件体.module",
     "FilesTitle":"文件标题",
     "definition":"定义",
     "directory-node":"目录节点",

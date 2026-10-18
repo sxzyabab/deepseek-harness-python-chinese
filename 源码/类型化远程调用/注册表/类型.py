@@ -1,3 +1,4 @@
+'生成物与运行时注册表的类型锚点。模式与包反射分开存放'
 __all__=[#仅中文公开名
     'Typert面','Typert文档标签','Typert文档','Typert成员模型','Typert类型模型',
     'Typert服务模型','Typert事件模型','Typert对象模型','Typert包模型','Typert模式',

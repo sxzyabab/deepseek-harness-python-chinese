@@ -43,7 +43,7 @@ __all__=[#仅中文公开名
 
 缺席候选={'种类':'缺席'}#无人填充的槽位
 
-def 读环境(环境,小写名):#按 undici 优先序读环境名
+def 读取环境名(环境,小写名):#按 undici 优先序读取环境名
     """按 undici 的优先序读一个环境名——小写优先、大写兜底——空白值视为未设置。
 
     空白要紧：undici 自己的链会让空的小写名盖住已填充的大写名
@@ -190,16 +190,16 @@ def 解析代理策略(环境):#从环境解析策略
     协议自己的变量胜出，然后是 ALL_PROXY，再然后——仅对 HTTPS——是 HTTP 代理，与 undici 对齐
     """
     诊断列表=[]#诊断收集器
-    全协议=接受代理网址(读环境(环境,'all_proxy'),诊断列表)#全协议兜底候选
+    全协议=接受代理网址(读取环境名(环境,'all_proxy'),诊断列表)#全协议兜底候选
     全协议值=全协议['值'] if 全协议['种类']=='已接受' else None#可用的 ALL_PROXY 值
-    环境Http=接受代理网址(读环境(环境,'http_proxy'),诊断列表)#http 槽候选
-    环境Https=接受代理网址(读环境(环境,'https_proxy'),诊断列表)#https 槽候选
+    环境Http=接受代理网址(读取环境名(环境,'http_proxy'),诊断列表)#http 槽候选
+    环境Https=接受代理网址(读取环境名(环境,'https_proxy'),诊断列表)#https 槽候选
     http代理=解析协议槽(环境Http,全协议值)#解析 http 代理
     #HTTPS 最后回退到 HTTP 代理，与 undici 对齐——但绝不越过用户为 HTTPS 点名却被本包拒绝的值。
     https代理=解析协议槽(环境Https,全协议值,http代理)#解析 https 代理
     if http代理 is None and https代理 is None:#两边皆无则直连
         return {'策略':dict(直连策略),'诊断':诊断列表}#直连
-    绕过条目=读环境(环境,'no_proxy')#绕过列表原始值
+    绕过条目=读取环境名(环境,'no_proxy')#绕过列表原始值
     策略={'绕过代理':合并环回(绕过条目['value'] if 绕过条目 is not None else None),'来源':'env'}#环境策略
     if http代理 is not None:#有 http 才写入
         策略['http代理']=http代理#写入 http

@@ -1,0 +1,78 @@
+/* Session-row clock mark: the row's leading decoration seat, sized like the
+ * status dot's own 16px cell so the title keeps its alignment either way. */
+.mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* Task rows inside the Session hover card. The card surface stays the fixed
+ * dark fill, so these label steps are static light colors rather than theme
+ * tokens that flip with the page. */
+.tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  --dsh-schedule-hover-ink: var(--dsw-static-neutral-00, #ffffff);
+  --dsh-schedule-hover-muted: var(--dsw-static-neutral-300, #cfd3d6);
+  --dsh-schedule-hover-dim: var(--dsw-static-neutral-400, #adb2b8);
+}
+
+.task {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.taskIcon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  color: var(--dsh-schedule-hover-muted);
+}
+
+.taskBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.taskName {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--dsh-schedule-hover-ink);
+  overflow-wrap: break-word;
+}
+
+.taskTiming {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--dsh-schedule-hover-muted);
+}
+
+.taskRelative {
+  color: var(--dsh-schedule-hover-dim);
+  overflow-wrap: anywhere;
+}
+
+.omitted {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--dsh-schedule-hover-dim);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

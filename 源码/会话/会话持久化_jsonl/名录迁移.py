@@ -5,7 +5,7 @@ from ..会话格式目录 import 会话格式目录,既往会话格式目录#当
 from ..会话格式_v3到v4 import 历史子名录源#历史子名录源
 from .异常 import 代次源变更错误#源变更
 from .格式 import 解析代次日志文件名#解析代次名
-from .代次 import 物理身份,读解码jsonl源#代次身份与解码
+from .代次 import 物理身份,读取解码jsonl源#代次身份与解码
 
 def 准备名录事实(父标识,源列表,压缩,信号=None):#准备名录事实
     '经既有历史编解码器收集每个相关子的自身描述符'
@@ -24,7 +24,7 @@ def 准备名录事实(父标识,源列表,压缩,信号=None):#准备名录事�
         不可用={'childId':源['header']['id'],'childCreatedAt':源['header']['createdAt'],
             'descriptorCount':0,'descriptor':None}#不可用紧缩
         try:#解码历史源
-            已恢复=读解码jsonl源(源['path'],版本,压缩,{#格式适配
+            已恢复=读取解码jsonl源(源['path'],版本,压缩,{#格式适配
                 'createRestore':lambda 头,源版本=版本: (#按代次选目录
                     既往会话格式目录 if 源版本<=3 else 会话格式目录#v0–v3走既往
                 ).创建恢复(头,{'recovery':'recoverable','validation':'current'}),#恢复

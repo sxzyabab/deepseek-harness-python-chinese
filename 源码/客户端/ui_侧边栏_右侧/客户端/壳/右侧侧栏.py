@@ -1,425 +1,556 @@
-from nicegui import ui as 界面
-from ...异常 import 异常原文
-from ....ui_停靠套件.引擎 import 查找窗格内容标签,可分割,停靠窗格标识列表#树
-from ....ui_停靠套件.组件.停靠面 import 停靠面#停靠表面
-from ....ui_停靠套件.组件.浮动层 import 浮动层#浮窗
-from ..约定.种子 import 向导种类,页面地址#向导
-from ..约定.槽位 import 席名右侧签正文,席名右侧签标题,席名右侧签菜单项#席名
-from ..停靠文案 import 停靠标签#文案投影
-
-__all__=['右栏席','意图面','样式表','窄视口全屏阈值']#仅中文公开名
-
-窄视口全屏阈值=768#低于此宽派生全屏
-
-样式表='''#对齐 SidebarRight.module.css
-.panel{position:absolute;top:0;right:0;bottom:0;z-index:10;display:flex;flex-direction:column;min-width:0}
-.panelBody{display:flex;flex:1 1 auto;min-height:0;min-width:0;background:var(--dsw-alias-bg-base);border-left:0.5px solid var(--dsw-alias-border-l1);transform:translateX(100%);visibility:hidden;transition:transform var(--ds-transition-duration-slow) var(--ds-ease-in-out),visibility 0s linear var(--ds-transition-duration-slow)}
-.panel[data-sidebar-right-open] .panelBody{transform:none;visibility:visible;transition:transform var(--ds-transition-duration-slow) var(--ds-ease-in-out)}
-.panel[data-sidebar-right-panel='fullscreen']{position:fixed;inset:0;z-index:40}
-.panel[data-sidebar-right-panel='fullscreen'] .panelBody{border:none}
-@media (prefers-reduced-motion:reduce){.panelBody,.panel[data-sidebar-right-open] .panelBody{transition:none}}
-.iconButton{display:inline-flex;flex:none;align-items:center;justify-content:center;width:28px;height:28px;padding:6px;color:var(--dsw-alias-label-secondary);line-height:1;background:transparent;border:none;border-radius:var(--dsw-radius-sm);cursor:pointer}
-button.q-btn.iconButton{width:28px;height:28px;min-height:28px;padding:6px;color:var(--dsw-alias-label-secondary) !important;background:transparent !important;box-shadow:none !important}
-.iconButton:hover,button.q-btn.iconButton:hover{background:var(--dsw-alias-interactive-bg-hover) !important}
-.iconButton svg{width:15px;height:15px}
-.collapseGlyph{transform:scaleX(-1)}
-.tabTitle{display:contents}
-.tabBody{display:flex;flex-direction:column;height:100%;min-height:0;min-width:0;overflow:hidden}
-.unavailable{margin:0;padding:12px;color:var(--dsw-alias-label-tertiary);font-size:var(--dsh-content-font-size-secondary, 13px)}
-.floatHost{position:fixed;inset:0;z-index:60;pointer-events:none}
-'''#样式表结束
-
-界面.add_css(样式表,shared=True)
-
-全屏标记='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2.33203 10.4054V13.1681C2.33229 13.444 2.55605 13.6681 2.83203 13.6681H5.49512V14.6681H2.83203C2.00376 14.6681 1.33229 13.9963 1.33203 13.1681V10.4054H2.33203ZM14.6689 13.1681C14.6687 13.996 13.9968 14.6676 13.1689 14.6681H10.4951V13.6681H13.1689C13.4445 13.6676 13.6687 13.4437 13.6689 13.1681V10.4054H14.6689V13.1681ZM13.1689 1.33118C13.9969 1.33163 14.6688 2.00315 14.6689 2.83118V5.4054H13.6689V2.83118C13.6688 2.55544 13.4446 2.33162 13.1689 2.33118H10.4951V1.33118H13.1689ZM5.49512 2.33118H2.83203C2.55598 2.33118 2.33218 2.55516 2.33203 2.83118V5.4054H1.33203V2.83118C1.33218 2.00288 2.00369 1.33118 2.83203 1.33118H5.49512V2.33118Z" fill="currentColor"/></svg>'#进全屏
-退出全屏标记='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M9 2.5V6C9 6.26522 9.10536 6.51957 9.29289 6.70711C9.48043 6.89464 9.73478 7 10 7H13.5" stroke="currentColor" stroke-width="1"/><path d="M7 13.5V10C7 9.73478 6.89464 9.48043 6.70711 9.29289C6.51957 9.10536 6.26522 9 6 9H2.5" stroke="currentColor" stroke-width="1"/></svg>'#退全屏
-收起标记='<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13.5 1.5H2.5C1.94772 1.5 1.5 1.94772 1.5 2.5V13.5C1.5 14.0523 1.94772 14.5 2.5 14.5H13.5C14.0523 14.5 14.5 14.0523 14.5 13.5V2.5C14.5 1.94772 14.0523 1.5 13.5 1.5Z" stroke="currentColor" stroke-width="1"/><path d="M5.5 1.5V14.5" stroke="currentColor" stroke-width="1"/></svg>'#收起，镜像后指向右
-
-
-class 意图面:#停靠手势
-    '方法名跟停靠套件的调用一致，把一次手势写成该会话的存储动作'
-
-    def __init__(自身,会话标识,动作,开标签,关标签=None,分窗=None):
-        '记下会话、动作和可选的关签、分栏'
-        自身.会话标识=会话标识#会话
-        自身.动作=动作#存储动作
-        自身.开标签=开标签#开向导
-        自身.关标签=关标签#经资源清理关签
-        自身.分窗=分窗#经控制器分栏
-
-    def focusTab(自身,签):
-        '聚焦标签'
-        自身.动作['focusTab'](自身.会话标识,签)#焦
-
-    def focusPane(自身,窗):
-        '聚焦窗格'
-        自身.动作['focusPane'](自身.会话标识,窗)#焦
-
-    def splitPane(自身,窗):
-        '分栏'
-        if callable(自身.分窗):#控制器
-            自身.分窗(窗)#分
-            return#止
-        自身.动作['splitPane'](自身.会话标识,窗)#分
-
-    def addTab(自身,窗):
-        '在该窗开向导'
-        自身.开标签(向导种类,{'paneId':窗,'revealIfOpened':False})
-
-    def closeTab(自身,签):
-        '关标签'
-        if callable(自身.关标签):#经清理
-            自身.关标签(签)#关
-            return#止
-        自身.动作['closeTab'](自身.会话标识,签)#关
-
-    def duplicateTab(自身,签):
-        '复制标签'
-        自身.动作['duplicateTab'](自身.会话标识,签)#复制
-
-    def floatTab(自身,签,矩=None):
-        '浮出'
-        自身.动作['floatTab'](自身.会话标识,签,矩)#浮
-
-    def unfloatPane(自身,窗):
-        '收回浮窗'
-        自身.动作['unfloatPane'](自身.会话标识,窗)#收
-
-    def placeTab(自身,签,到,下):
-        '放到条带'
-        自身.动作['placeTab'](自身.会话标识,签,到,下)#放
-
-    def dropTab(自身,签,窗,区):
-        '投到区位'
-        自身.动作['dropTab'](自身.会话标识,签,窗,区)#投
-
-    def moveFloat(自身,窗,横,纵):
-        '移动浮窗'
-        自身.动作['moveFloat'](自身.会话标识,窗,横,纵)#移
-
-    def resizeFloat(自身,窗,矩):
-        '缩放浮窗'
-        自身.动作['resizeFloat'](自身.会话标识,窗,矩)#缩
-
-    def resizeSplit(自身,分,份):
-        '调整分割'
-        自身.动作['resizeSplit'](自身.会话标识,分,份)#调
-
-
-class 面板铬:#条带末端两个钮
-    '父组件构造后调用 渲染，构造本身不画'
-
-    def __init__(自身,席):
-        '记下右栏席'
-        自身.席=席#席
-
-    def 渲染(自身):
-        '全屏切换和收起'
-        翻译=自身.席.属性['t']#文案
-        全=自身.席._全屏()#全屏
-        退文=翻译('chrome.exitFullscreen') if 全 else 翻译('chrome.toFullscreen')#模式文
-        收文=翻译('chrome.collapse')#收起提示
-        收名=翻译('chrome.collapseAria')#收起名
-        模式=界面.button(on_click=自身.席.切模式).props('flat dense round aria-label="'+退文+'" title="'+退文+'"').classes('iconButton')#模式
-        模式.props('data-sidebar-right-mode='+('push' if 全 else 'fullscreen'))#下一模式
-        with 模式:#字形
-            界面.html(退出全屏标记 if 全 else 全屏标记,sanitize=False)#图标
-        收起=界面.button(on_click=自身.席.收起).props('flat dense round aria-label="'+收名+'" title="'+收文+'"').classes('iconButton')#收起
-        收起.props('data-sidebar-right-toggle')#标记
-        with 收起:#镜像面板
-            界面.html(收起标记,sanitize=False).classes('collapseGlyph')#图标
-
-
-class 签标题:#键控标题席
-    '父组件调用 渲染 时才画；已登记的标题类在自己的构造里画出'
-
-    def __init__(自身,席,签):
-        '记下席与标签记录'
-        自身.席=席#席
-        自身.签=签#记录
-
-    def 渲染(自身):
-        '有登记则由标题组件画出；条带上的按钮本身带着打开时的标题'
-        标记=object()#回退身份
-        盒=界面.element('span').classes('tabTitle')#标题位
-        盒.props('data-sidebar-right-tab="'+str(自身.签['id']).replace('"','')+'"')#标记
-        with 盒:#内容
-            自身.席._调度席(自身.签,席名右侧签标题,标记)#有登记的标题在构造里画出；条带按钮自带记录标题
-
-
-class 签正文:#键控正文席
-    '父组件调用 渲染 时才画'
-
-    def __init__(自身,席,签):
-        '记下席与标签记录'
-        自身.席=席#席
-        自身.签=签#记录
-
-    def 渲染(自身):
-        '有登记则由正文组件画出；否则说明这类内容还不能看'
-        标记=object()#回退身份
-        盒=界面.element('div').classes('tabBody')#正文位
-        盒.props('data-sidebar-right-tab="'+str(自身.签['id']).replace('"','')+'"')#标记
-        with 盒:#内容
-            结果=自身.席._调度席(自身.签,席名右侧签正文,标记)#席
-            if 自身.席._是回退(结果,标记):#没有登记
-                界面.label(自身.席.属性['t']('tab.unavailable')).classes('unavailable')#说明
-
-
-class 菜单附加:#标签菜单里的登记项
-    '父组件在菜单列里调用 渲染，登记项在那时画出'
-
-    def __init__(自身,席,签,关):
-        '记下席、标签和关闭菜单'
-        自身.席=席#席
-        自身.签=签#记录
-        自身.关=关#解散
-
-    def 渲染(自身):
-        '把菜单项席画进当前菜单'
-        画=自身.席.属性['renderSlot'] if 'renderSlot' in 自身.席.属性 else None#子槽
-        if not callable(画):#没装
-            return#无附加
-        try:#一项失败不拆掉关标签
-            with 界面.element('div').style('display:contents'):#附加项跟关标签项排在一起
-                画(席名右侧签菜单项,{'tab':自身.签,'dismiss':自身.关})#列表席
-        except Exception as 错误:
-            界面.label(异常原文(错误))
-
-
-def _窗向导(布局,窗格标识):
-    '窗内向导'
-    return 查找窗格内容标签(布局,窗格标识,页面地址(向导种类),向导种类)#签
-
-
-class 右栏席:#rightbar 席视图模型
-    '物化表面、同步帧呈现、绑定服务面、产出面板结构'
-
-    def __init__(自身,属性):
-        '记下 props。槽位只调用构造，键齐了就画。'
-        自身.属性=属性 if 属性 is not None else {}#props
-        自身.房间={}#paneId → halvesFit
-        自身._服务释放=None#绑定释放
-        自身._已报呈现=None#上次呈现
-        if 'sessionId' in 自身.属性 and 'useStore' in 自身.属性 and 'actions' in 自身.属性:#槽位份额齐了
-            自身.更新(自身.属性)#物化表面
-        if 'sessionId' in 自身.属性 and 'useStore' in 自身.属性 and 'actions' in 自身.属性 and 't' in 自身.属性:
-            自身.渲染()
-
-    def 更新(自身,属性):
-        '刷新 props 并重绑'
-        自身.属性=属性 if 属性 is not None else {}#最新
-        自身._确保表面()#物化
-        自身._同步可展示()#空间不足则收
-        自身._同步呈现()#报帧
-        自身._绑定服务()#服务
-
-    def 卸载(自身):
-        '还轨道、释绑定'
-        同步=自身.属性['syncPresentation'] if 'syncPresentation' in 自身.属性 else None#同步
-        if 同步 is not None:
-            同步({'shown':False,'track':False,'fullscreen':False})#还
-        if 自身._服务释放 is not None:
-            自身._服务释放()#释
-            自身._服务释放=None
-
-    def _读表面表(自身):
-        'bySession'
-        用=自身.属性['useStore']#选择
-        return 用(lambda 态:态['bySession'])#表
-
-    def _读表面(自身):
-        '本会话表面'
-        表=自身._读表面表()#表
-        会话=自身.属性['sessionId']#会话
-        return 表[会话] if 会话 in 表 else None#表面
-
-    def _确保表面(自身):
-        '无表面则 open'
-        if 自身._读表面() is None:#无
-            自身.属性['actions']['open'](自身.属性['sessionId'])#物化
-
-    def _自动全屏(自身):
-        '视口派生'
-        宽=自身.属性['viewportWidth'] if 'viewportWidth' in 自身.属性 else 1024#宽
-        return 宽<窄视口全屏阈值#窄
-
-    def _全屏(自身):
-        '自动或手动全屏'
-        表面=自身._读表面()#表面
-        if 自身._自动全屏():#窄
-            return True#全屏
-        if 表面 is None:#无
-            return False#否
-        return 表面['layout']['mode']=='fullscreen'#模式
-
-    def _已展示(自身):
-        '面板是否画出'
-        表面=自身._读表面()#表面
-        return 表面 is not None and 表面['layout']['expanded'] is True#展
-
-    def _同步可展示(自身):
-        '普通呈现且不可展示则收起'
-        可=自身.属性['canShow'] if 'canShow' in 自身.属性 else True#可
-        if 自身._已展示() and not 自身._全屏() and not 可:#收
-            自身.属性['actions']['setExpanded'](自身.属性['sessionId'],False)#收
-
-    def _同步呈现(自身):
-        '报告帧'
-        同步=自身.属性['syncPresentation'] if 'syncPresentation' in 自身.属性 else None#同步
-        if 同步 is None:#无
-            return#止
-        展=自身._已展示()#展
-        全=自身._全屏()#全
-        轨=展 and not 自身._自动全屏()#轨
-        呈现={'shown':展,'track':轨,'fullscreen':全}#呈现
-        if 自身._已报呈现==呈现:#未变
-            return#止
-        自身._已报呈现=呈现#记
-        同步(呈现)#报
-
-    def _绑定服务(自身):
-        '发布绑定'
-        绑函=自身.属性['bindService'] if 'bindService' in 自身.属性 else None#绑
-        if 绑函 is None:#无
-            return#止
-        if 自身._服务释放 is not None:#先释旧
-            自身._服务释放()#释
-        房间=自身.房间#闭包
-
-        def 可分(窗):
-            '房间规则'
-            读=房间[窗] if 窗 in 房间 else None#读
-            if 读 is None:#未测
-                return True#默认可
-            return 读.get('row') is not False#行向可
-
-        自身._服务释放=绑函({#绑定
-            'sessionId':自身.属性['sessionId'],
-            'actions':自身.属性['actions'],
-            'surfaces':自身._读表面表(),
-            'canSplitPane':可分,
-        })#绑定结束
-
-    def 报房间(自身,适合表):
-        '停靠套件房间读数'
-        自身.房间=dict(适合表) if 适合表 is not None else {}#写
-
-    def 切模式(自身):
-        '全屏⟷推挤；自动全屏下退出则收起'
-        会话=自身.属性['sessionId']#会话
-        动作=自身.属性['actions']#动作
-        全=自身._全屏()#全
-        次='push' if 全 else 'fullscreen'#次
-        if 全 and 自身._自动全屏():#窄退出
-            动作['setExpanded'](会话,False)#收
-        动作['setMode'](会话,次)#模式
-
-    def 收起(自身):
-        '切换展开'
-        自身.属性['actions']['toggleExpanded'](自身.属性['sessionId'])#切
-
-    def 调度正文(自身,签):
-        '键控正文；停靠面再调用 渲染'
-        return 签正文(自身,签)#正文
-
-    def 调度标题(自身,签):
-        '键控标题；停靠面再调用 渲染'
-        return 签标题(自身,签)#标题
-
-    def 调度菜单(自身,签,关):
-        '菜单附加项；菜单列里再调用 渲染'
-        return 菜单附加(自身,签,关)#附加
-
-    def _是回退(自身,结果,标记):
-        '槽出口没有当选'
-        if isinstance(结果,dict) and 结果.get('type')=='slot-outlet':#出口
-            return 结果.get('content') is 标记#回退
-        return 结果 is 标记#原样
-
-    def _调度席(自身,签,席名,回退):
-        '带钩上下文的席调度；失败时把回退交还给调用方去画'
-        属性=自身.属性#props
-        画=属性['renderSlot'] if 'renderSlot' in 属性 else None#子槽
-        if not callable(画):#没装
-            return 回退#回退
-        try:#出现次或类型钩还没就绪
-            出现=属性['occurrence'](签)#出现次
-            用类型=属性['useTabTypes'] if 'useTabTypes' in 属性 else None#类型钩
-            定义=None#定义
-            if callable(用类型):
-                定义=用类型(lambda 表:next((项 for 项 in 表 if 项['kind']==签['kind']),None))#定义
-            用导航=属性['useTabNavigation'] if 'useTabNavigation' in 属性 else None#导航钩
-            钩上下={#钩上下文
-                'tabId':签['id'],
-                'title':席名==席名右侧签标题,
-                'fullscreen':自身._全屏(),
-                'active':属性['active'] if 'active' in 属性 else True,
-                'signal':出现['signal'],
-                'actions':出现['tabActions'],
-                'useStore':属性['useStore'],
-                'useTabNavigation':用导航,
-            }#上下文
-            return 画(席名,{},{#选项
-                'entryKey':定义['id'] if isinstance(定义,dict) and 'id' in 定义 else 签['kind'],
-                'fallback':回退,
-                'hookContext':钩上下,
-            })#结果
-        except Exception as 错误:
-            界面.label(异常原文(错误))
-            return 回退#回退
-
-    def 渲染(自身):
-        '画出停靠面板和浮窗；收起时面板仍在，只是滑出右缘'
-        属性=自身.属性#props
-        if 'sessionId' not in 属性 or 'useStore' not in 属性 or 'actions' not in 属性 or 't' not in 属性:#份额未齐
-            return#不画
-        try:#表面还读不到
-            表面=自身._读表面()#表面
-        except Exception as 错误:
-            界面.label(异常原文(错误))
-            return#不画
-        if 表面 is None:#尚未物化
+'右栏席：一棵面板，正文和标题交给已登记的类型'
+from ....模块.客户端.通告 import 取握手窗口
+import os
+from ....ui_对话.异常 import 注入模块样式文件,标样式模块
+from ....ui_停靠套件.组件.停靠面 import 停靠面
+from ....ui_停靠套件.引擎.约束 import 可分割
+from ....ui_停靠套件.引擎.树 import 停靠窗格标识列表
+from ....ui_停靠套件.引擎.规划 import 查找窗格内容标签
+from ....ui_基础界面组件.icons import 图标左栏16
+from ....ui_基础界面组件.提示泡 import 提示泡
+from ..文案 import 中文
+from ..停靠文案 import 停靠标签
+from ..约定.种子 import 向导种类,页面地址
+from ..约定.槽位 import 席名右侧签正文,席名右侧签标题,席名右侧签菜单项
+
+__all__=['右栏席','停靠意图','标签槽','面板铬','侧栏面板','窄视口全屏阈值']
+
+样式路径=os.path.join(os.path.dirname(__file__),'右侧侧栏.module.css')
+样式模块='sidebar-right'
+窄视口全屏阈值=768
+
+
+def _窗口(属性):
+    '调用方带来的窗口，否则用桥上的窗口'
+    if isinstance(属性,dict) and 属性.get('window') is not None:
+        return 属性['window']
+    return 取握手窗口()
+
+
+def _订(钩子,回调):
+    '选择器钩子上挂着的订阅'
+    订=getattr(钩子,'_subscribe',None)
+    if callable(订):
+        return 订(回调)
+    return None
+
+
+def _有无(节点,名,开):
+    '开着就挂上属性，关掉就摘掉'
+    if 开:
+        节点.setAttribute(名,'')
+        return
+    节点.removeAttribute(名)
+
+
+def _找键(条目表,标识):
+    '快捷键目录里这一条'
+    if not isinstance(条目表,(list,tuple)):
+        return None
+    for 行 in 条目表:
+        if 行.get('id')==标识:
+            return 行
+    return None
+
+
+class 停靠意图:
+    '停靠套件回调的名字保持英文，里面写的是这一会话的存储动作'
+
+    def __init__(自身,会话标识,动作,打开标签,关闭标签,分栏):
+        '记下这一会话'
+        自身.会话标识=会话标识
+        自身.动作=动作
+        自身.打开标签=打开标签
+        自身.关闭标签=关闭标签
+        自身.分栏=分栏
+
+    def focusTab(自身,标签标识):
+        '聚焦这张签'
+        自身.动作['聚焦标签'](自身.会话标识,标签标识)
+
+    def focusPane(自身,窗格标识):
+        '聚焦这一格'
+        自身.动作['聚焦窗格'](自身.会话标识,窗格标识)
+
+    def splitPane(自身,窗格标识):
+        '分栏走控制器；没有就直接写存储'
+        if 自身.分栏 is not None:
+            自身.分栏(窗格标识)
             return
-        布局=表面['layout']#布局
-        全=自身._全屏()#全屏
-        展=布局['expanded'] is True#展开
-        宽=属性['width'] if 'width' in 属性 and 属性['width'] is not None else 360#宽
-        if 全:#铺满视口
-            像素='100vw'#全屏
-        elif isinstance(宽,(int,float)):#数字
-            像素=str(宽)+'px'#像素
-        else:#已是长度
-            像素=str(宽)#原样
-        会话=str(属性['sessionId']).replace('"','')#属性值
-        面板=界面.element('div').classes('panel').style('width:'+像素+';--dsh-sidebar-width:'+像素)#面板
-        面板.props('data-sidebar-right-session="'+会话+'" data-sidebar-right-panel="'+('fullscreen' if 全 else 'push')+'"')#模式
-        if 展:#展开
-            面板.props('data-sidebar-right-open')#滑入
-        浮=布局['floats'] if 'floats' in 布局 and 布局['floats'] is not None else ()#浮窗
-        if not 展 and len(浮)==0:#收起且无浮窗
-            面板.props('aria-hidden=true')#不可达
-        开=属性['openTab'] if 'openTab' in 属性 and callable(属性['openTab']) else (lambda *_参数:None)#开标签
-        关=属性['closeTab'] if 'closeTab' in 属性 and callable(属性['closeTab']) else None#关标签
-        分=属性['splitPane'] if 'splitPane' in 属性 and callable(属性['splitPane']) else None#分栏
-        意图=意图面(属性['sessionId'],属性['actions'],开,关,分)#手势
-        文案=停靠标签(属性['t'])#停靠文案
-        with 面板:#面板内
-            with 界面.element('div').classes('panelBody'):#停靠树
-                停靠面(#表面
-                    布局,
-                    可分割(布局) and len(停靠窗格标识列表(布局))<2,
-                    意图,
-                    文案,
-                    自身.调度正文,
-                    渲标签标题=自身.调度标题,
-                    渲菜单附加=自身.调度菜单,
-                    铬=面板铬(自身),
-                    可加标签=lambda 窗:_窗向导(布局,窗) is None,
-                    投放模式='horizontal',
-                    最小份额=0.2,
-                    满员藏分割=True,
-                    房间回调=自身.报房间,
-                ).渲染()#画出停靠树
-            if len(浮)>0:
-                浮动层(布局,意图,文案,自身.调度正文,自身.调度标题).渲染()#画出浮窗
+        自身.动作['分窗格'](自身.会话标识,窗格标识)
+
+    def addTab(自身,窗格标识):
+        '新标签是向导，只看这一格'
+        自身.打开标签(向导种类,{'paneId':窗格标识,'revealIfOpened':False})
+
+    def closeTab(自身,标签标识):
+        '关闭走控制器，好让资源先清理'
+        if 自身.关闭标签 is not None:
+            自身.关闭标签(标签标识)
+            return
+        自身.动作['关闭标签'](自身.会话标识,标签标识)
+
+    def duplicateTab(自身,标签标识):
+        '复制这张签'
+        自身.动作['复制标签'](自身.会话标识,标签标识)
+
+    def floatTab(自身,标签标识,矩形=None):
+        '浮出'
+        自身.动作['浮出标签'](自身.会话标识,标签标识,矩形)
+
+    def unfloatPane(自身,窗格标识):
+        '收回浮动窗'
+        自身.动作['收回浮窗'](自身.会话标识,窗格标识)
+
+    def placeTab(自身,标签标识,到窗,下标):
+        '放到条上的这个位置'
+        自身.动作['安置标签'](自身.会话标识,标签标识,到窗,下标)
+
+    def dropTab(自身,标签标识,窗格标识,区):
+        '投到这一格的这个区位'
+        自身.动作['投放标签'](自身.会话标识,标签标识,窗格标识,区)
+
+    def moveFloat(自身,窗格标识,横,纵):
+        '挪动浮动窗'
+        自身.动作['移动浮动'](自身.会话标识,窗格标识,横,纵)
+
+    def resizeFloat(自身,窗格标识,矩形):
+        '缩放浮动窗'
+        自身.动作['缩放浮动'](自身.会话标识,窗格标识,矩形)
+
+    def resizeSplit(自身,分割标识,尺寸表):
+        '拖分割条'
+        自身.动作['调整分割'](自身.会话标识,分割标识,尺寸表)
+
+
+class 全屏字形:
+    '扩到视口的四个角'
+
+    def __init__(自身,窗口):
+        '记下窗口'
+        自身.窗口=窗口
+        自身.根=None
+
+    def 渲染(自身):
+        '画出 svg'
+        文档=自身.窗口.document
+        图=文档.createElementNS('http://www.w3.org/2000/svg','svg')
+        图.setAttribute('width','16')
+        图.setAttribute('height','16')
+        图.setAttribute('viewBox','0 0 16 16')
+        图.setAttribute('fill','none')
+        图.setAttribute('aria-hidden','true')
+        路=文档.createElementNS('http://www.w3.org/2000/svg','path')
+        路.setAttribute('d','M2.33203 10.4054V13.1681C2.33229 13.444 2.55605 13.6681 2.83203 13.6681H5.49512V14.6681H2.83203C2.00376 14.6681 1.33229 13.9963 1.33203 13.1681V10.4054H2.33203ZM14.6689 13.1681C14.6687 13.996 13.9968 14.6676 13.1689 14.6681H10.4951V13.6681H13.1689C13.4445 13.6676 13.6687 13.4437 13.6689 13.1681V10.4054H14.6689V13.1681ZM13.1689 1.33118C13.9969 1.33163 14.6688 2.00315 14.6689 2.83118V5.4054H13.6689V2.83118C13.6688 2.55544 13.4446 2.33162 13.1689 2.33118H10.4951V1.33118H13.1689ZM5.49512 2.33118H2.83203C2.55598 2.33118 2.33218 2.55516 2.33203 2.83118V5.4054H1.33203V2.83118C1.33218 2.00288 2.00369 1.33118 2.83203 1.33118H5.49512V2.33118Z')
+        路.setAttribute('fill','currentColor')
+        图.appendChild(路)
+        自身.根=图
+        return 图
+
+
+class 退出全屏字形:
+    '从全屏收回的两角'
+
+    def __init__(自身,窗口):
+        '记下窗口'
+        自身.窗口=窗口
+        自身.根=None
+
+    def 渲染(自身):
+        '画出 svg'
+        文档=自身.窗口.document
+        图=文档.createElementNS('http://www.w3.org/2000/svg','svg')
+        图.setAttribute('width','16')
+        图.setAttribute('height','16')
+        图.setAttribute('viewBox','0 0 16 16')
+        图.setAttribute('fill','none')
+        图.setAttribute('aria-hidden','true')
+        第一=文档.createElementNS('http://www.w3.org/2000/svg','path')
+        第一.setAttribute('d','M9 2.5V6C9 6.26522 9.10536 6.51957 9.29289 6.70711C9.48043 6.89464 9.73478 7 10 7H13.5')
+        第一.setAttribute('stroke','currentColor')
+        第二=文档.createElementNS('http://www.w3.org/2000/svg','path')
+        第二.setAttribute('d','M7 13.5V10C7 9.73478 6.89464 9.48043 6.70711 9.29289C6.51957 9.10536 6.26522 9 6 9H2.5')
+        第二.setAttribute('stroke','currentColor')
+        图.appendChild(第一)
+        图.appendChild(第二)
+        自身.根=图
+        return 图
+
+
+class 面板铬:
+    '条尾的全屏和收起'
+
+    def __init__(自身,窗口,会话标识,全屏,动作,快捷键表,切换全屏):
+        '记下这一会话的呈现'
+        自身.窗口=窗口
+        自身.属性={'window':窗口}
+        自身.会话标识=会话标识
+        自身.全屏=全屏
+        自身.动作=动作
+        自身.快捷键表=快捷键表
+        自身.切换全屏=切换全屏
+        自身.根=None
+
+    def 渲染(自身):
+        '两个按钮'
+        文档=自身.窗口.document
+        注入模块样式文件(文档,'右侧侧栏样式',样式路径,样式模块)
+        根=文档.createElement('span')
+        下一='push' if 自身.全屏 else 'fullscreen'
+        模式文=中文['chrome.exitFullscreen'] if 自身.全屏 else 中文['chrome.toFullscreen']
+        模式键=_找键(自身.快捷键表,'pane.fullscreen.toggle')
+        切换键=_找键(自身.快捷键表,'sidebar.right.toggle')
+
+        def 造钮(文案,无障碍,快捷,数据名,数据值,点击,图):
+            '一个图标按钮，外包提示'
+            钮=文档.createElement('button')
+            钮.type='button'
+            钮.className='iconButton'
+            标样式模块(钮,样式模块)
+            钮.setAttribute('aria-label',无障碍)
+            if 快捷 is not None and 快捷.get('aria'):
+                钮.setAttribute('aria-keyshortcuts',快捷['aria'])
+            if 数据值 is None:
+                钮.setAttribute(数据名,'')
+            else:
+                钮.setAttribute(数据名,数据值)
+            钮.addEventListener('click',lambda 事件: 点击())
+            if 图 is not None:
+                钮.appendChild(图)
+            提示=文案
+            if 快捷 is not None and 快捷.get('keys'):
+                提示=提示+' '+' '.join(str(键) for 键 in 快捷['keys'])
+            泡=提示泡({'window':自身.窗口,'label':提示,'side':'bottom','children':钮})
+            return 泡.渲染()
+
+        def 切模式():
+            '全屏或退出'
+            if callable(自身.切换全屏):
+                自身.切换全屏()
+
+        def 收起():
+            '展开和收起对调'
+            自身.动作['切换展开'](自身.会话标识)
+
+        模式图=退出全屏字形(自身.窗口).渲染() if 自身.全屏 else 全屏字形(自身.窗口).渲染()
+        根.appendChild(造钮(模式文,模式文,模式键,'data-sidebar-right-mode',下一,切模式,模式图))
+        收起图=图标左栏16({'window':自身.窗口,'className':'collapseGlyph'})
+        if 收起图 is not None:
+            标样式模块(收起图,样式模块)
+        根.appendChild(造钮(中文['chrome.collapse'],中文['chrome.collapseAria'],切换键,'data-sidebar-right-toggle',None,收起,收起图))
+        自身.根=根
+        return 根
+
+
+class 标签槽:
+    '一张签的正文或标题。没有登记的类型就用后备'
+
+    def __init__(自身,窗口,面板,签,席名,后备):
+        '记下这张签'
+        自身.窗口=窗口
+        自身.属性={'window':窗口}
+        自身.面板=面板
+        自身.签=签
+        自身.席名=席名
+        自身.后备=后备
+        自身.根=None
+        自身.卸保留=None
+
+    def 渲染(自身):
+        '外包一层，里面是槽位或后备'
+        文档=自身.窗口.document
+        注入模块样式文件(文档,'右侧侧栏样式',样式路径,样式模块)
+        出现=自身.面板['occurrence'](自身.签)
+        用类型=自身.面板['useTabTypes']
+        定义=None
+        if callable(用类型):
+            def 取定义(类型表):
+                '种类对上的那个'
+                for 项 in 类型表:
+                    if 项.get('kind')==自身.签.get('kind'):
+                        return 项
+                return None
+            定义=用类型(取定义)
+        保留=自身.席名==席名右侧签正文 and 定义 is not None and 定义.get('keepMounted') is True
+        if 保留 and 自身.卸保留 is None and callable(自身.面板.get('retainTab')):
+            自身.卸保留=自身.面板['retainTab'](自身.签['id'],出现['signal'])
+        elif not 保留 and callable(自身.卸保留):
+            自身.卸保留()
+            自身.卸保留=None
+        钩上下文={
+            'tabId':自身.签['id'],
+            'shortcuts':自身.面板.get('shortcuts') or (),
+            'title':自身.席名==席名右侧签标题,
+            'fullscreen':自身.面板.get('fullscreen'),
+            'active':自身.面板.get('active'),
+            'signal':出现['signal'],
+            'actions':出现['tabActions'],
+            'useStore':自身.面板.get('useStore'),
+            'useTabNavigation':自身.面板.get('useTabNavigation'),
+        }
+        键=定义['id'] if 定义 is not None and 定义.get('id') else 自身.签.get('kind')
+        画槽=自身.面板.get('renderSlot')
+        内容=None
+        if callable(画槽):
+            内容=画槽(自身.席名,{},{'entryKey':键,'fallback':自身.后备,'hookContext':钩上下文})
+        标签名='span' if 自身.席名==席名右侧签标题 else 'div'
+        类名='tabTitle' if 自身.席名==席名右侧签标题 else 'tabBody'
+        根=文档.createElement(标签名)
+        根.className=类名
+        标样式模块(根,样式模块)
+        根.setAttribute('data-sidebar-right-tab',str(自身.签['id']))
+        根.setAttribute('data-sidebar-right-occurrence',str(出现['id']))
+        if 内容 is None:
+            if isinstance(自身.后备,str):
+                根.textContent=自身.后备
+            elif 自身.后备 is not None and hasattr(自身.后备,'tagName'):
+                根.appendChild(自身.后备)
+        elif hasattr(内容,'tagName'):
+            根.appendChild(内容)
+        elif getattr(内容,'根',None) is not None:
+            根.appendChild(内容.根)
+        自身.根=根
+        return 根
+
+
+class 侧栏面板:
+    '面板盒子和里面的停靠面'
+
+    def __init__(自身,窗口,份额):
+        '记下这一会话的表面'
+        自身.窗口=窗口
+        自身.份额=份额
+        自身.根=None
+        自身.身体=None
+        自身.停靠=None
+
+    def 渲染(自身):
+        '更新盒子，再重画停靠面'
+        文档=自身.窗口.document
+        注入模块样式文件(文档,'右侧侧栏样式',样式路径,样式模块)
+        表面=自身.份额['surface']
+        全屏=自身.份额['fullscreen']
+        宽=自身.份额['width']
+        展开=表面['layout']['expanded'] is True
+        if 自身.根 is None:
+            自身.根=文档.createElement('div')
+            自身.根.className='panel'
+            标样式模块(自身.根,样式模块)
+            自身.身体=文档.createElement('div')
+            自身.身体.className='panelBody'
+            标样式模块(自身.身体,样式模块)
+            自身.根.appendChild(自身.身体)
+        像素='100vw' if 全屏 else str(宽)+'px'
+        自身.根.style.width=像素
+        自身.根.style.setProperty('--dsh-sidebar-width',像素)
+        自身.根.setAttribute('data-sidebar-right-session',str(自身.份额['sessionId']))
+        自身.根.setAttribute('data-sidebar-right-panel','fullscreen' if 全屏 else 'push')
+        _有无(自身.根,'data-sidebar-right-open',展开)
+        藏起=(not 展开) and len(表面['layout'].get('floats') or [])==0
+        if 藏起:
+            自身.根.setAttribute('aria-hidden','true')
+        else:
+            自身.根.removeAttribute('aria-hidden')
+        快捷=自身.份额.get('shortcuts') or ()
+        意图=停靠意图(
+            自身.份额['sessionId'],
+            自身.份额['actions'],
+            自身.份额['openTab'],
+            自身.份额.get('closeTab'),
+            自身.份额.get('splitPane'),
+        )
+        铬=面板铬(自身.窗口,自身.份额['sessionId'],全屏,自身.份额['actions'],快捷,自身.份额.get('toggleFullscreen'))
+
+        def 渲正文(签):
+            '正文槽。没有类型就写明还不能看'
+            段=文档.createElement('p')
+            段.className='unavailable'
+            标样式模块(段,样式模块)
+            段.setAttribute('data-sidebar-right-unavailable','')
+            段.textContent=中文['tab.unavailable']
+            return 标签槽(自身.窗口,自身.份额,签,席名右侧签正文,段)
+
+        def 渲标题(签):
+            '标题槽。没有类型就用打开时记下的字'
+            return 标签槽(自身.窗口,自身.份额,签,席名右侧签标题,签.get('title') or '')
+
+        def 渲菜单(签,解散):
+            '菜单尾部的额外项'
+            画槽=自身.份额.get('renderSlot')
+            if not callable(画槽):
+                return None
+            return 画槽(席名右侧签菜单项,{'tab':签,'dismiss':解散,'window':自身.窗口})
+
+        def 可加(窗格标识):
+            '这一格还没有向导才能再加'
+            return 查找窗格内容标签(表面['layout'],窗格标识,页面地址(向导种类),向导种类) is None
+
+        布局=表面['layout']
+        能分=可分割(布局) and len(停靠窗格标识列表(布局))<2
+        if 自身.停靠 is None:
+            自身.停靠=停靠面(
+                布局,能分,意图,
+                停靠标签(None,_找键(快捷,'pane.split'),_找键(快捷,'page.close')),
+                渲正文,渲标题,渲菜单,铬,可加,'horizontal',0.2,False,自身.份额.get('reportRoom'),
+            )
+            自身.停靠.窗口=自身.窗口
+        else:
+            自身.停靠.状态=布局
+            自身.停靠.可分割=能分
+            自身.停靠.意图=意图
+            自身.停靠.文案=停靠标签(None,_找键(快捷,'pane.split'),_找键(快捷,'page.close'))
+            自身.停靠.渲标签=渲正文
+            自身.停靠.渲标签标题=渲标题
+            自身.停靠.渲菜单附加=渲菜单
+            自身.停靠.铬=铬
+            自身.停靠.可加标签=可加
+            自身.停靠.投放模式='horizontal'
+            自身.停靠.最小份额=0.2
+            自身.停靠.房间回调=自身.份额.get('reportRoom')
+            自身.停靠.窗口=自身.窗口
+        面=自身.停靠.渲染()
+        while 自身.身体.firstChild is not None:
+            自身.身体.firstChild.remove()
+        if 面 is not None:
+            自身.身体.appendChild(面)
+        return 自身.根
+
+
+class 右栏席:
+    '这一会话的面板。没有表面时先打开一份空的'
+
+    def __init__(自身,属性=None):
+        '记下份额并画出'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        自身.面板=None
+        自身._退订=[]
+        自身._已报隐藏=False
+        自身.渲染()
+        自身._订阅()
+
+    def __call__(自身,属性=None):
+        '再次绘制'
+        if 属性 is not None:
+            自身.属性=属性
+        return 自身.渲染()
+
+    def _订阅(自身):
+        '存储、快捷键、类型变了就重画'
+        def 变更():
+            '还挂着才重画'
+            if 自身.根 is not None and getattr(自身.根,'isConnected',True) is False:
+                for 退 in 自身._退订:
+                    退()
+                自身._退订.clear()
+                return
+            自身.渲染()
+        for 名 in ('useStore','useShortcuts','useTabTypes'):
+            退=_订(自身.属性.get(名),变更)
+            if 退 is not None:
+                自身._退订.append(退)
+
+    def 渲染(自身):
+        '读表面，汇报呈现，画出或拆掉面板'
+        窗口=_窗口(自身.属性)
+        会话标识=自身.属性.get('sessionId')
+        用存储=自身.属性.get('useStore')
+        动作=自身.属性.get('actions') or {}
+        表面=None
+        if callable(用存储):
+            def 取表面(状态):
+                '这一会话的表面'
+                return 状态['bySession'].get(会话标识)
+            表面=用存储(取表面)
+        活动=自身.属性.get('active') is True
+        if 活动 and 表面 is None and '打开' in 动作:
+            动作['打开'](会话标识)
+            if callable(用存储):
+                表面=用存储(取表面)
+        视口=自身.属性.get('viewportWidth') or 0
+        自动全屏=视口<窄视口全屏阈值
+        能显示=自身.属性.get('canShow')
+        全屏=自动全屏 or (表面 is not None and 表面['layout'].get('mode')=='fullscreen')
+        显示=活动 and 表面 is not None and 表面['layout']['expanded'] is True
+        if 显示 and not 全屏 and 能显示 is False and '设展开' in 动作:
+            动作['设展开'](会话标识,False)
+            if callable(用存储):
+                表面=用存储(取表面)
+            全屏=自动全屏 or (表面 is not None and 表面['layout'].get('mode')=='fullscreen')
+            显示=活动 and 表面 is not None and 表面['layout']['expanded'] is True
+        轨道=显示 and not 自动全屏
+        报自动=自身.属性.get('reportAutoFullscreen')
+        if callable(报自动):
+            报自动(自动全屏)
+        同步=自身.属性.get('syncPresentation')
+        量房间=自身.属性.get('measureRoom')
+
+        def 报告房间(可放表):
+            '把套件量到的半格结果交给服务'
+            if not callable(量房间):
+                return
+
+            def 能分(窗格标识):
+                '没量到的窗当作放得下'
+                项=可放表.get(窗格标识) if isinstance(可放表,dict) else None
+                if not isinstance(项,dict):
+                    return True
+                return 项.get('row') is not False
+
+            量房间(能分)
+
+        if 表面 is None:
+            if 自身.根 is not None:
+                自身.根.remove()
+                自身.根=None
+            if not 活动 and callable(同步) and not 自身._已报隐藏:
+                同步({'shown':False,'track':False,'fullscreen':False})
+                自身._已报隐藏=True
+            elif 活动 and callable(同步):
+                自身._已报隐藏=False
+                同步({'shown':False,'track':False,'fullscreen':全屏})
+            return 自身
+        用快捷=自身.属性.get('useShortcuts')
+        快捷=()
+        if callable(用快捷):
+            def 原样(条目表):
+                '整份目录'
+                return 条目表
+            读到=用快捷(原样)
+            if isinstance(读到,(list,tuple)):
+                快捷=读到
+        份额={
+            'sessionId':会话标识,
+            'surface':表面,
+            'actions':动作,
+            'renderSlot':自身.属性.get('renderSlot'),
+            'openTab':自身.属性.get('openTab'),
+            'closeTab':自身.属性.get('closeTab'),
+            'splitPane':自身.属性.get('splitPane'),
+            'toggleFullscreen':自身.属性.get('toggleFullscreen'),
+            'shortcuts':快捷,
+            'useTabTypes':自身.属性.get('useTabTypes'),
+            'useTabNavigation':自身.属性.get('useTabNavigation'),
+            'useStore':用存储,
+            'occurrence':自身.属性.get('occurrence'),
+            'fullscreen':全屏,
+            'active':活动,
+            'retainTab':自身.属性.get('retainTab'),
+            'width':自身.属性.get('width'),
+            'reportRoom':报告房间,
+        }
+        if 自身.面板 is None:
+            自身.面板=侧栏面板(窗口,份额)
+        else:
+            自身.面板.份额=份额
+        自身.根=自身.面板.渲染()
+        父=自身.属性.get('parent')
+        if 父 is not None and 自身.根 is not None and getattr(自身.根,'parentNode',None) is None:
+            父.appendChild(自身.根)
+        if not 活动 and callable(同步) and not 自身._已报隐藏:
+            同步({'shown':False,'track':False,'fullscreen':False})
+            自身._已报隐藏=True
+        elif 活动 and callable(同步):
+            自身._已报隐藏=False
+            同步({'shown':显示,'track':轨道,'fullscreen':全屏})
+        return 自身

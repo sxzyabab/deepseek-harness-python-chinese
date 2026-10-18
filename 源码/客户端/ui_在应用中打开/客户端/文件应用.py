@@ -1,101 +1,125 @@
+'同一读取器和同一文件的已挂上控件，共用一份关联查询。'
+from ...模块.客户端.通告 import 取握手窗口
+from weakref import WeakKeyDictionary as 弱键字典
 from ...存储 import 创建快照存储
-import threading
-from ..异常 import 页面失败文案
 
-__all__=['使用文件应用']
+__all__=['空刷新','使用文件应用','接上文件应用']
 
-空结果={'apps':[],'loading':True,'failed':False,'detail':''}
-_读表={}
+读者表=弱键字典()
+
 
 def 空刷新():
-    '未启用时的刷新'
+    '未启用时没有查询可刷新'
     return None
 
-def 查询已到(项,控,应用):
-    '中止则丢；否则发布联想'
-    if 控.is_set():#已中止
-        return
-    if 应用 is not None:
-        项['detail']=''
-    细节=项['detail'] if 'detail' in 项 and isinstance(项['detail'],str) else ''
-    项['state'].set({'apps':[] if 应用 is None else list(应用),'loading':False,'failed':应用 is None,'detail':细节})
 
-def 做成回调(项,控):
-    '把这一次中止旗绑进同级回调'
-    def 已查(应用):
-        '查询解决'
-        查询已到(项,控,应用)#发布
-    def 失败(错误):
-        '查询拒绝当失败，并留下去掉路径的失败句'
-        项['detail']=页面失败文案(错误) if 错误 is not None else ''
-        查询已到(项,控,None)
-    return 已查,失败#成功臂与失败臂
-
-def 接上(产出,成功,失败):
-    '期约走 然后，上游 then 走 then；已是值则直接成功'
-    if hasattr(产出,'然后'):#本层期约
-        产出.然后(成功,失败)#接上
-        return
-    if hasattr(产出,'then'):#上游期约
-        产出.then(成功,失败)#接上
-        return
-    成功(产出)#已是值
-
-def _订阅(查询,目标,监听):
-    键=id(查询)
-    目标表=_读表.get(键)
+def 使用文件应用(目标,查询,启用,监听=None):
+    '挂上共享查询。返回当前快照、刷新和退订'
+    if 启用 is not True:
+        def 空退():
+            '未启用，没有要取消的查询'
+            return None
+        return {
+            'apps':[],
+            'loading':True,
+            'failed':False,
+            'refresh':空刷新,
+            '退订':空退,
+            '状态':None,
+        }
+    目标表=读者表.get(查询)
     if 目标表 is None:
         目标表={}
-        _读表[键]=目标表
+        读者表[查询]=目标表
     项=目标表.get(目标)
     初次=项 is None
     if 项 is None:
-        项={'state':创建快照存储(空结果),'users':0,'controller':None}
-        def 刷新():
-            旧=项['controller']
-            if 旧 is not None:
-                旧.set()
-            控=threading.Event()
-            项['controller']=控
-            已查,失败=做成回调(项,控)#这一次的回调
-            try:#查询
-                产出=查询(目标,控)#期约或值
-            except Exception as 错误:
-                失败(错误)
-                return
-            接上(产出,已查,失败)#落定后发布
-        项['refresh']=刷新
-        目标表[目标]=项
-    项['users']+=1
-    退=项['state'].subscribe(监听)
-    if 初次:
-        项['refresh']()
-    def 释放():
-        退()
-        项['users']-=1
-        if 项['users']==0:
+        项={
+            'state':创建快照存储({'apps':[],'loading':True,'failed':False}),
+            'users':0,
+            'controller':None,
+        }
+
+        def 刷新(项=项,查询=查询,目标=目标):
+            '中止上一次，再查这个文件'
             控=项['controller']
             if 控 is not None:
-                控.set()
+                控.abort()
+            窗口=取握手窗口()
+            新控=窗口.AbortController()
+            项['controller']=新控
+            应用=查询(目标,新控.signal)
+            if 新控.signal.aborted:
+                return
+            if 应用 is None:
+                项['state'].set({'apps':[],'loading':False,'failed':True})
+            else:
+                项['state'].set({'apps':应用,'loading':False,'failed':False})
+
+        项['refresh']=刷新
+        目标表[目标]=项
+    保留=项
+    保留['users']+=1
+    退状态=None
+    if 监听 is not None:
+        退状态=保留['state'].subscribe(监听)
+    if 初次:
+        保留['refresh']()
+
+    def 退订(保留=保留,目标表=目标表,目标=目标,退状态=退状态):
+        '最后一个使用者离开时中止并丢掉'
+        if 退状态 is not None:
+            退状态()
+        保留['users']-=1
+        if 保留['users']==0:
+            控=保留['controller']
+            if 控 is not None:
+                控.abort()
             if 目标 in 目标表:
                 del 目标表[目标]
-    return 释放
 
-def 使用文件应用(目标,查询,启用):
-    '同一文件与读取器的挂载控件共享联想与刷新'
-    if not 启用:
-        return {**空结果,'refresh':空刷新}
-    箱={'state':空结果}
-    def 听():
-        目标表=_读表.get(id(查询))
-        项=None if 目标表 is None else 目标表.get(目标)
-        箱['state']=空结果 if 项 is None else 项['state'].getSnapshot()
-    退=_订阅(查询,目标,听)
-    听()
-    def 刷新():
-        目标表=_读表.get(id(查询))
-        项=None if 目标表 is None else 目标表.get(目标)
-        if 项 is not None:
-            项['refresh']()
-    态=箱['state']
-    return {'apps':态.get('apps',[]),'loading':bool(态.get('loading')),'failed':bool(态.get('failed')),'detail':态.get('detail') if isinstance(态.get('detail'),str) else '','refresh':刷新,'unsubscribe':退}
+    快照=保留['state'].getSnapshot()
+    return {
+        'apps':快照['apps'],
+        'loading':快照['loading'],
+        'failed':快照['failed'],
+        'refresh':保留['refresh'],
+        '退订':退订,
+        '状态':保留['state'],
+    }
+
+
+def 接上文件应用(持有,目标,查询,启用,监听):
+    '同一个文件、读取器和启用状态只订阅一次'
+    键=(目标,id(查询),启用 is True)
+    if getattr(持有,'联想键',None)==键:
+        仓=getattr(持有,'状态仓',None)
+        if 仓 is None:
+            return {
+                'apps':[],
+                'loading':True,
+                'failed':False,
+                'refresh':持有.刷新函数,
+            }
+        快照=仓.getSnapshot()
+        return {
+            'apps':快照['apps'],
+            'loading':快照['loading'],
+            'failed':快照['failed'],
+            'refresh':持有.刷新函数,
+        }
+    旧=getattr(持有,'退订联想',None)
+    if 旧 is not None:
+        持有.退订联想=None
+        旧()
+    持有.联想键=键
+    结果=使用文件应用(目标,查询,启用 is True,监听)
+    持有.退订联想=结果['退订']
+    持有.状态仓=结果['状态']
+    持有.刷新函数=结果['refresh']
+    return {
+        'apps':结果['apps'],
+        'loading':结果['loading'],
+        'failed':结果['failed'],
+        'refresh':结果['refresh'],
+    }

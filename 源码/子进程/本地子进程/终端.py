@@ -87,7 +87,7 @@ class 贯通流:#对齐 node:stream PassThrough 的用户可见输出面
 
 class 本地终端句柄:#本地 PTY 会话
     '进程会话所有权留在 PTY 后端之下的本地终端。除 终止() 外每条句柄调用在底层都同步做完（PTY 写入、基于 ps 的检查）；终止() 返回期约，拆除的轮询部分在调用线程里跑，托管范围的退出观察经期约衔接'
-    def __init__(自身,终端,检查器,宽限毫秒,平台=None,托管所有者=None,结算托管结局=None,命令活动=None,静止回调=None,观察壳退出=False):#钉 pid、身份、输出与退出
+    def __init__(自身,终端,检查器,宽限毫秒,平台=None,托管所有者=None,结算托管结局=None,命令活动=None,静止回调=None,观察命令解释器退出=False):#钉 pid、身份、输出与退出
         '用已分配的 PTY、平台检查器与宽限构造句柄'
         import sys as 系统#平台缺省
         自身.终端=终端#PTY 后端
@@ -98,7 +98,7 @@ class 本地终端句柄:#本地 PTY 会话
         自身.结算托管结局=结算托管结局#可选结局改写
         自身.命令活动=命令活动#可选 shell 活动
         自身.静止回调=静止回调#静止后回调
-        自身.观察壳退出=观察壳退出#是否观察托管范围空
+        自身.观察命令解释器退出=观察命令解释器退出#是否观察托管范围空
         自身.pid=终端.pid#顶层 shell pid
         自身.输出=贯通流()#用户可见输出
         自身.done=期约()#顶层退出期约，兑现退出事实
@@ -150,7 +150,7 @@ class 本地终端句柄:#本地 PTY 会话
             if 自身.已退出.is_set():#只收一次
                 return#忽略
             自身.已退出.set()#先记退出
-            if 自身.托管所有者 is not None and 自身.观察壳退出:#观察范围空
+            if 自身.托管所有者 is not None and 自身.观察命令解释器退出:#观察范围空
                 def 范围已空(*空值):
                     '托管范围退出后授权空闲'
                     自身.托管范围已空=True#授权
@@ -308,12 +308,12 @@ class 本地终端句柄:#本地 PTY 会话
     def 为宿主退出终止(自身):#宿主退出路径：立刻 KILL
         '在宿主 exit 期间同步强制终止可观察会话。不声称静止，也不替代 终止()'
         自身.强制停子孙()#先杀已跟踪子孙
-        自身.强制停壳()#再杀 shell
+        自身.强制停止命令解释器()#再杀 shell
         自身.强制停子孙()#shell 死后可能新冒出的子孙
         if 自身.托管所有者 is not None:#有托管
             自身.托管所有者.为宿主退出终止()#强制停范围
 
-    def 强制停壳(自身):#同步 KILL 顶层 shell
+    def 强制停止命令解释器(自身):#同步 KILL 顶层 shell
         '同步 KILL 顶层 shell'
         if 自身.已退出.is_set():#已经退了
             return#空操作
@@ -404,10 +404,10 @@ class 本地终端句柄:#本地 PTY 会话
         观察=自身.检查器.快照()#最终观察
         return 自身.仍活(自身.并集成员(存活,自身.子孙列表(观察)),观察)#最终仍活的
 
-    def 停壳(自身):#TERM 再 KILL 顶层 PTY
+    def 停止命令解释器(自身):#TERM 再 KILL 顶层 PTY
         'TERM 再 KILL 顶层 PTY；仍活则抛错'
         if 自身.平台=='win32':#Windows 专用路径
-            自身.停壳Windows()#走 taskkill/身份
+            自身.停止Windows命令解释器()#走 taskkill/身份
             return
         if not 自身.已退出.is_set():#还没退
             try:#TERM 可能碰上已退出
@@ -424,7 +424,7 @@ class 本地终端句柄:#本地 PTY 会话
         if not 自身.已退出.is_set():#shell 仍活
             raise 本地子进程错误('terminal cleanup failed; surviving pid: '+str(自身.pid))#shell 仍活
 
-    def 停壳Windows(自身):#Windows 拆除
+    def 停止Windows命令解释器(自身):#Windows 拆除
         '身份 fenced 的 TERM/KILL；无身份则裸 kill'
         def 壳已走():#壳是否已不在
             '退出回调或身份探死'
@@ -435,7 +435,7 @@ class 本地终端句柄:#本地 PTY 会话
             return False#仍在
         if (not 壳已走()) and 自身.根身份 is not None:#有身份则 TERM
             自身.检查器.信号进程(自身.根身份,'SIGTERM')#TERM
-            自身.等Windows壳退出()#等
+            自身.等Windows命令解释器退出()#等
         if (not 壳已走()) and 自身.根身份 is None:#无身份则裸 kill
             try:#裸 kill
                 自身.终端.kill()#无信号
@@ -444,11 +444,11 @@ class 本地终端句柄:#本地 PTY 会话
             自身.已退出.wait(自身.宽限毫秒/1000.0)#等
         if (not 壳已走()) and 自身.根身份 is not None:#再 KILL
             自身.检查器.信号进程(自身.根身份,'SIGKILL')#KILL
-            自身.等Windows壳退出()#等
+            自身.等Windows命令解释器退出()#等
         if not 壳已走():#仍活
             raise 本地子进程错误('terminal cleanup failed; surviving pid: '+str(自身.pid))#失败
 
-    def 等Windows壳退出(自身):#宽限内等壳死
+    def 等Windows命令解释器退出(自身):#宽限内等壳死
         '宽限内轮询身份或退出回调'
         截止=time.time()+自身.宽限毫秒/1000.0#截止
         while (not 自身.已退出.is_set()) and time.time()<截止:#未退且未到期
@@ -490,7 +490,7 @@ class 本地终端句柄:#本地 PTY 会话
             存活=自身.停子孙()#先清子孙
             if len(存活)>0:#还有活的
                 raise 本地子进程错误('terminal cleanup failed; surviving pids: '+', '.join(str(成员.pid) for 成员 in 存活))#带仍活 pid
-            自身.停壳()#再清 shell
+            自身.停止命令解释器()#再清 shell
             存活=自身.停子孙()#shell 死后可能新冒出的
             if len(存活)>0:#仍有活的
                 raise 本地子进程错误('terminal cleanup failed; surviving pids: '+', '.join(str(成员.pid) for 成员 in 存活))#带仍活 pid

@@ -1,4 +1,13 @@
 {
     "group-registry":"组注册表",
-    "group-store":"组存储"
+    "group-store":"组存储",
+    "assembly":"装配",
+    "assembler":"组装器",
+    "location-index":"位置索引",
+    "event-registry":"事件注册表",
+    "definition-registry":"定义注册表",
+    "view-registry":"视图注册表",
+    "user-text-registry":"用户文本注册表",
+    "user-text-document":"用户文本文档",
+    "historical-images":"既往图像"
 }

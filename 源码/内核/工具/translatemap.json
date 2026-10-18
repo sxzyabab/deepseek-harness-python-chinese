@@ -9,5 +9,6 @@
     "ts-types":"ts类型",
     "types":"类型",
     "projectContent":"投影内容",
-    "deferLoading":"推迟装载"
+    "deferLoading":"推迟装载",
+    "ptc-calls":"代码调用"
 }

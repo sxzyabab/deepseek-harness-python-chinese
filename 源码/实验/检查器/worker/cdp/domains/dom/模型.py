@@ -1,12 +1,14 @@
 from ...标识 import cdp数字id#后端节点id
+from .....共享.cordis.模型 import cordis运行时源标识#投影源标识
 
 __all__=['Cordis_Dom后端']#仅中文公开名
 
 class Cordis_Dom后端:#Cordis DOM后端
     '分配持久后端 id，并投影最新的源快照'
-    def __init__(自身,trees):#构造
-        '订阅树存储并初建文档'
+    def __init__(自身,trees,客户端源标识=None):#构造
+        '订阅树存储并初建文档。指定 Client 时只投影该源'
         自身._树表=trees#树存储
+        自身._客户端源标识=客户端源标识#可选过滤
         自身._键到后端id={}#键到后端id
         自身._监听=set()#监听
         自身._下一后端节点id=1#下一后端id
@@ -14,6 +16,18 @@ class Cordis_Dom后端:#Cordis DOM后端
         自身._对象到节点={}#对象到节点
         自身._文档=自身._构建()#初建
         自身._取消订阅=trees.订阅(自身._收树)#订阅树
+
+    def 为客户端(自身,源标识):#按 Client 再投影
+        '同一份快照上再建一份只含这个 Client 的后端。调用方负责关闭'
+        return Cordis_Dom后端(自身._树表,源标识)#新后端
+
+    def _包含源(自身,源):#源是否在这次投影里
+        '未指定 Client 时全要。指定后只要 Host 和该源'
+        if 自身._客户端源标识 is None:#不过滤
+            return True#全要
+        if _源字段(源,'kind')=='host':#Host 始终在
+            return True#要
+        return _源字段(源,'sourceId')==cordis运行时源标识(自身._客户端源标识)#同一 Client
 
     def 文档(自身):#取文档
         '读取最新的连接中立语义文档'
@@ -52,7 +66,7 @@ class Cordis_Dom后端:#Cordis DOM后端
         '重建文档并差分'
         先前=自身._文档#旧文档
         自身._文档=自身._构建()#重建
-        if 事件['type']=='source-disconnected':#断开
+        if 事件['type']=='source-disconnected' and 自身._包含源(事件['source']):#断开且在这次投影里
             自身._发出({'type':'source-disconnected','source':事件['source']})#断开
         变更=文档差分(先前,自身._文档)#差分
         if len(变更)>0:#有变更
@@ -70,6 +84,8 @@ class Cordis_Dom后端:#Cordis DOM后端
             Host槽['children'].append(自身._实体(树['host'],树['host']['snapshot'].root))#Host实体
         Clients槽=自身._节点('clients','clients',[],'<clients>')#Clients槽
         for Client树 in 树['clients']:#扫Client
+            if not 自身._包含源(Client树['source']):#不在这次投影里
+                continue#跳过
             Client槽=自身._节点(f"client:{_源字段(Client树['source'],'sourceId')}",'client',[],'<client>')#Client槽
             Client槽['children'].append(自身._实体(Client树,Client树['snapshot'].root))#实体
             Clients槽['children'].append(Client槽)#加入

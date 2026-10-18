@@ -3,5 +3,6 @@
     "win32-dialog": "对话框",
     "win32-dialog-logic": "对话框逻辑",
     "win32-dialog-bindings": "对话框绑定",
-    "win32-dialog-worker": "对话框工作进程"
+    "win32-dialog-worker": "对话框工作进程",
+    "win32-dialog-host": "对话框宿主"
 }

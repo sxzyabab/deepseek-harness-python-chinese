@@ -25,7 +25,7 @@ from .zstd编解码 import (#zstd
     压缩zstd帧,解压zstd帧,扫描zstd帧,解压zstd前缀,创建zstd帧解码器,
 )#zstd
 from .代次 import (#代次
-    物理身份,身份串,读稳定jsonl文件,准备jsonl迁移,默认代次格式适配器,
+    物理身份,身份串,读取稳定jsonl文件,准备jsonl迁移,默认代次格式适配器,
     同步目录,
 )#代次
 from .迁移校验 import 进程内校验当代代#进程内校验
@@ -228,7 +228,7 @@ class jsonl会话持久化(会话持久化):
         选中=自身.查找日志(标识,信号)
         if 选中 is None:#无
             return None#缺席
-        头行=自身.读代次头(选中,标识,信号)#头与格式状态
+        头行=自身.读取代次头(选中,标识,信号)#头与格式状态
         if 头行 is None:#坏
             return None#缺席
         try:#stat
@@ -290,7 +290,7 @@ class jsonl会话持久化(会话持久化):
             {'kind':'jsonl','path':选中['sourcePath']},
         )#错误
 
-    def 读已存日志(自身,路径,期望标识,信号=None):#读已存日志
+    def 读取已存日志(自身,路径,期望标识,信号=None):#读取已存日志
         '读取并校验 path 处已存日志'
         若已中止则抛出(信号)#取消
         with open(路径,'rb') as 文件:#读
@@ -357,7 +357,7 @@ class jsonl会话持久化(会话持久化):
                 if 选中 is None:#无代
                     continue#跳过
                 try:#读头 id
-                    头=自身.读代次头行(选中['sourcePath'],信号)#头行
+                    头=自身.读取代次头行(选中['sourcePath'],信号)#头行
                 except (持久化错误,OSError,UnicodeDecodeError,ValueError):
                     continue#跳过
                 if 头 is not None and 头.get('id')==标识:#匹配
@@ -392,19 +392,19 @@ class jsonl会话持久化(会话持久化):
             'currentPath':os.path.join(目录,代次日志文件名(会话格式目录.当前版本,自身.压缩)),#当代
         }#返回
 
-    def 读代次头行(自身,路径,信号=None):#读头行对象
+    def 读取代次头行(自身,路径,信号=None):#读头行对象
         '读文件第一条完整头行并解析为对象'
         若已中止则抛出(信号)#取消
         import json#JSON
         if 自身.压缩=='zstd':#压缩
-            文本=自身.读首帧zstd行(路径,信号)#头行
+            文本=自身.读取首帧zstd行(路径,信号)#头行
         else:#明文
-            文本=自身.读明文首行(路径,信号)#头行
+            文本=自身.读取明文首行(路径,信号)#头行
         if 文本 is None:#无
             return None#无
         return json.loads(文本)#解析
 
-    def 读明文首行(自身,路径,信号=None):#读明文第一行
+    def 读取明文首行(自身,路径,信号=None):#读明文第一行
         '按块读第一条以换行终止的行'
         若已中止则抛出(信号)#取消
         with open(路径,'rb') as 文件:#读
@@ -420,7 +420,7 @@ class jsonl会话持久化(会话持久化):
                     return b''.join(块列表).decode('utf-8')#文本
                 块列表.append(块)#整块
 
-    def 读首帧zstd行(自身,路径,信号=None):#读压缩头行
+    def 读取首帧zstd行(自身,路径,信号=None):#读压缩头行
         '只读并校验可独立压缩的头帧'
         若已中止则抛出(信号)#取消
         with open(路径,'rb') as 文件:#读
@@ -456,9 +456,9 @@ class jsonl会话持久化(会话持久化):
                 'recoveredTail':[],#明文无单独恢复尾
                 'status':'current',#当代
             }#返回
-        return 自身.读zstd前缀(原始,信号)#zstd
+        return 自身.读取zstd前缀(原始,信号)#zstd
 
-    def 读zstd前缀(自身,缓冲,信号=None):#读压缩前缀
+    def 读取zstd前缀(自身,缓冲,信号=None):#读压缩前缀
         '解码完整帧，并从撕裂末帧保留完整 JSONL 记录'
         若已中止则抛出(信号)#取消
         扫描=扫描zstd帧(缓冲)#扫描
@@ -516,7 +516,7 @@ class jsonl会话持久化(会话持久化):
                 会话格式版本拒绝文案(标识,选中['sourceVersion'])+f' (raw log: {选中["sourcePath"]})',
                 {'kind':'jsonl','path':选中['sourcePath']},
             )#错误
-        稳定=读稳定jsonl文件(选中['sourcePath'],信号)#稳定读
+        稳定=读取稳定jsonl文件(选中['sourcePath'],信号)#稳定读
         解码=自身.解码日志字节(稳定['bytes'],信号)#解码
         解码['revision']=会话持久化修订(身份串(稳定['identity']))#修订
         解码['status']='current'#当代
@@ -736,13 +736,13 @@ class jsonl会话持久化(会话持久化):
         若已中止则抛出(信号)#取消
         return 摘要.hexdigest()#十六进制
 
-    def 读代次头(自身,选中,期望标识=None,信号=None):#读代次头
+    def 读取代次头(自身,选中,期望标识=None,信号=None):#读取代次头
         '读并翻译一代头，不看事件行'
         try:#读首行
             if 自身.压缩=='zstd':#压缩
-                文本=自身.读首帧zstd行(选中['sourcePath'],信号)#头行
+                文本=自身.读取首帧zstd行(选中['sourcePath'],信号)#头行
             else:#明文
-                文本=自身.读明文首行(选中['sourcePath'],信号)#头行
+                文本=自身.读取明文首行(选中['sourcePath'],信号)#头行
         except FileNotFoundError:
             return None#缺席
         若已中止则抛出(信号)#取消
@@ -753,7 +753,7 @@ class jsonl会话持久化(会话持久化):
         except (ValueError,TypeError):
             return None#畸形
         断言无已退役头字段(值)#退役字段
-        结果=会话格式目录.读头(值)#分类
+        结果=会话格式目录.读取头(值)#分类
         if 'storedVersion' in 结果 and 结果['storedVersion'] is not None and 结果['storedVersion']!=选中['sourceVersion']:
             raise 持久化错误('session generation filename identifies v'+str(选中['sourceVersion'])+', but its header identifies v'+str(结果['storedVersion']))#版本不一致
         if 结果['status']=='unsupported':#不支持
@@ -794,7 +794,7 @@ class jsonl会话持久化(会话持久化):
         for 选中 in 自身.列出代次(信号):#代
             若已中止则抛出(信号)#取消
             try:#读头
-                头行=自身.读代次头(选中,None,信号)#头与格式状态
+                头行=自身.读取代次头(选中,None,信号)#头与格式状态
             except (会话格式不支持错误,会话持久化损坏错误):
                 continue#跳过
             if 头行 is None:#无
@@ -828,9 +828,9 @@ class jsonl会话持久化(会话持久化):
         '转发检查'
         return 自身.协调器.检查(标识,信号)#转发
 
-    def 从序号读(自身,标识,起始序号,信号=None):#转发后缀读
+    def 从序号读取后缀(自身,标识,起始序号,信号=None):#转发后缀读
         '转发后缀读'
-        return 自身.协调器.从序号读(标识,起始序号,信号)#转发
+        return 自身.协调器.从序号读取已存事件(标识,起始序号,信号)#转发
 
 def 应用(上下文,配置值):#加载
     '加载 JSONL 会话持久化'

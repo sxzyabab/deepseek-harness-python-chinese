@@ -1,12 +1,12 @@
 '调用方身份、工作区授权，以及可见谱系投影'
-from ...模型后端.llm.异常 import 装备错误#Harness错误
+from ...模型后端.llm.异常 import harness错误#Harness错误
 from .服务边界 import 服务边界#服务边界
 
 def 调用方(执行上下文):
     '从工具执行取出调用方'
     智能体=执行上下文['agent'] if 'agent' in 执行上下文 else None#绑定智能体
     if 智能体 is None:#没有智能体
-        raise 装备错误('session query tools require an agent-bound caller','SESSION_QUERY_TOOL_MISSING_AGENT')#拒绝
+        raise harness错误('session query tools require an agent-bound caller','SESSION_QUERY_TOOL_MISSING_AGENT')#拒绝
     return {'id':智能体.session.id,'header':智能体.session.header,'events':智能体.session.events}#冻结身份
 
 def 目标号(参数,调用方):

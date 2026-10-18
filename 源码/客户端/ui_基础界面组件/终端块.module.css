@@ -1,15 +1,8 @@
-/* Geometry mirrors CodeBlock (12px radius, code-block surface + banner rows,
-   markdown code-block font) so a terminal card and a fenced code block read as
-   one family. The one deliberate divergence: output keeps `white-space: pre`
-   and scrolls horizontally, because folding a column-aligned command's output
-   destroys its alignment. */
-
 .block {
-  --dsl-terminal-radius: 12px;
+  --dsl-terminal-radius: var(--dsw-radius-lg);
   --dsl-terminal-line-height: 22px;
   --dsl-terminal-font: var(--dsw-font-markdown-code-block);
   --dsl-terminal-gutter: 30px;
-
   position: relative;
   margin: 16px 0;
   padding-left: var(--dsl-terminal-gutter);
@@ -34,15 +27,15 @@
 .header::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
   background-clip: padding-box;
-  border-radius: 6px;
+  border-radius: var(--dsw-radius-sm);
 }
 
 .header::-webkit-scrollbar-track {
   margin: 6px;
 }
 
-.block:not([data-running]) .header {
-  border-bottom: 1px solid var(--dsw-alias-border-l2);
+.block[data-body] .header {
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
 }
 
 .prompt {
@@ -65,7 +58,7 @@
 .runState {
   position: absolute;
   left: calc(-1 * var(--dsl-terminal-gutter) + 8px);
-  top: 50%;
+  top: calc(var(--dsl-terminal-line-height) / 2);
   transform: translateY(-50%);
 }
 
@@ -84,11 +77,8 @@
 }
 
 .command {
-  min-width: 0;
+  --dsl-command-whitespace: var(--dsl-terminal-command-whitespace, pre);
   color: var(--dsw-alias-label-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: pre;
 }
 
 .status {
@@ -124,7 +114,7 @@
 .output::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
   background-clip: padding-box;
-  border-radius: 6px;
+  border-radius: var(--dsw-radius-sm);
 }
 
 .output::-webkit-scrollbar-track {
@@ -133,7 +123,8 @@
 
 .line {
   min-height: var(--dsl-terminal-line-height);
-  white-space: pre;
+  white-space: var(--dsl-terminal-line-whitespace, pre);
+  overflow-wrap: anywhere;
 }
 
 .expand {

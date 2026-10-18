@@ -1,72 +1,78 @@
-from nicegui import ui as 界面
-from ....ui_基础界面组件.代码高亮语法 import 路径语言
+from ....模块.客户端.通告 import 取握手窗口
+import os
+from .....工具.工作区路径 import 解析文件地址
+from ....ui_对话.异常 import 注入模块样式文件,模块节点
 from ....ui_基础界面组件.markdown.代码块 import 代码块
-from ..远程过程调用 import 宿主文件#宿主文件
+from ....ui_基础界面组件.代码高亮语法 import 路径语言
+from .文案 import 中文
 
-__all__=['代码体','代码面板','样式表']
-样式表='''
-.renderer{display:flex;flex:1 1 auto;flex-direction:column;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;white-space:normal}
-.renderer .code{--dsl-code-block-border-radius:0px;--dsl-code-block-background:transparent;display:flex;flex:1 1 auto;flex-direction:column;height:100%;min-height:0;margin:0}
-.renderer .code pre{box-sizing:border-box;padding:16px;min-width:100%;white-space:pre}
-.renderer[data-wrap=true] .code pre{white-space:pre-wrap;overflow-wrap:anywhere}
-'''
-界面.add_css(样式表,shared=True)
+__all__=['代码体']
 
-def 代码体(资源地址,内容,换行,翻译):
-    '产出稳定代码块结构，或字节内容时无正文'
-    if 内容.get('kind')!='text':#非文本
-        return None#无
-    文件=宿主文件(资源地址)#会话文件
-    语言=路径语言(文件['path'])#文法
-    return {#结构
-        'kind':'code-body',
-        'wrap':换行,
-        'code':内容['text'],
-        'lang':语言,
-        'streaming':not 内容['eof'],
-        'copyLabel':翻译('copy'),
-        'copiedLabel':翻译('copied'),
-    }#结束
+样式模块='code-body'
 
-
-def _键齐(属性):
-    '内容、地址和文案都在才画'
-    return isinstance(属性,dict) and 'content' in 属性 and 'resourceAddress' in 属性 and 't' in 属性
-
-class 代码面板:
-    '高亮代码正文与复制'
-
-    def __init__(自身,属性):
-        '记下文档席 props。槽位只调用构造，键齐了才画'
+class 代码体:
+    '累积的源文本和高亮。字节内容不画'
+    def __init__(自身,属性=None):
+        '记下文档 props'
         自身.属性=属性 if isinstance(属性,dict) else {}
-        if _键齐(自身.属性):
+        自身.根=None
+        if 'content' in 自身.属性 and 'window' in 自身.属性:
             自身.渲染()
 
+    def 更新(自身,属性):
+        '换成新的 props'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
     def 渲染(自身):
-        '文本交付画成代码块；字节交付不画正文'
+        '一块稳定的代码块。不是文本就空'
+        if 自身.根 is not None:
+            自身.根.remove()
+            自身.根=None
         属性=自身.属性
-        if not _键齐(属性):
-            return
         内容=属性['content']
-        地址=属性['resourceAddress']
-        翻译=属性['t']
-        换行=属性['wrap'] is True if 'wrap' in 属性 else False
-        模型=代码体(地址,内容,换行,翻译)
-        if 模型 is None:
-            return
-        根=界面.column().classes('renderer')
-        if 模型['wrap'] is True:
-            根.props('data-wrap=true')
-        with 根:
-            代码块({
-                'code':模型['code'],
-                'lang':模型['lang'],
-                'copyLabel':模型['copyLabel'],
-                'copiedLabel':模型['copiedLabel'],
-            }).渲染()
+        if 内容['kind']!='text':
+            return None
+        文件=解析文件地址(属性['resourceAddress'])
+        if not isinstance(文件,dict):
+            raise ValueError('ui-sidebar-documentpreview: not a file address "'+str(属性['resourceAddress'])+'"')
+        窗口=属性['window'] if 'window' in 属性 else 取握手窗口()
+        文档=窗口.document
+        注入模块样式文件(
+            文档,
+            '代码体样式',
+            os.path.join(os.path.dirname(__file__),'代码体.module.css'),
+            样式模块,
+        )
+        根=模块节点(文档,'div',样式模块,'renderer')
+        根.setAttribute('data-code-preview','')
+        根.setAttribute('data-wrap','true' if 属性.get('wrap') is True else 'false')
+        块=代码块({
+            'window':窗口,
+            'className':'code',
+            'contentRef':属性.get('scrollportRef'),
+            'code':内容['text'],
+            'lang':路径语言(文件['path']),
+            'streaming':内容.get('eof') is not True,
+            'wrap':属性.get('wrap') is True,
+            'lineNumbers':True,
+            'copyLabel':中文['copy'],
+            'copiedLabel':中文['copied'],
+            'toolbarLabels':{
+                'codeLabel':'代码块',
+                'wrapLabel':'自动换行',
+                'unwrapLabel':'取消自动换行',
+            },
+        }).渲染()
+        标=块
+        if 标 is not None:
+            根.appendChild(标)
+        if 'parent' in 属性 and 属性['parent'] is not None:
+            属性['parent'].appendChild(根)
+        自身.根=根
+        return 自身.根
 
     def __call__(自身,属性=None):
-        '对齐组件调用'
+        '再次调用时先换 props 再画'
         if 属性 is not None:
-            自身.属性=属性 if isinstance(属性,dict) else {}
+            自身.更新(属性)
         return 自身.渲染()

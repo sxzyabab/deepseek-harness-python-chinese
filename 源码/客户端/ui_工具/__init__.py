@@ -1,3 +1,10 @@
-from .客户端 import 依赖,应用
+from . import 客户端
+from . import 异常
 
-__all__=['依赖','应用']
+__all__=['客户端']
+
+def 应用():
+    '宿主面无行为，只占 Loader 行'
+    return
+
+apply=应用

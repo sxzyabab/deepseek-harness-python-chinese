@@ -1,158 +1,264 @@
-from nicegui import ui as 界面
-from .异常 import 叠页面失败
+'草稿附件轨。滚动条藏起，左右箭头按溢出翻页'
+from ..模块.客户端.通告 import 取握手窗口
+import os
+from ..ui_对话.异常 import 注入模块样式文件,标样式模块
+from ..ui_基础界面组件.icons import 描边图标
 
-__all__=['附件轨','滚轮行像素']#仅中文公开名
+__all__=['附件轨']
 
-滚轮行像素=16#LINE 模式每步近似像素
+样式模块='attachment-rail'
 
-class 附件轨:#水平缩略图轨
-    '草稿附件缩略图轨；拥有方仅在有条目时挂载'
-    def __init__(自身,属性):#构造
-        '记下 props'
-        自身.属性=属性#合成 props
-        自身.滚动左=0#scrollLeft
-        自身.滚动宽=0#scrollWidth
-        自身.可视宽=0#clientWidth
-        自身.上次条数=None#首次布局为 None
-        自身.左缘=False#尚未几何时无左箭
-        自身.右缘=False#尚未几何时无右箭
-        自身.存活=True#存活
-        自身.画面失败=None
+class 附件轨:
+    '水平排列草稿附件。新加的滚到末尾，首次挂上已有草稿时留在开头'
+    def __init__(自身,属性):
+        '记下条目、文案和绘制回调'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        自身.轨=None
+        自身.窗口=None
+        自身.左钮=None
+        自身.右钮=None
+        自身.左缘=False
+        自身.右缘=False
+        自身.上次条数=None
+        自身.卸观察=None
+        自身.已拆=False
+        自身.绘制中=False
+        自身.待重画=False
+        自身.渲染()
 
-    def 更新(自身,属性):#props 变更
-        '条数增长时滚到末尾'
-        旧表=自身.属性['items'] if 'items' in 自身.属性 and 自身.属性['items'] is not None else []#旧条目；空列表保留
-        旧条=len(旧表)#旧条数；判的是 length
-        自身.属性=属性#最新
-        新表=自身.属性['items'] if 'items' in 自身.属性 and 自身.属性['items'] is not None else []#新条目；空列表保留
-        新条=len(新表)#新条数；判的是 length
-        if 自身.上次条数 is not None and 新条>自身.上次条数:#增长
-            自身.滚动左=max(0,自身.滚动宽-自身.可视宽)#末尾
-        自身.上次条数=新条#记下
-        if 旧条!=新条:#条数变
-            自身.刷新边缘()#刷新
+    def 更新(自身,属性):
+        '换上新的条目和文案'
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
-    def 卸载(自身):#卸载
-        '标死'
-        自身.存活=False#死
+    def 拆除(自身):
+        '卸掉尺寸观察和滚轮监听'
+        自身.已拆=True
+        if callable(自身.卸观察):
+            自身.卸观察()
+            自身.卸观察=None
+        if 自身.轨 is not None:
+            自身.轨.removeEventListener('scroll',自身.滚动了)
+            自身.轨.removeEventListener('wheel',自身.滚轮)
 
-    def 设几何(自身,滚动左,滚动宽,可视宽):#由宿主写入滚动几何
-        '更新几何并刷新边缘'
-        自身.滚动左=滚动左#左
-        自身.滚动宽=滚动宽#宽
-        自身.可视宽=可视宽#可视
-        自身.刷新边缘()#边缘
+    def 接观察(自身):
+        '轨宽跟着撰写栏变。浏览器有 ResizeObserver 才订阅'
+        构造=getattr(自身.窗口,'ResizeObserver',None)
+        if not callable(构造):
+            return
+        观察=构造(自身.尺寸变了)
+        观察.observe(自身.轨)
 
-    def 刷新边缘(自身):#重算左右箭头
-        '1px 松弛：引擎在边缘报分数滚动'
-        自身.左缘=自身.滚动左>1#左可滚
-        自身.右缘=自身.滚动左<自身.滚动宽-自身.可视宽-1#右可滚
+        def 卸下():
+            '停止观察这一条轨'
+            观察.disconnect()
 
-    def 翻页(自身,方向):#按视口翻页
-        '一步视口减一卡；窄轨至少 200'
-        步=方向*max(自身.可视宽-64,200)#步长
-        自身.滚动左=max(0,min(自身.滚动左+步,max(0,自身.滚动宽-自身.可视宽)))#夹紧
-        自身.刷新边缘()#边缘
+        自身.卸观察=卸下
 
-    def 滚轮(自身,deltaX,deltaY,deltaMode=0):#垂直滚轮转水平
-        '纯水平 pan 保持原生；有垂直分量则消费'
-        if deltaY==0:#无垂直
-            return False#不消费
-        比例=滚轮行像素 if deltaMode==1 else (自身.可视宽 if deltaMode==2 else 1)#缩放
-        if deltaX!=0:#对角
-            左移=deltaX*比例#水平意图
-        else:#纯垂直
-            符号=1 if deltaY>0 else -1#符号
-            左移=符号*min(abs(deltaY)*比例,60)#夹紧
-        自身.滚动左=max(0,min(自身.滚动左+左移,max(0,自身.滚动宽-自身.可视宽)))#夹紧
-        自身.刷新边缘()#边缘
-        return True#已消费
+    def 布局(自身):
+        '条数变多时把末尾露出来，再按几何重算左右缘'
+        if 自身.已拆:
+            return
+        轨=自身.轨
+        if 轨 is None:
+            return
+        if getattr(轨,'isConnected',None) is not True:
+            return
+        条数=len(自身.属性.get('items') or [])
+        变多=自身.上次条数 is not None and 条数>自身.上次条数
+        自身.上次条数=条数
+        if 变多:
+            轨.scrollLeft=轨.scrollWidth-轨.clientWidth
+        自身.刷新边缘()
 
-    def 视图(自身):#读视图模型
-        '投影轨与条目'
-        条目表=自身.属性['items'] if 'items' in 自身.属性 and 自身.属性['items'] is not None else []#条目；空列表保留
-        文案=自身.属性['labels'] if 'labels' in 自身.属性 and 自身.属性['labels'] is not None else {}#文案
-        return {#视图
-            'group':文案['group'] if 'group' in 文案 else None,#组名
-            'open':文案['open'] if 'open' in 文案 else None,#打开提示
-            'scrollLeft':文案['scrollLeft'] if 'scrollLeft' in 文案 else None,#左箭头
-            'scrollRight':文案['scrollRight'] if 'scrollRight' in 文案 else None,#右箭头
-            'showLeft':自身.左缘,#显左箭
-            'showRight':自身.右缘,#显右箭
-            'scrollLeftPx':自身.滚动左,#滚动位置
-            'items':[{#缩略项
-                'id':项['id'] if 'id' in 项 else None,#身份
-                'previewUrl':项['previewUrl'] if 'previewUrl' in 项 else None,#预览
-                'alt':项['alt'] if 'alt' in 项 else None,#替代文本
-                'removeLabel':项['removeLabel'] if 'removeLabel' in 项 else None,#移除文案
-            } for 项 in 条目表],#项表
-        }#视图结束
+    def 刷新边缘(自身):
+        '左右各留 1 像素，避免分数滚动把边缘判错'
+        轨=自身.轨
+        if 轨 is None:
+            return
+        左=轨.scrollLeft>1
+        右=轨.scrollLeft<轨.scrollWidth-轨.clientWidth-1
+        if 自身.左缘==左 and 自身.右缘==右:
+            return
+        自身.左缘=左
+        自身.右缘=右
+        自身.同步箭头()
 
-    def 打开(自身,项):#单击打开
-        '转调 onOpen'
-        回调=自身.属性['onOpen'] if 'onOpen' in 自身.属性 else None#回调
-        if 回调 is not None:#有
-            回调(项)#打开
+    def 滚动了(自身,事件=None):
+        '滚动之后重算箭头'
+        自身.刷新边缘()
 
-    def 移除(自身,项):#移除
-        '转调 onRemove'
-        回调=自身.属性['onRemove'] if 'onRemove' in 自身.属性 else None#回调
-        if 回调 is not None:#有
-            回调(项)#移除
+    def 尺寸变了(自身,记录=None,观察者=None):
+        '宽度变了就重算箭头'
+        自身.刷新边缘()
+
+    def 滚轮(自身,事件):
+        '有垂直分量就改成横向滚动，并拦住后面的对话滚动'
+        if 事件.deltaY==0:
+            return
+        轨=自身.轨
+        if 轨 is None:
+            return
+        模式=事件.deltaMode
+        滚轮事件=自身.窗口.WheelEvent
+        if 模式==滚轮事件.DOM_DELTA_LINE:
+            比例=16
+        elif 模式==滚轮事件.DOM_DELTA_PAGE:
+            比例=轨.clientWidth
+        else:
+            比例=1
+        事件.preventDefault()
+        if 事件.deltaX!=0:
+            左移=事件.deltaX*比例
+        else:
+            距离=abs(事件.deltaY)*比例
+            if 距离>60:
+                距离=60
+            if 事件.deltaY<0:
+                左移=-距离
+            else:
+                左移=距离
+        轨.scrollBy({'left':左移,'behavior':'auto'})
+
+    def 翻页(自身,方向):
+        '一步大约一个视口再留一张卡。用户要求减少动效时不平滑'
+        轨=自身.轨
+        if 轨 is None:
+            return
+        行为='smooth'
+        匹配=getattr(自身.窗口,'matchMedia',None)
+        if callable(匹配):
+            查询=匹配('(prefers-reduced-motion: reduce)')
+            if 查询 is not None and 查询.matches is True:
+                行为='auto'
+        距离=轨.clientWidth-64
+        if 距离<200:
+            距离=200
+        轨.scrollBy({'left':方向*距离,'behavior':行为})
+
+    def 向左(自身,事件=None):
+        '向左翻一页'
+        自身.翻页(-1)
+
+    def 向右(自身,事件=None):
+        '向右翻一页'
+        自身.翻页(1)
+
+    def 造箭头(自身,文档,类名,文案,点下,路径):
+        '一颗贴边的翻页箭头'
+        钮=文档.createElement('button')
+        钮.type='button'
+        钮.className=类名
+        标样式模块(钮,样式模块)
+        钮.setAttribute('aria-label',文案)
+        钮.addEventListener('click',点下)
+        图=描边图标({'window':自身.窗口,'size':14},'0 0 16 16',[路径])
+        if 图 is not None:
+            钮.appendChild(图)
+        return 钮
+
+    def 同步箭头(自身):
+        '有溢出才放对应方向的箭头'
+        if 自身.根 is None or 自身.窗口 is None:
+            return
+        文档=自身.窗口.document
+        文案=自身.属性.get('labels') if isinstance(自身.属性.get('labels'),dict) else {}
+        if 自身.左缘:
+            左文='' if 文案.get('scrollLeft') is None else str(文案['scrollLeft'])
+            if 自身.左钮 is None:
+                自身.左钮=自身.造箭头(
+                    文档,
+                    'arrow arrowLeft',
+                    左文,
+                    自身.向左,
+                    'M10 4L6.70711 7.29289C6.31658 7.68342 6.31658 8.31658 6.70711 8.70711L10 12',
+                )
+                自身.根.insertBefore(自身.左钮,自身.轨)
+            else:
+                自身.左钮.setAttribute('aria-label',左文)
+        elif 自身.左钮 is not None:
+            自身.左钮.remove()
+            自身.左钮=None
+        if 自身.右缘:
+            右文='' if 文案.get('scrollRight') is None else str(文案['scrollRight'])
+            if 自身.右钮 is None:
+                自身.右钮=自身.造箭头(
+                    文档,
+                    'arrow arrowRight',
+                    右文,
+                    自身.向右,
+                    'M6 12L9.29289 8.70711C9.68342 8.31658 9.68342 7.68342 9.29289 7.29289L6 4',
+                )
+                自身.根.appendChild(自身.右钮)
+            else:
+                自身.右钮.setAttribute('aria-label',右文)
+        elif 自身.右钮 is not None:
+            自身.右钮.remove()
+            自身.右钮=None
 
     def 渲染(自身):
-        '左右翻页与缩略图、移除'
-        视=自身.视图()
-        旧=getattr(自身,'根',None)
-        if 旧 is not None:
-            try:
-                旧.clear()
-            except Exception as 错误:
-                自身.根=None
-                自身.画面失败=叠页面失败(自身.画面失败,错误)
-        if getattr(自身,'根',None) is None:
-            自身.根=界面.row().classes('attachment-rail')
-        条目表=自身.属性['items'] if 'items' in 自身.属性 and 自身.属性['items'] is not None else []
-        画项=自身.属性['renderItem'] if 'renderItem' in 自身.属性 else None
-        with 自身.根:
-            if isinstance(自身.画面失败,str) and 自身.画面失败!='':
-                界面.label(自身.画面失败)
-            组名=视['group']
-            if isinstance(组名,str) and 组名!='':
-                界面.label(组名).style('position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)')
-            if 视['showLeft'] is True and isinstance(视['scrollLeft'],str) and 视['scrollLeft']!='':
-                def 点左():
-                    '向左翻页'
-                    自身.翻页(-1)
-                    自身.渲染()
-                界面.button(视['scrollLeft'],on_click=点左).props('flat no-caps')
-            for 下标,项视 in enumerate(视['items']):
-                原项=条目表[下标] if 下标<len(条目表) else 项视
-                if callable(画项):
-                    画项(原项 if isinstance(原项,dict) else 项视)
-                    continue
-                if isinstance(项视['previewUrl'],str) and 项视['previewUrl']!='':
-                    图=界面.image(项视['previewUrl'])
-                    def 点开(_事件=None,项=原项):
-                        '打开原图'
-                        自身.打开(项)
-                    图.on('click',点开)
-                elif isinstance(项视['alt'],str) and 项视['alt']!='':
-                    界面.label(项视['alt'])
-                if isinstance(项视['removeLabel'],str) and 项视['removeLabel']!='':
-                    def 点除(_事件=None,项=原项):
-                        '移除这条附件'
-                        自身.移除(项)
-                    界面.button(项视['removeLabel'],on_click=点除).props('flat no-caps')
-            if 视['showRight'] is True and isinstance(视['scrollRight'],str) and 视['scrollRight']!='':
-                def 点右():
-                    '向右翻页'
-                    自身.翻页(1)
-                    自身.渲染()
-                界面.button(视['scrollRight'],on_click=点右).props('flat no-caps')
-
-    def __call__(自身,属性=None):#组件调用形
-        '对齐 React 组件调用'
-        if 属性 is not None:#有新 props
-            自身.更新(属性)#刷新
-        return 自身.渲染()
+        '保住同一条滚动元素，按草稿顺序重放条目'
+        if 自身.绘制中:
+            自身.待重画=True
+            return 自身.根
+        自身.绘制中=True
+        画完=False
+        try:
+            属性=自身.属性
+            窗口=属性['window'] if 'window' in 属性 else 取握手窗口()
+            自身.窗口=窗口
+            文档=窗口.document
+            注入模块样式文件(
+                文档,
+                'dsh-attachment-rail',
+                os.path.join(os.path.dirname(__file__),'附件轨.module.css'),
+                样式模块,
+            )
+            文案=属性.get('labels') if isinstance(属性.get('labels'),dict) else {}
+            if 自身.根 is None:
+                根=文档.createElement('div')
+                根.className='root'
+                标样式模块(根,样式模块)
+                轨=文档.createElement('div')
+                轨.className='rail'
+                标样式模块(轨,样式模块)
+                轨.setAttribute('role','group')
+                轨.addEventListener('scroll',自身.滚动了)
+                轨.addEventListener('wheel',自身.滚轮,{'passive':False})
+                根.appendChild(轨)
+                自身.根=根
+                自身.轨=轨
+                自身.接观察()
+            组名='' if 文案.get('group') is None else str(文案['group'])
+            自身.轨.setAttribute('aria-label',组名)
+            while 自身.轨.firstChild is not None:
+                自身.轨.removeChild(自身.轨.firstChild)
+            画一项=属性.get('renderItem')
+            for 项 in 属性.get('items') or []:
+                盒=文档.createElement('div')
+                盒.className='item'
+                标样式模块(盒,样式模块)
+                子=画一项(项) if 画一项 is not None else None
+                节点=子
+                if 子 is not None and not isinstance(子,(str,int,float,bool,dict,list,tuple)):
+                    根=getattr(子,'根',None)
+                    if 根 is not None:
+                        节点=根
+                if 节点 is not None:
+                    盒.appendChild(节点)
+                自身.轨.appendChild(盒)
+            自身.同步箭头()
+            自身.布局()
+            排帧=getattr(窗口,'requestAnimationFrame',None)
+            if callable(排帧):
+                def 稍后(时刻=None):
+                    '进页面并完成布局后再读滚动位置'
+                    自身.布局()
+                排帧(稍后)
+            画完=True
+        finally:
+            自身.绘制中=False
+        if 画完 and 自身.待重画:
+            自身.待重画=False
+            return 自身.渲染()
+        return 自身.根

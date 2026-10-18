@@ -1,242 +1,189 @@
-from ..异常 import 停靠错误#本包异常
-from ..约定.类型 import 节点种分割,节点种窗格,窗格宿主浮动#约定
+'布局树上的纯读取和纯替换。缺标识是调用方的错，按上游抛出'
+from ..异常 import 停靠错误
 
-__all__=[#仅中文公开名
-    '断言穷尽',
-    '取节点',
-    '取窗格',
-    '取分割',
-    '取标签',
-    '浮动矩形',
-    '浮动序号',
-    '唯一标签标识',
-    '找父分割',
-    '查找标签窗格',
-    '停靠窗格标识列表',
-    '归一尺寸',
-    '条目对',
-    '键列表',
-    '换节点',
-    '换标签',
-    '插入于',
-    '移除于',
-    '邻标签标识',
-    '窗格换标签条',
-    '父槽替换',
-    '首停靠窗格标识',
-    '右上窗格标识',
-]#公开面结束
+__all__=[
+    '盖上','条目表','取节点','取窗格','取分割','取标签',
+    '浮动矩形','浮动序号','唯一标签标识','找父分割','查找标签窗格',
+    '停靠窗格标识列表','归一份额','换节点','换标签','插入于','移除于',
+    '邻标签标识','窗格换标签','父中替换','首停靠窗格标识','右上窗格标识',
+]
 
+def 盖上(原,改):
+    '浅拷贝一份，再盖上改动的字段。没改到的对象保持原引用'
+    出=dict(原)
+    出.update(改)
+    return 出
 
-def 断言穷尽(值,何物):
-    '封闭 switch 的未处理判别；抛停靠错误且永不返回'
-    raise 停靠错误(何物+': unhandled '+repr(值))#未处理
-
+def 条目表(记录):
+    '标识记录的键值对。键就是当初写进去的标识'
+    return list(记录.items())
 
 def 取节点(状态,标识):
-    '读任意节点。标识不在树中则抛'
-    节点表=状态['nodes']#节点表
-    if 标识 not in 节点表:#悬空
-        raise 停靠错误('layout: unknown node '+str(标识))#拒绝
-    return 节点表[标识]#节点
-
+    '按标识读分割或窗格'
+    if 标识 not in 状态['nodes']:
+        raise 停靠错误(f'layout: unknown node {标识}')
+    return 状态['nodes'][标识]
 
 def 取窗格(状态,标识):
-    '读窗格。缺失或指向分割则抛'
-    节点=取节点(状态,标识)#节点
-    if 节点['kind']!=节点种窗格:#非窗格
-        raise 停靠错误('layout: '+str(标识)+' is not a pane')#拒绝
-    return 节点#窗格
-
+    '按标识读窗格。分割标识不行'
+    节点=取节点(状态,标识)
+    if 节点['kind']!='pane':
+        raise 停靠错误(f'layout: {标识} is not a pane')
+    return 节点
 
 def 取分割(状态,标识):
-    '读分割。缺失或指向窗格则抛'
-    节点=取节点(状态,标识)#节点
-    if 节点['kind']!=节点种分割:#非分割
-        raise 停靠错误('layout: '+str(标识)+' is not a split')#拒绝
-    return 节点#分割
-
+    '按标识读分割。窗格标识不行'
+    节点=取节点(状态,标识)
+    if 节点['kind']!='split':
+        raise 停靠错误(f'layout: {标识} is not a split')
+    return 节点
 
 def 取标签(状态,标识):
-    '读标签记录。未打开则抛'
-    标签表=状态['tabs']#标签表
-    if 标识 not in 标签表:#未打开
-        raise 停靠错误('layout: unknown tab '+str(标识))#拒绝
-    return 标签表[标识]#记录
-
+    '按标识读标签记录'
+    if 标识 not in 状态['tabs']:
+        raise 停靠错误(f'layout: unknown tab {标识}')
+    return 状态['tabs'][标识]
 
 def 浮动矩形(窗格):
-    '浮动窗格的视口矩形。停靠则抛'
-    if 窗格['host']!=窗格宿主浮动 or 窗格['rect'] is None:#非浮动
-        raise 停靠错误('layout: '+str(窗格['id'])+' is not floating')#拒绝
-    return 窗格['rect']#矩形
-
+    '浮动窗格的视口矩形。停靠着的不行'
+    if 窗格['host']!='float' or 窗格['rect'] is None:
+        raise 停靠错误(f'layout: {窗格["id"]} is not floating')
+    return 窗格['rect']
 
 def 浮动序号(状态,标识):
-    '浮动窗格在 z 序中的下标（底在前）。未列入则抛'
-    try:#查找
-        return 状态['floats'].index(标识)#下标
-    except ValueError:#不在
-        raise 停靠错误('layout: floating pane '+str(标识)+' is not in the z order')#拒绝
-
+    '浮动窗格在叠放里的位置，底下是 0'
+    try:
+        return 状态['floats'].index(标识)
+    except ValueError:
+        raise 停靠错误(f'layout: floating pane {标识} is not in the z order')
 
 def 唯一标签标识(窗格):
-    '窗格恰有一标签时返回其标识，否则抛'
-    标签条=窗格['tabs']#标签条
-    if len(标签条)!=1:#非恰一
-        raise 停靠错误('layout: '+str(窗格['id'])+' does not hold exactly one tab')#拒绝
-    return 标签条[0]#唯一
-
+    '窗格里仅有的那一个标签'
+    if len(窗格['tabs'])!=1:
+        raise 停靠错误(f'layout: {窗格["id"]} does not hold exactly one tab')
+    return 窗格['tabs'][0]
 
 def 找父分割(状态,标识):
-    '持有该节点的分割；停靠根与浮动窗格返回 None'
-    for 节点 in 状态['nodes'].values():#遍历
-        if 节点['kind']==节点种分割 and 标识 in 节点['children']:#子含
-            return 节点#父
-    return None#无父
-
+    '抱着这个节点的分割。停靠根和浮动窗格没有'
+    for 节点 in 状态['nodes'].values():
+        if 节点['kind']=='split' and 标识 in 节点['children']:
+            return 节点
+    return None
 
 def 查找标签窗格(状态,标签标识):
-    '条带列出该标签的窗格；无则抛'
-    for 节点 in 状态['nodes'].values():#遍历
-        if 节点['kind']==节点种窗格 and 标签标识 in 节点['tabs']:#含标签
-            return 节点#窗格
-    raise 停靠错误('layout: tab '+str(标签标识)+' has no pane')#拒绝
-
+    '条带上列着这个标签的窗格'
+    for 节点 in 状态['nodes'].values():
+        if 节点['kind']=='pane' and 标签标识 in 节点['tabs']:
+            return 节点
+    raise 停靠错误(f'layout: tab {标签标识} has no pane')
 
 def 停靠窗格标识列表(状态):
-    '视觉序（深度优先）的停靠窗格标识；不含浮动'
-    结果=[]#输出
-
-    def 行走(标识):
-        '递归下探'
-        节点=取节点(状态,标识)#节点
-        if 节点['kind']==节点种窗格:#叶
+    '停靠窗格标识，按分割树的视觉顺序。浮动的不在里面'
+    结果=[]
+    def 走(标识):
+        '深度优先收集窗格'
+        节点=取节点(状态,标识)
+        if 节点['kind']=='pane':
             结果.append(节点['id'])
-            return#止
-        for 子 in 节点['children']:#子
-            行走(子)#续
+            return
+        for 子 in 节点['children']:
+            走(子)
+    走(状态['rootId'])
+    return 结果
 
-    行走(状态['rootId'])#自根
-    return 结果#列表
-
-
-def 归一尺寸(尺寸表):
-    '使份额和为 1。已和为 1 则原样拷贝，避免回放漂移'
-    总和=0.0#累计
-    for 份额 in 尺寸表:#累加
-        总和+=份额#加
-    if not (总和>0):#非法
-        raise 停靠错误('layout: sizes must sum above zero')#拒绝
-    if abs(总和-1)<1e-12:#已归一
-        return list(尺寸表)#拷贝
-    return [份额/总和 for 份额 in 尺寸表]#缩放
-
-
-def 条目对(记录):
-    'id 键记录的条目对列表'
-    return list(记录.items())#条目
-
-
-def 键列表(记录):
-    'id 键记录的键列表'
-    return list(记录.keys())#键
-
+def 归一份额(份额表):
+    '把份额缩放到和为 1。已经是 1 的原样复制，避免回放漂移'
+    合计=0
+    for 份额 in 份额表:
+        合计+=份额
+    if not (合计>0):
+        raise 停靠错误('layout: sizes must sum above zero')
+    if abs(合计-1)<1e-12:
+        return list(份额表)
+    出=[]
+    for 份额 in 份额表:
+        出.append(份额/合计)
+    return 出
 
 def 换节点(状态,更新):
-    '替换或删除节点。更新中值为 None 表示删除；未触动节点保持原引用'
-    节点表={}#新表
-    for 标识,节点 in 条目对(状态['nodes']):#旧
-        if 标识 not in 更新:#未更新
-            节点表[标识]=节点#保留
-    for 标识,节点 in 条目对(更新):#新
-        if 节点 is not None:#非删
-            节点表[标识]=节点#写入
-    下一=dict(状态)#浅拷
-    下一['nodes']=节点表#换
-    return 下一#状态
-
+    '替换或删除节点。更新里 None 表示删掉这个标识'
+    节点表={}
+    for 标识,节点 in 条目表(状态['nodes']):
+        if 标识 not in 更新:
+            节点表[标识]=节点
+    for 标识,节点 in 条目表(更新):
+        if 节点 is not None:
+            节点表[标识]=节点
+    return 盖上(状态,{'nodes':节点表})
 
 def 换标签(状态,更新):
-    '替换或删除标签记录。更新中值为 None 表示删除'
-    标签表={}#新表
-    for 标识,记录 in 条目对(状态['tabs']):#旧
-        if 标识 not in 更新:#未更新
-            标签表[标识]=标签#保留
-    for 标识,标签 in 条目对(更新):#新
-        if 标签 is not None:#非删
-            标签表[标识]=标签#写入
-    下一=dict(状态)#浅拷
-    下一['tabs']=标签表#换
-    return 下一#状态
+    '替换或删除标签记录。更新里 None 表示删掉'
+    标签表={}
+    for 标识,标签 in 条目表(状态['tabs']):
+        if 标识 not in 更新:
+            标签表[标识]=标签
+    for 标识,标签 in 条目表(更新):
+        if 标签 is not None:
+            标签表[标识]=标签
+    return 盖上(状态,{'tabs':标签表})
 
+def 插入于(表,下标,值):
+    '在下标处插入。下标会夹到表的两端之间'
+    位于=max(0,min(下标,len(表)))
+    return [*表[:位于],值,*表[位于:]]
 
-def 插入于(项表,下标,值):
-    '在夹紧后的槽位插入，返回新列表'
-    处=max(0,min(下标,len(项表)))#夹紧
-    return list(项表[:处])+[值]+list(项表[处:])#新表
+def 移除于(表,下标):
+    '去掉下标上的那一项'
+    return [*表[:下标],*表[下标+1:]]
 
+def 邻标签标识(标签表,移除下标):
+    '一个标签离开后，窗格改聚焦谁。优先左边，否则右边'
+    剩余=移除于(标签表,移除下标)
+    if len(剩余)==0:
+        return None
+    return 剩余[max(0,移除下标-1)]
 
-def 移除于(项表,下标):
-    '去掉一处，返回新列表'
-    return list(项表[:下标])+list(项表[下标+1:])#新表
+def 窗格换标签(窗格,标签序,活动标签):
+    '复制窗格并换上新的标签序。活动标签由调用方保持一致'
+    return 盖上(窗格,{'tabs':标签序,'activeTabId':活动标签})
 
+def 父中替换(状态,目标标识,替换标识):
+    '在父分割的槽位上换成另一个节点。没有父节点时它就是停靠根'
+    父=找父分割(状态,目标标识)
+    if 父 is None:
+        if 状态['rootId']!=目标标识:
+            raise 停靠错误(f'layout: {目标标识} is neither rooted nor parented')
+        return 盖上(状态,{'rootId':替换标识})
+    子序=[]
+    for 子 in 父['children']:
+        if 子==目标标识:
+            子序.append(替换标识)
+        else:
+            子序.append(子)
+    return 换节点(状态,{父['id']:盖上(父,{'children':子序})})
 
-def 邻标签标识(标签条,移除下标):
-    '移除后焦点邻：有前取前，否则取后，空则 None'
-    剩余=移除于(标签条,移除下标)#剩余
-    if len(剩余)==0:#空
-        return None#无
-    return 剩余[max(0,移除下标-1)]#邻
-
-
-def 窗格换标签条(窗格,标签条,活动标签标识):
-    '拷贝窗格并换标签条与活动标签'
-    下一=dict(窗格)#浅拷
-    下一['tabs']=list(标签条)#条
-    下一['activeTabId']=活动标签标识#活动
-    return 下一#窗格
-
-
-def 父槽替换(状态,目标标识,替换标识):
-    '在父分割槽或停靠根上把目标换成替换者'
-    父=找父分割(状态,目标标识)#父
-    if 父 is None:#无父
-        if 状态['rootId']!=目标标识:#非根
-            raise 停靠错误('layout: '+str(目标标识)+' is neither rooted nor parented')#拒绝
-        下一=dict(状态)#浅拷
-        下一['rootId']=替换标识#换根
-        return 下一#状态
-    子表=[替换标识 if 子==目标标识 else 子 for 子 in 父['children']]#换槽
-    新父=dict(父)#浅拷
-    新父['children']=子表#子
-    return 换节点(状态,{父['id']:新父})#写回
-
-
-def _下探(状态,选取):
-    '自停靠根下探；每层分割由选取指名子'
-    节点=取节点(状态,状态['rootId'])#当前
-    while 节点['kind']==节点种分割:#分割
-        下一标识=选取(节点)#选子
-        if 下一标识 is None:#无子
-            raise 停靠错误('layout: split '+str(节点['id'])+' has no children')#拒绝
-        节点=取节点(状态,下一标识)#下
-    return 节点['id']#窗格
-
+def 下行(状态,选择):
+    '从停靠根往下走。每个分割由选择函数指定下一子节点'
+    节点=取节点(状态,状态['rootId'])
+    while 节点['kind']=='split':
+        下一=选择(节点)
+        if 下一 is None:
+            raise 停靠错误(f'layout: split {节点["id"]} has no children')
+        节点=取节点(状态,下一)
+    return 节点['id']
 
 def 首停靠窗格标识(状态):
-    '视觉序第一个停靠窗格：根或其下首叶'
-    return _下探(状态,lambda 分割:分割['children'][0] if len(分割['children'])>0 else None)#首子
-
+    '视觉顺序上的第一块停靠窗格'
+    def 选首(分割):
+        '每个分割走第一个子节点'
+        return 分割['children'][0]
+    return 下行(状态,选首)
 
 def 右上窗格标识(状态):
-    '右上角停靠窗格：行取末子、列取首子'
-
-    def 选取(分割):
-        '按轴取角'
-        子=分割['children']#子
-        if len(子)==0:#空
-            return None#无
-        return 子[-1] if 分割['axis']=='row' else 子[0]#角
-
-    return _下探(状态,选取)#角窗格
+    '右上角那块停靠窗格。行分割走最后一个，列分割走第一个'
+    def 选角(分割):
+        '行取末子，列取首子'
+        if 分割['axis']=='row':
+            return 分割['children'][len(分割['children'])-1]
+        return 分割['children'][0]
+    return 下行(状态,选角)

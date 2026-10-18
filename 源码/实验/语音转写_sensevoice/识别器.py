@@ -6,9 +6,9 @@ from ...工具.超时 import 截止
 from .异常 import 语音输入错误,语音下载错误
 from .运行时准备 import 检查运行时,准备运行时
 
-__all__=['读就绪','读转写','sensevoice工作者']
+__all__=['读取就绪','读取转写','sensevoice工作者']
 
-def 读就绪(句柄,上限,信号):
+def 读取就绪(句柄,上限,信号):
     '读一条有界就绪帧；退出早于就绪则失败'
     若已中止则抛出(信号)
     标准输出=句柄.stdout
@@ -35,7 +35,7 @@ def 读就绪(句柄,上限,信号):
                 raise RuntimeError('Invalid speech worker readiness')
             return 端口
 
-def 读转写(应答,上限):
+def 读取转写(应答,上限):
     '有界 HTTP 响应；畸形输出使本次失败'
     体=应答.content
     if len(体)>上限:
@@ -270,7 +270,7 @@ class sensevoice工作者:
             'stdio':{'stdin':'ignore','stdout':'pipe','stderr':{'maxBytes':自身.配置['maxLogBytes']}},
         })
         try:
-            端口=读就绪(进程,自身.配置['maxLogBytes'],句柄.信号)
+            端口=读取就绪(进程,自身.配置['maxLogBytes'],句柄.信号)
             工作者={'handle':进程,'url':'http://127.0.0.1:'+str(端口),'token':令牌,'closed':False}
             自身.工作者=工作者
             自身.发布({'phase':'ready'})
@@ -303,7 +303,7 @@ class sensevoice工作者:
                 timeout=自身.配置['inferenceTimeoutMs']/1000.0,
             )
             try:
-                结果=读转写(应答,自身.配置['maxResponseBytes'])
+                结果=读取转写(应答,自身.配置['maxResponseBytes'])
             except Exception as 错误:
                 若已中止则抛出(调用.信号)
                 raise 错误

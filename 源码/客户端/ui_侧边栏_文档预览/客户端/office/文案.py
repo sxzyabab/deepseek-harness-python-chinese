@@ -3,7 +3,7 @@
 __all__=['中文','英文']
 中文={#中文
     'title':'Office 文档',
-    'loading':'正在读取…',
+    'loading':'文档渲染中...',
     'retry':'重试',
     'missingFonts':'缺少文档使用的字体：{fonts}，可能影响文字和排版。',
     'showMore':'显示更多',

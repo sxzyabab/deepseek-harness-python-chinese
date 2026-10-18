@@ -8,7 +8,7 @@ from .ffi import (
     解码偏移无符号8,#读一字节
     解码偏移无符号16,#读WORD
     解码偏移无符号32,#读DWORD
-    取临时路径,#临时路径
+    获取临时路径,#临时路径
     是否无效句柄,#无效句柄
     是否空指针,#空指针
     指针地址,#取地址
@@ -33,7 +33,7 @@ def 构建显式访问(sid指针,模式,权限):#打包显式访问条目
 def 锁文件路径(接口,路径):#锁文件路径
     '每个受保护路径一个锁文件：`<GetTempPathW()>\\dsh-acl-locks\\<sha256前16位>.lock`'
     摘要=摘要十六进制(路径.lower())[:16]#小写路径哈希前16位
-    return os.path.join(取临时路径(接口),'dsh-acl-locks',摘要+'.lock')#临时根下的锁文件
+    return os.path.join(获取临时路径(接口),'dsh-acl-locks',摘要+'.lock')#临时根下的锁文件
 
 def 持路径锁(接口,路径,动作):#持锁跑动作
     '持有按路径独占锁时跑 `动作`'
@@ -61,7 +61,7 @@ def 持路径锁(接口,路径,动作):#持锁跑动作
         抛上次错误(接口,'CloseHandle','lock file '+锁路径)#抛出
     return 结果#动作结果
 
-def 读当前DACL(接口,路径):#读当前显式DACL
+def 读取当前DACL(接口,路径):#读当前显式DACL
     '经 GetNamedSecurityInfoW 读目录当前显式 DACL'
     所有者槽=分配指针槽()#所有者槽（忽略）
     组槽=分配指针槽()#组槽（忽略）
@@ -118,7 +118,7 @@ def 有精确授予(旧ACL,sid指针):#是否已有精确授权ACE
 def 授予写入(接口,路径,sid指针):#授予写入ACE
     '在路径上把 GRANT_MASK 授给能力 SID，幂等跳过已常驻精确 ACE'
     def 动作():#持锁动作
-        当前=读当前DACL(接口,路径)#读当前DACL
+        当前=读取当前DACL(接口,路径)#读取当前DACL
         旧ACL=当前['oldAcl']#当前DACL
         描述符=当前['descriptor']#所属描述符
         if 旧ACL is not None and 有精确授予(旧ACL,sid指针):#精确ACE已常驻
@@ -133,7 +133,7 @@ def 授予写入(接口,路径,sid指针):#授予写入ACE
 def 撤销写入(接口,路径,sid指针):#撤销写入ACE
     '从目录 DACL 去掉能力 SID 的每条 ACE'
     def 动作():#持锁动作
-        当前=读当前DACL(接口,路径)#读当前DACL
+        当前=读取当前DACL(接口,路径)#读取当前DACL
         旧ACL=当前['oldAcl']#当前DACL
         描述符=当前['descriptor']#所属描述符
         if 旧ACL is None:#没有显式DACL

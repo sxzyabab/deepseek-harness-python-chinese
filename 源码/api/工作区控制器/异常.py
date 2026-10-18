@@ -1,93 +1,88 @@
-'工作区控制器远程失败、创建失败与文档目录失败'
-import os
+'工作区控制器的远程失败、创建失败、归档失败，以及多处共用的抛出'
+from ...宿主.目录选择器 import 目录选择器错误#浏览原语的带码失败
+from ...类型化远程调用.协议 import 远程错误#线路失败
+from ..网关 import 已中止#调用方寿命
 
-__all__=['远程错误','工作区创建错误','工作区归档错误','文档目录错误','去掉敏感文案','失败说明']#仅中文公开名
+__all__=[
+    '远程错误','失败码','失败消息','错误消息','工作区未找到','浏览失败','可取消失败','命令错误',
+    '工作区创建错误','工作区归档错误',
+]
 
-def 去掉敏感文案(文本):
-    '去掉绝对路径、用户名和环境变量，其余原文保留。'
-    原文=str(文本)
-    屏蔽名=set(os.environ)
-    屏蔽值=set()
-    for 键 in ('USERNAME','USER','LOGNAME','USERPROFILE','HOME'):
-        值=os.environ.get(键)
-        if isinstance(值,str) and 值!='':
-            屏蔽值.add(值)
-            基=os.path.basename(值.rstrip('\\/'))
-            if 基!='':
-                屏蔽值.add(基)
-    for 值 in os.environ.values():
-        if isinstance(值,str) and (len(值)>=8 or '\\' in 值 or '/' in 值):
-            屏蔽值.add(值)
-    留下=[]
-    for 词 in 原文.split():
-        裸=词.strip('\'"')
-        统一=裸.replace('\\','/')
-        if 统一.startswith('/') or 统一.startswith('~/') or (len(统一)>2 and 统一[0].isalpha() and 统一[1]==':' and 统一[2]=='/'):
-            continue
-        if 裸.startswith('$') and len(裸)>1:
-            continue
-        if len(裸)>2 and 裸.startswith('%') and 裸.endswith('%'):
-            continue
-        if '=' in 裸 and 裸.split('=',1)[0] in 屏蔽名:
-            continue
-        if 裸 in 屏蔽名 or 裸 in 屏蔽值 or 统一 in 屏蔽值:
-            continue
-        含敏感=False
-        for 项 in 屏蔽值:
-            if len(项)>=3 and 项 in 裸:
-                含敏感=True
-                break
-        if 含敏感:
-            continue
-        留下.append(词)
-    return ' '.join(留下).strip()
+浏览失败码={
+    'directory-unreadable':'directory-picker/unreadable',
+    'directory-exists':'directory-picker/exists',
+    'directory-create-failed':'directory-picker/create-failed',
+}#缝的关闭码到线路码
 
-def 失败说明(错误):
-    '保留去掉路径后的说明；说明被掏空时留下异常类型名。'
-    说明=去掉敏感文案(错误)
-    if 说明!='':
-        return 说明
-    if isinstance(错误,BaseException):
-        return type(错误).__name__
-    return 说明
 
-class 远程错误(Exception):
-    '远程错误。附加信息做成属性'
-    def __init__(自身,码,消息,详情=None,原因=None):
-        '记下 code/message/details。文案去掉绝对路径，原因链保留。'
-        干净=去掉敏感文案(消息)
-        if 干净=='' and 原因 is not None:
-            干净=失败说明(原因)
-        if 干净=='':
-            干净=str(码)
-        super().__init__(干净)#消息
-        自身.code=码#错误码
-        自身.message=干净#消息
-        自身.details={} if 详情 is None else 详情#详情
-        if 原因 is not None:#原因链
-            自身.__cause__=原因#链接
+def 失败码(失败):
+    '读远程失败的 code。失败是 dict 或带 code 的对象'
+    if isinstance(失败,dict):#网关信封
+        return 失败['code']#码
+    return 失败.code#实例
 
-class 工作区归档错误(Exception):
-    '归档被宿主拒绝。code 区分仍在运行与找不到会话。'
+
+def 失败消息(失败):
+    '读远程失败的 message。失败是 dict 或带 message 的对象'
+    if isinstance(失败,dict):#网关信封
+        return 失败['message']#消息
+    return 失败.message#实例
+
+
+def 错误消息(错误):
+    '把抛出值收成字符串。异常优先用首个字符串参数'
+    if isinstance(错误,BaseException):#异常
+        if len(错误.args)>0 and isinstance(错误.args[0],str):#有消息
+            return 错误.args[0]#消息
+        return str(错误)#整段
+    return str(错误)#非异常
+
+
+def 工作区未找到(工作区标识):
+    '稳定的 workspace/not-found。工作区标识是登记 id'
+    return 远程错误(
+        'workspace/not-found',
+        'Workspace "'+str(工作区标识)+'" not found',
+        {'workspaceId':工作区标识},
+    )#失败
+
+
+def 浏览失败(错误):
+    '把浏览原语的拒绝投影成 directory-picker/*。其余保持基础设施失败'
+    if isinstance(错误,目录选择器错误):#缝自己的关闭码
+        return 远程错误(浏览失败码[错误.code],错误消息(错误),{'path':错误.path},原因=错误)#投影
+    return 远程错误('gateway/internal',错误消息(错误),{},原因=错误)#基础设施
+
+
+def 可取消失败(错误,信号,取消文案,失败前缀=None):
+    '中止先回答 gateway/cancelled。没有关闭码的动词再用失败前缀'
+    if 已中止(信号):#调用方自己的超时或断开
+        return 远程错误('gateway/cancelled',取消文案,{},原因=错误)#取消
+    if 失败前缀 is None:#走浏览码
+        return 浏览失败(错误)#浏览
+    return 远程错误('gateway/internal',失败前缀+': '+错误消息(错误),{},原因=错误)#其它失败
+
+
+def 命令错误(操作,失败):
+    '客户端命令失败。操作是英文动词短语，失败是远程失败'
+    return RuntimeError('workspace '+操作+' failed: '+str(失败码(失败))+': '+str(失败消息(失败)))#错误
+
+
+class 工作区创建错误(Exception):
+    '创建或默认工作区准备失败。rpcError.code 区分宿主业务错误'
 
     def __init__(自身,远程失败):
         '记下宿主业务或折叠后的载体失败'
-        码=远程失败['code'] if isinstance(远程失败,dict) else getattr(远程失败,'code',None)#码
-        消息=远程失败['message'] if isinstance(远程失败,dict) else getattr(远程失败,'message',None)#消息
-        super().__init__('workspace session archive failed: '+str(码)+': '+失败说明(消息))#文案
-        自身.name='WorkspaceArchiveError'#错误名
-        自身.rpcError=远程失败#远程失败
-
-class 工作区创建错误(Exception):
-    '区分 Host 业务错误的结构化创建失败'
-
-    def __init__(自身,远程失败):
-        '记下 Host 业务或折叠后的载体失败'
-        码=远程失败['code'] if isinstance(远程失败,dict) else getattr(远程失败,'code',None)#码
-        消息=远程失败['message'] if isinstance(远程失败,dict) else getattr(远程失败,'message',None)#消息
-        super().__init__('workspace create failed: '+str(码)+': '+失败说明(消息))#文案
+        super().__init__('workspace create failed: '+str(失败码(远程失败))+': '+str(失败消息(远程失败)))#文案
         自身.name='WorkspaceCreateError'#错误名
         自身.rpcError=远程失败#远程失败
 
-class 文档目录错误(Exception):
-    '文档目录解析失败'
+
+class 工作区归档错误(Exception):
+    '归档被宿主拒绝。code 区分仍在运行与找不到会话'
+
+    def __init__(自身,远程失败):
+        '记下宿主业务或折叠后的载体失败'
+        super().__init__('workspace session archive failed: '+str(失败码(远程失败))+': '+str(失败消息(远程失败)))#文案
+        自身.name='WorkspaceArchiveError'#错误名
+        自身.rpcError=远程失败#远程失败

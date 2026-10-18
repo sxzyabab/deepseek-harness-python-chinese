@@ -1,31 +1,25 @@
 from ...依赖.schemastery import 字符串字段
 from . import (
-    壳层,
-    壳层约定,
     客户端,
-    常规条目分区,
-    开发者工具行,
     异常,
-    文案,
-    文档动作,
-    文档存储,
-    桌面更新,
     类型,
-    设置根,
 )
 
-__all__=['应用','引导设置命名空间','引导设置模式']
+__all__=['应用','配置','客户端','异常','类型']
 
-引导设置命名空间='ui-onboarding'
-引导设置模式={
-    'welcomeNoticeVersion':字符串字段(),
-}
+欢迎通知版本=字符串字段(可空=True)
+欢迎通知版本.meta={'volatile':True}
+配置={'welcomeNoticeVersion':欢迎通知版本}
+Config=配置
 
 def 应用(上下文):
-    '在存在设置提供方时登记持久化 GUI 引导分区'
-    def 登记(设置上下文):
-        '登记引导设置分区'
-        设置上下文.settings.register(引导设置命名空间,引导设置模式)
-    上下文.依赖启动(['settings'],登记)
+    '有 settings 时关掉本插件的自动设置页。不调用客户端应用'
+    def 接线(子上下文):
+        '把 auto 设为 false，绑到本纤程'
+        def 挂():
+            '登记呈现策略，拆除器由 configure 交回'
+            return 子上下文.settings.configure({'auto':False},上下文.纤程)
+        return 子上下文.副作用(挂)
+    上下文.依赖启动(['settings'],接线)
 
 apply=应用

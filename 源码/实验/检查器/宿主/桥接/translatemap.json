@@ -3,5 +3,6 @@
     "dispatcher":"分发器",
     "lifecycle":"生命周期",
     "controller":"控制器",
-    "publisher":"发布器"
+    "publisher":"发布器",
+    "rpc":"rpc"
 }

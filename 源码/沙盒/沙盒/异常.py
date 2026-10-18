@@ -1,8 +1,8 @@
-from ...模型后端.llm.异常 import 装备错误
+from ...模型后端.llm.异常 import harness错误
 
 沙箱不可用码='SANDBOX_UNAVAILABLE'
 
-class 沙箱不可用错误(装备错误):
+class 沙箱不可用错误(harness错误):
     """隔离无法强制请求模式时抛出。
     经结构化错误通道携带 SANDBOX_UNAVAILABLE
     """
@@ -16,7 +16,7 @@ class 沙箱不可用错误(装备错误):
             +'restricted-token runner can start (Windows) — otherwise switch the consumer to '
             +'danger-full-access.'
             +('' if 细节 is None else ' Runner failure: '+细节))
-        装备错误.__init__(自身,消息,沙箱不可用码)
+        harness错误.__init__(自身,消息,沙箱不可用码)
 
 class 沙箱升级错误(Exception):
     '沙箱升级失败'

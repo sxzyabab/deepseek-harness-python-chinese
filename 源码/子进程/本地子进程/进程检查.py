@@ -3,7 +3,7 @@ from .异常 import 本地子进程错误#本包错误
 标准库子进程规格=importlib.util.spec_from_file_location('dsh_stdlib_subprocess',os.path.join(sysconfig.get_path('stdlib'),'subprocess.py'))#标准库subprocess路径
 标准库子进程=importlib.util.module_from_spec(标准库子进程规格)#标准库模块壳
 标准库子进程规格.loader.exec_module(标准库子进程)#装入标准库subprocess
-同步跑=标准库子进程.run#macOS /bin/ps
+同步运行=标准库子进程.run#macOS /bin/ps
 
 数字名模式=re.compile(r'[0-9]+\Z')#pid/tid数字名；ASCII数字且锚在串尾
 僵尸态模式=re.compile(r'[ZXx]\Z')#僵尸或死状态
@@ -22,7 +22,7 @@ class 进程身份:#精确进程身份，防止PID复用后的拆除升级打到
         自身.pid=pid#数字pid
         自身.started=started#启动时刻（Linux jiffies或macOS lstart）
 
-def 默认读文件(路径):#生产默认：读文本文件
+def 默认读取文件(路径):#生产默认：读文本文件
     '打开路径并读出全部文本'
     return open(路径,'r',encoding='utf-8').read()#读文本文件
 
@@ -30,7 +30,7 @@ def 默认列目录(路径):#生产默认：列目录
     '列出目录名'
     return os.listdir(路径)#列目录
 
-def 默认读链接(路径):#生产默认：读符号链接
+def 默认读取链接(路径):#生产默认：读符号链接
     '读符号链接目标'
     return os.readlink(路径)#链接目标
 
@@ -45,9 +45,9 @@ def 默认打开(路径):#生产默认：只读打开
 
 def 默认执行(文件,参数):#生产默认：同步exec
     '同步执行并捕获标准输出文本'
-    return 同步跑([文件]+list(参数),check=True,capture_output=True,text=True).stdout#同步exec
+    return 同步运行([文件]+list(参数),check=True,capture_output=True,text=True).stdout#同步exec
 
-def 默认杀(pid,信号):#生产默认：发信号
+def 默认杀死进程(pid,信号):#生产默认：发信号
     '向 pid 投递信号'
     os.kill(pid,信号)#发信号
 
@@ -55,17 +55,17 @@ class 进程检查器内部:#可注入系统调用边界
     '文件系统、进程表与信号系统调用周围的可测试边界'
     def __init__(自身,读文件=None,列目录=None,读链接=None,状态=None,打开=None,读=None,关闭=None,执行=None,杀=None):#注入或用生产默认
         '构造可测试边界'
-        自身.读文件=读文件 if 读文件 is not None else 默认读文件#读文本文件
+        自身.读文件=读文件 if 读文件 is not None else 默认读取文件#读文本文件
         自身.列目录=列目录 if 列目录 is not None else 默认列目录#列目录
-        自身.读链接=读链接 if 读链接 is not None else 默认读链接#读符号链接
+        自身.读链接=读链接 if 读链接 is not None else 默认读取链接#读符号链接
         自身.状态=状态 if 状态 is not None else 默认状态#取设备状态
         自身.打开=打开 if 打开 is not None else 默认打开#打开只读
-        自身.读=读 if 读 is not None else 自身.默认读#定位读
+        自身.读=读 if 读 is not None else 自身.默认读取定位#定位读
         自身.关闭=关闭 if 关闭 is not None else os.close#关描述符
         自身.执行=执行 if 执行 is not None else 默认执行#同步exec
-        自身.杀=杀 if 杀 is not None else 默认杀#发信号
+        自身.杀=杀 if 杀 is not None else 默认杀死进程#发信号
 
-    def 默认读(自身,fd,缓冲,长度,位置):#无注入时的定位读
+    def 默认读取定位(自身,fd,缓冲,长度,位置):#无注入时的定位读
         '把定位读落到 pread 或 lseek+read'
         if hasattr(os,'pread'):#有pread
             数据=os.pread(fd,长度,位置)#定位读
@@ -105,7 +105,7 @@ def 解析ProcStat(文本):#解析Linux /proc/<pid>/stat
         return None#畸形
     return {'pid':pid,'parentPid':父pid,'pgrp':进程组,'session':会话,'state':状态,'ttyDevice':终端设备,'tpgid':前台组,'started':启动}#已校验字段
 
-def 读LinuxStat(内部,pid):#读并解析一个pid的stat
+def 读取LinuxStat(内部,pid):#读并解析一个pid的stat
     '读并解析一个 pid 的 `/proc/<pid>/stat`；不可读当作进程已走'
     try:#条目可能在读时消失
         return 解析ProcStat(内部.读文件('/proc/'+str(pid)+'/stat'))#畸形行也当缺失
@@ -116,7 +116,7 @@ def Linux设备号(值):#归一化 tty_nr
     '把有符号 32 位设备号归一成无符号'
     return 值&0xFFFFFFFF#无符号32位
 
-def 读Linux终端设备(内部,pid,tty设备,tid=None):#解析stdin是否仍是该终端
+def 读取Linux终端设备(内部,pid,tty设备,tid=None):#解析stdin是否仍是该终端
     '解析 stdin 是否仍是该终端设备；失败则 None'
     终端设备=Linux设备号(tty设备)#归一化
     if 终端设备==0:#无终端
@@ -145,7 +145,7 @@ def 组内有活成员(进程组号,内部=None):#Linux进程组存活探针
     for 条目 in 条目列表:#每个/proc名
         if not 数字名模式.fullmatch(条目):#跳过非pid
             continue#下一条
-        状态行=读LinuxStat(内部,int(条目))#读stat
+        状态行=读取LinuxStat(内部,int(条目))#读stat
         if 状态行 is None or 状态行['pgrp']!=进程组号:#不是该组
             continue#下一条
         见过=True#见过该组
@@ -160,7 +160,7 @@ def 数字条目(内部,路径):#目录里的数字名
     except (ValueError,OSError):#读不了该目录或名字不是整数
         return None#读失败与空目录区分
 
-def 读系统调用(内部,pid,tid):#读线程当前syscall
+def 读取系统调用(内部,pid,tid):#读线程当前syscall
     '读 `/proc/<pid>/task/<tid>/syscall`；失败或用户态则 None'
     try:#条目可能不可读或正在跑用户态
         文本=内部.读文件('/proc/'+str(pid)+'/task/'+str(tid)+'/syscall').strip()#一行
@@ -175,7 +175,7 @@ def 读系统调用(内部,pid,tid):#读线程当前syscall
     except (ValueError,OSError):#读失败或数字畸形
         return None#当作不在等
 
-def 读内存(内部,pid,地址,长度):#读目标进程地址空间一块
+def 读取内存(内部,pid,地址,长度):#读目标进程地址空间一块
     '读目标进程地址空间一块；失败则 None'
     fd=None#/proc/pid/mem
     try:#打开或读可能被拒绝
@@ -195,7 +195,7 @@ def fd集含标准输入(内部,pid,地址):#select fd_set是否含fd 0
     'select 的 readfds 最低位是否表示 stdin'
     if 地址==0:#空指针
         return False#不含
-    内存=读内存(内部,pid,地址,8)#读8字节
+    内存=读取内存(内部,pid,地址,8)#读8字节
     if 内存 is None or len(内存)==0:#读不了
         return False#不含
     return 内存[0]%2==1#最低位是stdin
@@ -204,7 +204,7 @@ def poll含标准输入(内部,pid,地址,数量):#pollfd数组是否在等stdin
     'pollfd 数组是否在等 stdin（fd=0 且 POLLIN）'
     if 地址==0 or 数量<=0:#空指针或空数组
         return False#不等
-    内存=读内存(内部,pid,地址,min(数量,1024)*8)#最多看1024项
+    内存=读取内存(内部,pid,地址,min(数量,1024)*8)#最多看1024项
     if 内存 is None:#读不了
         return False#不等
     偏移=0#逐项
@@ -327,11 +327,11 @@ class Posix进程检查器:#POSIX共用：组/进程信号
         if 自身.是否存活(身份):#仍是原进程
             自身.内部.杀(身份.pid,getattr(signal,信号) if isinstance(信号,str) else 信号)#投递
 
-    def 前台进程组(自身,壳pid):#子类实现
+    def 前台进程组(自身,命令解释器进程标识):#子类实现
         '平台前台 pgid'
         raise NotImplementedError('foregroundPgid')
 
-    def 是否在等标准输入(自身,进程组号,壳pid):#子类实现
+    def 是否在等标准输入(自身,进程组号,命令解释器进程标识):#子类实现
         '平台 stdin 等待'
         raise NotImplementedError('isStdinWaiting')
 
@@ -350,44 +350,44 @@ class Linux进程检查器(Posix进程检查器):#Linux：/proc
         super().__init__(内部)#保存internals
         自身.架构=架构#CPU架构
 
-    def 前台进程组(自身,壳pid):#shell的tpgid
+    def 前台进程组(自身,命令解释器进程标识):#shell的tpgid
         'shell 的 tpgid；≤0 表示无前台'
-        状态行=读LinuxStat(自身.内部,壳pid)#stat字段
+        状态行=读取LinuxStat(自身.内部,命令解释器进程标识)#stat字段
         if 状态行 is None:#进程已走
             return None#无前台
         前台组=状态行['tpgid']#tpgid
         return 前台组 if 前台组>0 else None#≤0表示无前台
 
-    def 是否在等标准输入(自身,进程组号,壳pid):#组内是否有线程在等shell终端stdin
+    def 是否在等标准输入(自身,进程组号,命令解释器进程标识):#组内是否有线程在等shell终端stdin
         '组内是否有线程在等 shell 终端 stdin'
         表列表=Linux系统调用表(自身.架构)#ABI表
         if 表列表 is None:#未知arch无法判断
             return False#无法判断
-        壳=读LinuxStat(自身.内部,壳pid)#shell stat
+        壳=读取LinuxStat(自身.内部,命令解释器进程标识)#shell stat
         if 壳 is None:#shell已走
             return False#否
-        终端设备=读Linux终端设备(自身.内部,壳pid,壳['ttyDevice'])#shell终端
+        终端设备=读取Linux终端设备(自身.内部,命令解释器进程标识,壳['ttyDevice'])#shell终端
         if 终端设备 is None:#没有可比对的终端
             return False#否
         进程列表=数字条目(自身.内部,'/proc')#每个进程
         if 进程列表 is None:#/proc不可读
             return False#否
         for pid in 进程列表:#每个进程
-            状态行=读LinuxStat(自身.内部,pid)#可能已消失
+            状态行=读取LinuxStat(自身.内部,pid)#可能已消失
             if 状态行 is None or 状态行['pgrp']!=进程组号:#不是该组
                 continue#下个进程
             线程列表=数字条目(自身.内部,'/proc/'+str(pid)+'/task')#每个线程
             if 线程列表 is None:#task不可读
                 continue#下个进程
             for tid in 线程列表:#每个线程
-                调用=读系统调用(自身.内部,pid,tid)#当前调用
-                if 调用 is not None and 系统调用在等标准输入(自身.内部,pid,tid,调用,表列表) and 读Linux终端设备(自身.内部,pid,状态行['ttyDevice'],tid)==终端设备:#在等stdin且同终端
+                调用=读取系统调用(自身.内部,pid,tid)#当前调用
+                if 调用 is not None and 系统调用在等标准输入(自身.内部,pid,tid,调用,表列表) and 读取Linux终端设备(自身.内部,pid,状态行['ttyDevice'],tid)==终端设备:#在等stdin且同终端
                     return True#命中
         return False#没有线程在等
 
     def 是否存活(自身,身份):#启动时刻匹配且非僵尸/死
         '启动时刻匹配且非僵尸/死'
-        状态行=读LinuxStat(自身.内部,身份.pid)#当前stat
+        状态行=读取LinuxStat(自身.内部,身份.pid)#当前stat
         if 状态行 is None:#进程已走
             return False#不活
         return 状态行['started']==身份.started and not 静止(状态行['state'])#身份仍是原进程且能执行
@@ -400,7 +400,7 @@ class Linux进程检查器(Posix进程检查器):#Linux：/proc
         完整=True#完整性
         行列表=[]#行
         for pid in 进程列表:#每个pid
-            状态行=读LinuxStat(自身.内部,pid)#可能已消失
+            状态行=读取LinuxStat(自身.内部,pid)#可能已消失
             if 状态行 is None:#漏行
                 完整=False#不完整
                 continue#跳过
@@ -423,15 +423,15 @@ def mac进程表(内部):#一次/bin/ps快照
 
 class Mac进程检查器(Posix进程检查器):#macOS：ps
     'macOS：经 `/bin/ps` 做前台、快照与存活检查；不采样 syscall'
-    def 前台进程组(自身,壳pid):#ps -o tpgid
+    def 前台进程组(自身,命令解释器进程标识):#ps -o tpgid
         '`ps -o tpgid=`；≤0 或非整数则无前台'
         try:#进程可能已走
-            值=int(自身.内部.执行('/bin/ps',['-o','tpgid=','-p',str(壳pid)]).strip())#只打tpgid
+            值=int(自身.内部.执行('/bin/ps',['-o','tpgid=','-p',str(命令解释器进程标识)]).strip())#只打tpgid
             return 值 if 值>0 else None#≤0则无前台
         except (ValueError,OSError,标准库子进程.CalledProcessError):#ps失败或非整数
             return None#当作没有前台
 
-    def 是否在等标准输入(自身,进程组号,壳pid):#macOS不采样syscall
+    def 是否在等标准输入(自身,进程组号,命令解释器进程标识):#macOS不采样syscall
         'macOS 不采样 syscall，无法判断则不当作在等'
         return False#无法判断则不当作在等
 

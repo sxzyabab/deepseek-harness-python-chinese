@@ -12,7 +12,7 @@ from .类型 import (
 )
 
 __all__=[
-    '保留绑定全局','保留错误成员','双下划线成员','可移植保留字','ptc运行时','ptc运行时错误',
+    '保留绑定全局','保留错误成员','双下划线成员','可移植保留字','编程式工具调用运行时','编程式工具调用运行时错误',
     '绑定错误类字段','绑定命名空间字段','运行请求字段','运行规格字段',
     '运行沙箱字段','运行失败字段','运行结果字段','运行失败种类',
 ]
@@ -39,9 +39,9 @@ __all__=[
     'global','is','lambda','nonlocal','not','or','pass','raise','match','type','_',
 ])
 
-from .异常 import ptc运行时错误#约定误用
+from .异常 import 编程式工具调用运行时错误#约定误用
 
-class ptc运行时(服务):
+class 编程式工具调用运行时(服务):
     """登记一个 ptcRuntime 实现。
     程序、预算、中止与基底失败落在运行结果；仅约定误用才拒绝
     """
@@ -69,16 +69,16 @@ class ptc运行时(服务):
         '{defaultMs,maxMs}；不支持覆盖则为空'
         return None
 
-    def 解析(自身,请求):
+    def 解析执行(自身,请求):
         """验证支持的选项并填入目录与截止。
         请求是 dict
         """
         raise NotImplementedError('PtcRuntime.resolve')
 
-    def 运行(自身,规格):
+    def 运行程序(自身,规格):
         """执行完整输入；程序结局为结果字段。
         规格是 dict
         """
         raise NotImplementedError('PtcRuntime.run')
 
-default=ptc运行时#框架槽
+default=编程式工具调用运行时#框架槽

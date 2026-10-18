@@ -1,12 +1,13 @@
 '冷安全会话列表与搜索投影'
 import time
-from .常量 import 会话搜索结果上限,会话搜索片段最大字节,会话搜索查询最大字节#常量
+from .类型列表 import 会话搜索结果上限,会话搜索片段最大字节#线上常量
 from .远程错误与并发 import 远程错误消息,已中止#远程错误消息与中止
 from .异常 import 远程错误#本包异常
 
 __all__=['应用会话列表元数据','截断码位','会话列表']#仅中文公开名
 
 搜索提供方调用上限=100#搜索调用预算
+会话搜索查询最大字节=500#查询 UTF-16 码元上限
 消息类型=set(['user/message','assistant/message'])#可搜索类型
 
 def 应用会话列表元数据(状态,事件):
@@ -53,7 +54,7 @@ class 会话列表:
         '注册 sessionListMetadata 列'
         自身._上下文=上下文#Cordis
         自身._工作切片毫秒=工作切片毫秒#让出预算
-        上下文.sessionProjections.register({#列表元数据列
+        上下文.sessionProjections.登记({#列表元数据列，上游 register
             'key':'sessionListMetadata',#键
             'init':初值列表元数据,#初值
             'apply':应用会话列表元数据,#折叠
@@ -68,7 +69,7 @@ class 会话列表:
             def 初值图像上限():
                 '无状态'
                 return None#状态
-            上下文.sessionProjections.register({#imageLimits
+            上下文.sessionProjections.登记({#imageLimits，上游 register
                 'key':'imageLimits',#键
                 'init':初值图像上限,#状态
                 'apply':不变折叠,#不变
@@ -77,7 +78,7 @@ class 会话列表:
             })#register
         上下文.依赖启动(['attachments'],挂附件)#依赖启动
 
-    def 摘要(自身,会话):
+    def 构建会话摘要(自身,会话):
         '构建当前附着会话摘要'
         投影=自身._投影(会话.header,会话)#投影
         元数据=投影['values']['sessionListMetadata'] if 投影 is not None and 'values' in 投影 and 'sessionListMetadata' in 投影['values'] else None#元数据
@@ -95,7 +96,7 @@ class 会话列表:
             条目['projections']=投影#投影
         return 条目
 
-    def 列表(自身,信号=None):
+    def 读取会话列表(自身,信号=None):
         '读可见附着与持久会话摘要'
         if 信号 is not None and 已中止(信号):#取消
             raise 远程错误('gateway/cancelled','session list was aborted',{})#取消
@@ -109,7 +110,7 @@ class 会话列表:
             头=记录['header']#头
             活=自身._上下文.sessions.get(头['id'])#附着
             if 活 is not None:#附着
-                条目.append(自身.摘要(活))#摘要
+                条目.append(自身.构建会话摘要(活))#摘要
             elif 'cwd' in 头 and 头['cwd'] is not None:#有 cwd
                 冷记录.append(记录)#冷
             if time.perf_counter()>=让出期限:#让出
@@ -129,7 +130,7 @@ class 会话列表:
         条目.sort(key=按更新时间,reverse=True)#按活动降序
         return 条目#列表
 
-    def 搜索(自身,查询,信号):
+    def 搜索消息(自身,查询,信号):
         '搜索可见消息内容'
         规范化=自身._规范化查询(查询)#规范化
         if 已中止(信号):#取消
@@ -246,12 +247,12 @@ class 会话列表:
                 缓存=自身._上下文.获取服务('sessionProjectionCache')#缓存服务
                 块=None#块
                 if 缓存 is not None:#有缓存
-                    块=缓存.cachedSnapshot(头)#冷快照
-                    if 块 is None and hasattr(缓存,'cachedPredecessorTitle'):#标题前驱
-                        块=缓存.cachedPredecessorTitle(头)#前驱
+                    块=缓存.缓存快照(头)#冷快照
+                    if 块 is None:#标题前驱
+                        块=缓存.缓存前代标题(头)#前驱
             else:#活
                 种类='sequenced'#活序列
-                块=自身._上下文.sessionProjections.cachedSnapshot(会话)#活快照
+                块=自身._上下文.sessionProjections.缓存快照(会话)#活快照
             if 块 is None:#无
                 return None#无
             值列表=块['values'] if isinstance(块,dict) and 'values' in 块 else getattr(块,'values',None)#值
@@ -259,7 +260,10 @@ class 会话列表:
                 return None#无
             序号=块['asOfSeq'] if isinstance(块,dict) else 块.asOfSeq#水位
             return {'kind':种类,'asOfSeq':序号,'values':值列表}#块
-        except (OSError,ValueError,TypeError,KeyError,AttributeError):
+        except Exception as 错误:
+            自身._上下文.日志.警告(
+                'api-session.list: projection column for "'+str(头['id'])+'" failed; serving the row without it: '+str(错误),
+            )#列失败仍给出这一行
             return None#无列
 
     def _更新时间(自身,头,元数据):

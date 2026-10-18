@@ -80,7 +80,7 @@ def 描述符身份(事件):
         if 'label' in 描述符:#有标签才展开
             身份['label']=描述符['label']#展开
         return 身份#一次性
-    return {'mode':'continuable','label':描述符['label'],'seq':序号}#可续跑身份
+    return {'mode':'continuable','label':描述符['label'],'seq':序号}#可续运行身份
 
 def 身份初始():
     '身份折叠初始状态'

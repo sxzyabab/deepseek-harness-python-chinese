@@ -1,10 +1,10 @@
 from .文案 import 中文,英文,标记文本预览键#词典
-from .标记文本体 import 标记文本体,标记文本面板,样式表#正文
+from .标记文本体 import 标记文本体,标记文本面板,处理标记文本面板,样式表#正文
 from . import (
     路径图片,
 )
 
-__all__=['标记文本体标识','标记文本定义','应用','标记文本体','标记文本面板','样式表','中文','英文','标记文本预览键']
+__all__=['标记文本体标识','标记文本定义','应用','标记文本体','标记文本面板','处理标记文本面板','样式表','中文','英文','标记文本预览键']
 标记文本体标识='@deepseek-ai/dsh-client-ui-sidebar-documentpreview/markdown'#实现 id
 
 
@@ -20,7 +20,7 @@ def 标记文本定义(标题):
     }#结束
 
 
-def 应用(上下文):
+def 应用(上下文,配置=None):
     '登记文案、元数据与文档正文'
     翻译=上下文.locale.bind('documentMarkdown')#绑定
 
@@ -30,9 +30,12 @@ def 应用(上下文):
 
     上下文.副作用(登记词典,'document-markdown: dictionaries')#寿命
 
+    def 标题():
+        '实现名。是 Markdown'
+        return 中文['viewer.label']
     def 登记元数据():
         '挂 Markdown 元数据'
-        return 上下文.documentPreviews.register(标记文本定义(lambda:翻译('viewer.label')))#登记
+        return 上下文.documentPreviews.register(标记文本定义(标题))
 
     上下文.副作用(登记元数据,'document-markdown: metadata')#寿命
 

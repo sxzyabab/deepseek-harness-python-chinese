@@ -7,7 +7,7 @@ from ...工具.超时 import 定时器延迟上限毫秒#定时器上限
 from ...基础设施.js特性 import PromiseEX as 期约#查询、入队、拆除、应用返回的期约
 from ...基础设施.通用工具.线程工具 import 启动守护线程#守护线程，跑阻塞的宿主文件系统调用
 from .取消 import 可中止等待,中止错误#取消入口
-from .宿主 import 规范化工作区,读宿主源#宿主I/O
+from .宿主 import 规范化工作区,读取宿主源#宿主I/O
 from .实例 import 语言服务器实例#语言服务器实例
 from . import (
     协议,
@@ -165,7 +165,7 @@ class 本地语言服务器提供方:#按工作区池化的stdio提供方
                 def 读源():#后台读源，阻塞的文件系统调用放在线程里
                     '在工作区队列内、拉起之前读取：排队查询在轮到时看到当前字节'
                     try:#读取并约束源
-                        源=读宿主源(自身.文件系统,请求['filePath'],工作区,自身.配置['maxDocumentBytes'],查询信号)#读取并约束源
+                        源=读取宿主源(自身.文件系统,请求['filePath'],工作区,自身.配置['maxDocumentBytes'],查询信号)#读取并约束源
                     except BaseException as 错误:#线程入口，失败交给期约
                         源期约.拒绝(错误)#拒绝
                         return#已落定

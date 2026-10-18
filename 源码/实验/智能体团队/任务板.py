@@ -3,7 +3,7 @@ from .异常 import 团队错误,任务图错误#领域错误|图校验
 from .名册 import 解析活跃成员#活跃成员解析
 from .任务图 import 断言任务图候选#图校验
 from .类型 import 团队标识,团队任务标识#身份
-from .校验 import 必填文本,写范围#输入规范化
+from .校验 import 必填文本,写入范围#输入规范化
 
 __all__=['团队任务板']#仅中文公开名
 
@@ -208,7 +208,7 @@ class 团队任务板:#任务板
 
     def 规范化写范围(自身,值列表):#写范围
         '规范化并去重任务写范围'
-        return list(dict.fromkeys(写范围(值) for 值 in 值列表))#去重保序
+        return list(dict.fromkeys(写入范围(值) for 值 in 值列表))#去重保序
 
     def _断言任务图(自身,状态,候选):#断言图
         '把共享任务图校验映射到稳定命令错误码'

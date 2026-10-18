@@ -1,11 +1,14 @@
-__all__=['中文']#仅中文公开名
+__all__=['中文']
 
-中文={#中文公共词表
+中文={#中文公共词表，键集合以这里为准
     'ok':'确定',#确定
     'cancel':'取消',#取消
     'close':'关闭',#关闭
     'copy':'复制',#复制
     'copied':'复制成功',#复制成功
+    'codeBlock.title':'代码块',#代码块
+    'codeBlock.wrap':'自动换行',#自动换行
+    'codeBlock.unwrap':'取消自动换行',#取消自动换行
     'copy.failed':'复制失败',#复制失败
     'copy.value':'复制值',#复制值
     'copy.json':'复制 JSON',#复制 JSON
@@ -30,6 +33,7 @@ __all__=['中文']#仅中文公开名
     'expand':'展开',#展开
     'back':'返回',#返回
     'brand.localBuild':'DSH 本地构建',#本地构建品牌
+    'workspace.defaultName':'默认工作区',#默认工作区
     'unknown':'未知',#未知
     'none':'无',#无
     'truncated':'已截断',#已截断
@@ -38,4 +42,4 @@ __all__=['中文']#仅中文公开名
     'markdown.truncatedCharacters':'… 已截断，共 {total} 字符',#按字符截断提示
     'number.thousand':'{value}K',#千
     'number.million':'{value}M',#百万
-}#词表结束
+}

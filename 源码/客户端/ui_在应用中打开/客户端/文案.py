@@ -1,13 +1,10 @@
-__all__=['命名空间','中文','英文']#仅中文公开名
+'open-in-app 文案表。界面读中文表。英文表只交给登记。'
 
-命名空间='open-in-app'#本插件拥有的词典命名空间
+__all__=['命名空间','产品名','中文','英文']
 
-中文={#简体中文词条（键集合的权威源）
-    'open.title':'在 {app} 中打开工作目录',
-    'open.tooltip':'在本地打开',
-    'open.error':'打开失败',
-    'menu.toggle':'选择打开方式',
-    'menu.aria':'打开方式',
+命名空间='open-in-app'
+
+产品名={
     'app.cursor':'Cursor',
     'app.vscode':'VS Code',
     'app.vscodeinsiders':'VS Code Insiders',
@@ -38,54 +35,42 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'app.gitbash':'Git Bash',
     'app.gnometerminal':'GNOME Terminal',
     'app.konsole':'Konsole',
+}
+
+中文={
+    'open.title':'用 {app} 打开',
+    'path.appDefault':'{app}（默认）',
+    'path.appsError':'无法获取应用列表',
+    'shortcut.busy':'正在打开工作区',
+    'shortcut.unavailable':'当前工作区或本地应用不可用',
+    'open.tooltip':'在本地打开',
+    'path.open':'打开',
+    'path.more':'更多打开方式',
+    'path.reveal':'显示文件位置',
+    'path.openError':'打开失败，请重试',
+    'path.revealError':'无法显示文件位置，请重试',
+    **产品名,
     'app.finder':'访达',
     'app.explorer':'文件资源管理器',
     'app.filemanager':'文件管理器',
     'app.terminal':'终端',
-    'shortcut.busy':'正在打开工作区',
-    'shortcut.unavailable':'当前工作区或本地应用不可用',
-}#中文词典结束
+}
 
-英文={#英文词条，对照中文权威源核验键齐全
-    'open.title':'Open workspace in {app}',
+英文={
+    'open.title':'Open in {app}',
+    'path.appDefault':'{app} (default)',
+    'path.appsError':'Could not load applications',
+    'shortcut.busy':'Opening workspace',
+    'shortcut.unavailable':'Current workspace or local application unavailable',
     'open.tooltip':'Open locally',
-    'open.error':'Failed to open',
-    'menu.toggle':'Choose an app to open in',
-    'menu.aria':'Open in',
-    'app.cursor':'Cursor',
-    'app.vscode':'VS Code',
-    'app.vscodeinsiders':'VS Code Insiders',
-    'app.windsurf':'Windsurf',
-    'app.zed':'Zed',
-    'app.sublimetext':'Sublime Text',
-    'app.xcode':'Xcode',
-    'app.androidstudio':'Android Studio',
-    'app.intellij':'IntelliJ IDEA',
-    'app.pycharm':'PyCharm',
-    'app.webstorm':'WebStorm',
-    'app.phpstorm':'PhpStorm',
-    'app.goland':'GoLand',
-    'app.rider':'Rider',
-    'app.rustrover':'RustRover',
-    'app.fork':'Fork',
-    'app.sourcetree':'Sourcetree',
-    'app.github':'GitHub Desktop',
-    'app.tower':'Tower',
-    'app.gitkraken':'GitKraken',
-    'app.smartgit':'SmartGit',
-    'app.sublimemerge':'Sublime Merge',
-    'app.ghostty':'Ghostty',
-    'app.warp':'Warp',
-    'app.iterm':'iTerm2',
-    'app.kitty':'kitty',
-    'app.windowsterminal':'Windows Terminal',
-    'app.gitbash':'Git Bash',
-    'app.gnometerminal':'GNOME Terminal',
-    'app.konsole':'Konsole',
+    'path.open':'Open',
+    'path.more':'More ways to open',
+    'path.reveal':'Show file location',
+    'path.openError':'Could not open. Try again.',
+    'path.revealError':'Could not show the file location. Try again.',
+    **产品名,
     'app.finder':'Finder',
     'app.explorer':'File Explorer',
     'app.filemanager':'Files',
     'app.terminal':'Terminal',
-    'shortcut.busy':'Opening workspace',
-    'shortcut.unavailable':'Current workspace or local application unavailable',
-}#英文词典结束
+}

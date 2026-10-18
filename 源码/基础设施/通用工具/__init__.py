@@ -36,7 +36,7 @@ from collections import ChainMap as 链映射
 
 ################################ 自由使用.号 ################################
 from weakref import WeakKeyDictionary as 弱引用键字典#按对象身份存双下数据，对象回收后自动清
-_对象内部数据表=弱引用键字典()#对象到它的双下数据面，不占用对象自身的属性槽
+
 未传参=object()#没有传递该参数,用于区分传了None和默认为None
 未命中=object()#沿属性链查找时表示链上没有该键
 
@@ -49,18 +49,16 @@ class 自由点访问空间:
     def __getattribute__(自身,键):
         """双下名只认数据面；未写入则拦截，不暴露解释器槽。"""
         if 是双下划线字符串(键):
-            内部数据=获取内部数据存储(自身)#该对象的数据面
-            if 键 not in 内部数据:
-                raise AttributeError(键)
-            return 内部数据[键]#用户数据
+            if 存在内部键(自身,键) is not True:
+                raise AttributeError(键)#未写入则拦截
+            return 获取内部数据(自身,键)#用户数据
         #普通属性
         return object.__getattribute__(自身,键)
 
     def __setattr__(自身,键,值):
         """双下名落数据面，其余照常落实例。"""
         if 是双下划线字符串(键):
-            内部数据=获取内部数据存储(自身)#该对象的数据面
-            内部数据[键]=值#写入
+            设置内部数据(自身,键,值)#写入数据面
             return
         #普通属性
         object.__setattr__(自身,键,值)
@@ -74,25 +72,34 @@ class 自由点访问空间:
     ...
 )
 
-def 获取内部数据存储(对象)->dict:
-    return _对象内部数据表.setdefault(对象,{})
+def 生成内部存储():
+    _对象内部数据表=弱引用键字典()
+    def 获取内部数据存储(对象)->dict:
+        return _对象内部数据表.setdefault(对象,{})
 
-def 获取内部数据(对象,键,默认值=未传参):
-    "dict.get等级"
-    存储=获取内部数据存储(对象)
-    if 默认值 is 未传参:
-        return 存储[键]
-    else:
-        return 存储.get(键,默认值)
+    def 获取内部数据(对象,键,默认值=未传参):
+        "dict.get等级"
+        存储=获取内部数据存储(对象)
+        if 默认值 is 未传参:
+            return 存储[键]
+        else:
+            return 存储.get(键,默认值)
 
-def 设置内部数据默认值(对象,键,默认值):
-    "dict.setdefault等价"
-    存储=获取内部数据存储(对象)
-    return 存储.setdefault(键,默认值)
+    def 设置内部数据(对象,键,值):
+        "dict[]=?等价"
+        获取内部数据存储(对象)[键]=值
+    def 设置内部数据默认值(对象,键,默认值):
+        "dict.setdefault等价"
+        存储=获取内部数据存储(对象)
+        return 存储.setdefault(键,默认值)
 
-def 设置内部数据(对象,键,值):
-    "dict[]=?等价"
-    获取内部数据存储(对象)[键]=值
+    def 存在内部键(对象,键)->bool:
+        "dict.get等级"
+        return 键 in 获取内部数据存储(对象)
+    return 获取内部数据,设置内部数据,设置内部数据默认值,存在内部键
+
+获取内部数据,设置内部数据,设置内部数据默认值,存在内部键=生成内部存储()
+del 生成内部存储
 
 ################################ 差分映射 ################################
 class 差分映射(链映射):
@@ -142,3 +149,9 @@ class 差分映射(链映射):
             return#换成空表
         for 键 in 源:
             自身.maps[0][键]=源[键]#逐个拷入
+
+
+def __getattr__(名称):
+    if 名称 in ('_对象内部数据表'):
+        raise AttributeError(名称)
+    raise AttributeError(名称)

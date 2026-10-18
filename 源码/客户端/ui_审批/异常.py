@@ -1,20 +1,6 @@
-import os
-
-class 审批错误(Exception):
-    '本包审批结算、中止与委托失败'
-    def __init__(自身,消息,码=None):
-        '记下英文消息与可选结构码'
-        super().__init__(消息)#消息原样英文
-        自身.code=码#结构识别码
-
-def 去掉敏感(文本):
-    '原文原样返回。'
-    return str(文本)
-
-def 页面失败文案(错误):
-    '类型名加原文。'
-    名=type(错误).__name__
-    说明=去掉敏感(错误)
-    if 说明=='' or 说明==名:
-        return 名
-    return 名+'：'+说明
+class 审批委托(Exception):
+    '未作答的审批交给瀑布下一环时的标记。页面不显示这句话'
+    def __init__(自身,标记):
+        '记下这一次委托的身份，用来和别的失败分开'
+        super().__init__('pending approval delegated')#与上游符号说明一致
+        自身.标记=标记#这一次委托的身份

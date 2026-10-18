@@ -1,46 +1,124 @@
-__all__=['向导标题','罗盘标记','立方标记','画字形']#仅中文公开名
+'向导签的标题：罗盘加上类型的字'
+from .....模块.客户端.通告 import 取握手窗口
+from .....ui_对话.异常 import 标样式模块
 
-from nicegui import ui as 界面
-from ....异常 import 异常原文
+__all__=['罗盘字形','立方字形','向导标题']
 
-样式表='.titleIcon{flex:none;display:inline-flex;align-items:center;color:var(--dsw-alias-label-tertiary)}'
-界面.add_css(样式表,shared=True)
-
-罗盘标记='<svg width="{尺寸}" height="{尺寸}" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z" stroke="currentColor" stroke-width="1"/><path d="M10.6101 5.39014L8.99014 8.99014L5.39014 10.6101L7.01014 7.01014L10.6101 5.39014Z" fill="currentColor"/></svg>'#罗盘
-立方标记='<svg width="{尺寸}" height="{尺寸}" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M7.99998 2.5L12.9 5.2V10.8L7.99998 13.5L3.09998 10.8V5.2L7.99998 2.5Z" stroke="currentColor" stroke-linejoin="round" stroke-width="1"/><path d="M3.09998 5.19995L7.99998 7.89995M7.99998 7.89995L12.9 5.19995M7.99998 7.89995V13.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/></svg>'#立方
+样式模块='sidebar-right-guide'
 
 
-def 画字形(标记,尺寸,类名=None):
-    '把字形画成内联 svg'
-    节点=界面.html(标记.format(尺寸=尺寸),sanitize=False)#字形
-    if 类名:
-        节点.classes(类名)#类
-    return 节点#节点
+def _窗口(属性):
+    '调用方带来的窗口，否则用桥上的窗口'
+    if isinstance(属性,dict) and 属性.get('window') is not None:
+        return 属性['window']
+    return 取握手窗口()
 
 
-class 向导标题:#芯片标题
-    '芯片与浮动面板头部：罗盘加向导签标题'
+class 罗盘字形:
+    '圆环和指向东北的针。颜色跟 currentColor'
 
-    def __init__(自身,用标签信息):
-        '槽位传入 props 字典；直接调用时仍可以是钩子'
-        if isinstance(用标签信息,dict):#槽位 props
-            钩=用标签信息['useTabInfo'] if 'useTabInfo' in 用标签信息 else None#钩
-            自身.用标签信息=钩 if callable(钩) else None#可读才留
-        else:#旧调用
-            自身.用标签信息=用标签信息 if callable(用标签信息) else None#钩子
-        if callable(自身.用标签信息):
-            自身.渲染()
+    def __init__(自身,窗口,尺寸=16,类名=None):
+        '记下大小'
+        自身.窗口=窗口
+        自身.尺寸=尺寸
+        自身.类名=类名
+        自身.属性={'window':窗口}
+        自身.根=None
 
     def 渲染(自身):
-        '罗盘图标和标题文本。父组件不调用本方法，构造在键齐时自己画。'
-        if not callable(自身.用标签信息):
-            return
-        try:
-            信息=自身.用标签信息()#标签信息
-            签=信息['tab'] if isinstance(信息,dict) else 信息.tab#标签记录
-            标题=签['title'] if isinstance(签,dict) else 签.title#标题文本
-            with 界面.row().style('align-items:center;gap:6px;flex-wrap:nowrap;min-width:0'):#芯片行
-                画字形(罗盘标记,16,'titleIcon')#罗盘
-                界面.label(str(标题))#标题
-        except Exception as 错误:
-            界面.label(异常原文(错误))
+        '画出 svg'
+        文档=自身.窗口.document
+        图=文档.createElementNS('http://www.w3.org/2000/svg','svg')
+        图.setAttribute('width',str(自身.尺寸))
+        图.setAttribute('height',str(自身.尺寸))
+        图.setAttribute('viewBox','0 0 16 16')
+        图.setAttribute('fill','none')
+        图.setAttribute('aria-hidden','true')
+        if 自身.类名:
+            图.setAttribute('class',自身.类名)
+            标样式模块(图,样式模块)
+        环=文档.createElementNS('http://www.w3.org/2000/svg','path')
+        环.setAttribute('d','M8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14Z')
+        环.setAttribute('stroke','currentColor')
+        针=文档.createElementNS('http://www.w3.org/2000/svg','path')
+        针.setAttribute('d','M10.6101 5.39014L8.99014 8.99014L5.39014 10.6101L7.01014 7.01014L10.6101 5.39014Z')
+        针.setAttribute('fill','currentColor')
+        图.appendChild(环)
+        图.appendChild(针)
+        自身.根=图
+        return 图
+
+
+class 立方字形:
+    '等轴方块。没有自己图标的入口用它'
+
+    def __init__(自身,窗口,尺寸=16,类名=None):
+        '记下大小'
+        自身.窗口=窗口
+        自身.尺寸=尺寸
+        自身.类名=类名
+        自身.属性={'window':窗口}
+        自身.根=None
+
+    def 渲染(自身):
+        '画出 svg'
+        文档=自身.窗口.document
+        图=文档.createElementNS('http://www.w3.org/2000/svg','svg')
+        图.setAttribute('width',str(自身.尺寸))
+        图.setAttribute('height',str(自身.尺寸))
+        图.setAttribute('viewBox','0 0 16 16')
+        图.setAttribute('fill','none')
+        图.setAttribute('aria-hidden','true')
+        if 自身.类名:
+            图.setAttribute('class',自身.类名)
+            标样式模块(图,样式模块)
+        廓=文档.createElementNS('http://www.w3.org/2000/svg','path')
+        廓.setAttribute('d','M7.99998 2.5L12.9 5.2V10.8L7.99998 13.5L3.09998 10.8V5.2L7.99998 2.5Z')
+        廓.setAttribute('stroke','currentColor')
+        廓.setAttribute('stroke-linejoin','round')
+        缝=文档.createElementNS('http://www.w3.org/2000/svg','path')
+        缝.setAttribute('d','M3.09998 5.19995L7.99998 7.89995M7.99998 7.89995L12.9 5.19995M7.99998 7.89995V13.5')
+        缝.setAttribute('stroke','currentColor')
+        缝.setAttribute('stroke-linecap','round')
+        缝.setAttribute('stroke-linejoin','round')
+        图.appendChild(廓)
+        图.appendChild(缝)
+        自身.根=图
+        return 图
+
+
+class 向导标题:
+    '芯片上的罗盘和标题字'
+
+    def __init__(自身,属性=None):
+        '记下份额'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        自身.渲染()
+
+    def __call__(自身,属性=None):
+        '再次绘制'
+        if 属性 is not None:
+            自身.属性=属性
+        return 自身.渲染()
+
+    def 渲染(自身):
+        '罗盘在前，字在后'
+        窗口=_窗口(自身.属性)
+        文档=窗口.document
+        根=文档.createElement('span')
+        图=罗盘字形(窗口,16,'titleIcon').渲染()
+        根.appendChild(图)
+        用=自身.属性.get('useTabInfo')
+        字=''
+        if callable(用):
+            信息=用()
+            签=信息.get('tab') if isinstance(信息,dict) else None
+            if isinstance(签,dict):
+                字=签.get('title') or ''
+        根.appendChild(文档.createTextNode(str(字)))
+        自身.根=根
+        父=自身.属性.get('parent')
+        if 父 is not None and getattr(根,'parentNode',None) is None:
+            父.appendChild(根)
+        return 自身

@@ -90,13 +90,13 @@ class 凭证提供方(服务):#凭证提供方服务定义
         '从提供方管理的可写源移除一条引用'
         raise NotImplementedError('CredentialProvider.unset')#子类必须实现
 
-    def 读记录(自身,键):#读记录
+    def 读取记录(自身,键):#读取记录
         '读一条已存记录；未存时为 None'
         return 自身._记录表[键] if 键 in 自身._记录表 else None#快照
 
     def 描述记录(自身,键):#描述记录
         '为配置面描述一条记录，不暴露其值'
-        已存=自身.读记录(键)#读
+        已存=自身.读取记录(键)#读
         if 已存 is None:#未存
             return {'configured':False,'writable':True}#未配置
         return {'configured':True,'kind':已存['kind'],'writable':True}#已存
@@ -108,7 +108,7 @@ class 凭证提供方(服务):#凭证提供方服务定义
     def 修改记录(自身,键,变更):#串行读改写
         """对一条记录的读-改-写。
         变更(当前)→下一份或 None（不动）"""
-        当前=自身.读记录(键)#当前
+        当前=自身.读取记录(键)#当前
         下一份=变更(当前)#决策
         if 下一份 is None:#不动
             return 当前#当前

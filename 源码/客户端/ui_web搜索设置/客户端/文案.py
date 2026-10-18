@@ -1,6 +1,4 @@
-__all__=['命名空间','中文','英文','表单标签']
-
-命名空间='settings.webSearch'
+__all__=['中文','英文']
 
 英文={
     'title':'Web search',
@@ -8,7 +6,7 @@ __all__=['命名空间','中文','英文','表单标签']
     'apiKey':'API key',
     'apiKeyHint':'Stored outside the settings file. Leave blank to keep the current key.',
     'apiKeySet':'A key is configured.',
-    'apiKeyUnset':'No key is configured; search is unavailable until one is.',
+    'apiKeyUnset':'No key is configured; only conversations using a DeepSeek Account model can search, through the default endpoint.',
     'baseUrl':'Endpoint',
     'baseUrlHint':'Leave blank to use the provider default.',
     'maxUses':'Max searches per request',
@@ -29,7 +27,7 @@ __all__=['命名空间','中文','英文','表单标签']
     'apiKey':'API Key',
     'apiKeyHint':'不写入设置文件。留空表示保持当前密钥。',
     'apiKeySet':'已配置密钥。',
-    'apiKeyUnset':'未配置密钥；配置之前搜索不可用。',
+    'apiKeyUnset':'未配置密钥；仅使用 DeepSeek 账号模型的对话可以通过默认接口地址搜索。',
     'baseUrl':'接口地址',
     'baseUrlHint':'留空则使用提供方默认地址。',
     'maxUses':'单次请求最多搜索次数',
@@ -43,13 +41,3 @@ __all__=['命名空间','中文','英文','表单标签']
     'saveFailed':'本部署没有接受这些值，已保留供你修改。',
     'invalidNumber':'请填数字；留空表示使用默认值。',
 }
-
-def 表单标签(翻译):
-    '把本页词典填进共享设置表单的框架文案'
-    return {
-        'unavailable':翻译('unavailable'),
-        'readOnly':翻译('readOnly'),
-        'saveFailed':翻译('saveFailed'),
-        'save':翻译('save'),
-        'saving':翻译('saving'),
-    }

@@ -6,5 +6,7 @@
     "slots":"槽",
     "system-prompt":"系统提示",
     "views":"视图",
-    "groups":"组"
+    "groups":"组",
+    "snapshot":"快照",
+    "conversation":"会话"
 }

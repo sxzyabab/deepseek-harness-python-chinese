@@ -5,7 +5,7 @@ def 登记服务器上下文(上下文,服务器,连接):
     '向本组合启用的服务贡献服务器上下文。连接为 dict'
     def 登记资源(内部):
         '把当前世代的资源访问挂到 mcpResources'
-        内部.mcpResources.登记(服务器,连接['resources'])
+        内部.mcpResources.登记服务器(服务器,连接['resources'])
     上下文.依赖启动(['mcpResources'],登记资源)#有资源服务才挂登记
     def 登记提示(内部):
         '把已连通服务器的指令挂到系统提示词'

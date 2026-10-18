@@ -2,21 +2,21 @@ import json#解析干净退出时的结构化 stdout
 
 阻断退出码=2#发出阻断错误的退出码
 
-def 读字符串(对象,键):
-    '从 dict 读字符串字段；缺席或类型不对则返回 None'
+def 读取字符串(对象,键):
+    '从 dict 读取字符串字段；缺席或类型不对则返回 None'
     if 键 not in 对象:#键不存在
         return None#缺席
     值=对象[键]#取出
     return 值 if isinstance(值,str) else None#是字符串才返回
 
-def 读布尔(对象,键):
-    '从 dict 读布尔字段；缺席或类型不对则返回 None'
+def 读取布尔(对象,键):
+    '从 dict 读取布尔字段；缺席或类型不对则返回 None'
     if 键 not in 对象:#键不存在
         return None#缺席
     值=对象[键]#取出
     return 值 if isinstance(值,bool) else None#是布尔才返回
 
-def 读对象(值):
+def 读取对象(值):
     '普通对象（非 None、非列表），否则 None'
     if isinstance(值,dict):#映射即普通对象
         return 值#断言为普通对象
@@ -32,43 +32,43 @@ def 专属判定(值):
 
 def 折入结构化(输出,已解析,期望事件名=None):
     '把已解析的结构化 stdout 对象折入输出（原地修改）。输出与已解析都是 dict'
-    继续=读布尔(已解析,'continue')#读取是否继续
+    继续=读取布尔(已解析,'continue')#读取是否继续
     if 继续 is not None:#有值则写入
         输出['continue']=继续#写入
-    停止原因=读字符串(已解析,'stopReason')#读取停止原因
+    停止原因=读取字符串(已解析,'stopReason')#读取停止原因
     if 停止原因 is not None:#有值则写入
         输出['stopReason']=停止原因#写入
-    系统消息=读字符串(已解析,'systemMessage')#读取系统消息
+    系统消息=读取字符串(已解析,'systemMessage')#读取系统消息
     if 系统消息 is not None:#有值则写入
         输出['systemMessage']=系统消息#写入
-    顶层=顶层判定(读字符串(已解析,'decision'))#规范化顶层判定
+    顶层=顶层判定(读取字符串(已解析,'decision'))#规范化顶层判定
     if 顶层 is not None:#有值则写入判定
         输出['decision']=顶层#写入
-    顶层原因=读字符串(已解析,'reason')#读取顶层原因
+    顶层原因=读取字符串(已解析,'reason')#读取顶层原因
     if 顶层原因 is not None:#有值则写入原因
         输出['reason']=顶层原因#写入
     if 'hookSpecificOutput' not in 已解析:#不存在则结束
         return
-    专属=读对象(已解析['hookSpecificOutput'])#读取钩子专属输出
+    专属=读取对象(已解析['hookSpecificOutput'])#读取钩子专属输出
     if 专属 is None:#形状不对则结束
         return
-    事件名=读字符串(专属,'hookEventName')#读取事件名判别标签
+    事件名=读取字符串(专属,'hookEventName')#读取事件名判别标签
     if 事件名 is not None:#有事件名则记录
         输出['hookEventName']=事件名#始终露出判别标签
     if 期望事件名 is not None and 事件名!=期望事件名:#事件名守卫未通过
         return#丢弃事件作用域字段
-    权限=专属判定(读字符串(专属,'permissionDecision'))#规范化权限判定
+    权限=专属判定(读取字符串(专属,'permissionDecision'))#规范化权限判定
     if 权限 is not None:#权限判定覆盖顶层判定
         输出['decision']=权限#覆盖
-    权限原因=读字符串(专属,'permissionDecisionReason')#读取权限判定原因
+    权限原因=读取字符串(专属,'permissionDecisionReason')#读取权限判定原因
     if 权限原因 is not None:#有值则覆盖原因
         输出['reason']=权限原因#覆盖
-    附加=读字符串(专属,'additionalContext')#读取附加上下文
+    附加=读取字符串(专属,'additionalContext')#读取附加上下文
     if 附加 is not None:#有值则写入
         输出['additionalContext']=附加#写入
     if 'updatedInput' not in 专属:#无更新输入
         return
-    更新输入=读对象(专属['updatedInput'])#读取更新后的输入
+    更新输入=读取对象(专属['updatedInput'])#读取更新后的输入
     if 更新输入 is not None:#有值则写入
         输出['updatedInput']=更新输入#写入
 
@@ -85,7 +85,7 @@ def 解析钩子输出(退出码,标准输出,标准错误,期望事件名=None)
         if 修剪输出.startswith('{'):#以左花括号开头才当 JSON 对象
             已解析=None#结构化解析结果
             try:
-                已解析=读对象(json.loads(修剪输出))#解析为普通对象
+                已解析=读取对象(json.loads(修剪输出))#解析为普通对象
             except json.JSONDecodeError:
                 #干净退出时 JSON 畸形=无结构化输出。纯 stdout 仍留给桥接层。
                 已解析=None#放弃结构化结果

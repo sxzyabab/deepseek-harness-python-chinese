@@ -1,16 +1,16 @@
-from . import (
-    共享,
-    客户端,
-    异常,
-)
-from .宿主.插件 import 应用 as 应用宿主,解析检查器选项,启动检查器
+'仓库面对的 Host 包入口。客户端由网页壳按清单启动，这里不调用它'
+from .宿主.桥接.控制器 import 解析检查器选项
+from .宿主.插件 import 应用 as 宿主应用,启动检查器
+from . import 客户端,异常
 
 __all__=[
-    '名称','依赖','配置','应用','解析检查器选项','启动检查器',
+    '客户端','异常',
+    '名称','依赖','配置','应用',
+    '解析检查器选项','启动检查器',
 ]
 
 名称='experimental-inspector'
-依赖=['webServer']
+依赖=['webServer','connection']
 
 库默认=解析检查器选项()
 
@@ -41,9 +41,13 @@ __all__=[
     'maxDisconnectedCordisTrees':库默认.maxDisconnectedCordisTrees,
 }
 
+
 def 应用(上下文,配置对象=None):
-    '从仓库标准包入口应用 Host 实现'
-    应用宿主(上下文,配置对象 if 配置对象 is not None else 配置)
+    '宿主插件体。启动检查器 Worker，不调用客户端'
+    if 配置对象 is None:
+        配置对象=配置
+    宿主应用(上下文,配置对象)
+
 
 name=名称
 inject=依赖

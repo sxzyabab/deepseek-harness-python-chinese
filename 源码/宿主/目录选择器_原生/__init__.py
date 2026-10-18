@@ -1,25 +1,30 @@
 '目录选择缝的原生后端：在宿主屏幕上打开一次系统目录框'
+from types import SimpleNamespace as 简单命名空间#能力对象
 from ..目录选择器 import 目录选择器#缝
 from .原生选择 import 选原生目录#跨平台选择
+from . import (
+    原生选择,#跨平台选择框
+    对话框,#Win32 驱动
+    对话框逻辑,#COM 顺序
+    对话框绑定,#本机绑定
+    对话框工作进程,#子进程入口
+    对话框宿主,#拉起子进程
+    异常,#失败
+)
 
-__all__=['原生目录选择器','选原生目录']#仅中文公开名
+__all__=['原生目录选择器','选原生目录','原生选择','对话框','对话框逻辑','对话框绑定','对话框工作进程','对话框宿主','异常']
 
-class 原生能力:#稳定的 native 能力对象
-    'pick 转到选原生目录'
-    kind='native'#能力种类
-    def pick(自身,信号):#打开系统选择框
-        '返回绝对路径或 None'
-        return 选原生目录(信号)#转发
 
-class 原生目录选择器(目录选择器):#ctx.directoryPicker 的原生实现
+class 原生目录选择器(目录选择器):
     '能力对象在服务存活期间保持同一身份'
-    def __init__(自身,上下文,配置=None):#构造
-        '登记服务'
-        super().__init__(上下文)#登记 directoryPicker
-        自身.原生能力=原生能力()#稳定能力
+    def __init__(自身,上下文,配置=None):
+        '登记 directoryPicker。加载器传入的配置这里不读'
+        super().__init__(上下文)#登记服务
+        自身.原生能力=简单命名空间(kind='native',pick=选原生目录)#稳定能力
 
-    def capability(自身):#原生能力
+    def capability(自身):
         '返回稳定的 native 能力对象'
         return 自身.原生能力#同一对象
+
 
 default=原生目录选择器#类插件

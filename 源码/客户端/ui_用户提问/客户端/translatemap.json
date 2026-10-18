@@ -1,6 +1,11 @@
 {
     "PlanReviewPanel":"计划审阅面板",
+    "PlanReviewPanel.module":"计划审阅面板.module",
     "QuestionComposer":"提问撰写器",
+    "QuestionComposer.module":"提问撰写器.module",
+    "QuestionReplyView":"问题回复视图",
+    "QuestionReplyView.module":"问题回复视图.module",
     "contract":"约定",
-    "locales":"文案"
+    "locales":"文案",
+    "question-reply":"问题回复"
 }

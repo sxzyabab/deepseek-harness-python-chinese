@@ -1,152 +1,197 @@
-from .用聊天导航 import 用聊天导航
-from .用聊天读取 import 用聊天读取
-from .用聊天视口 import 用聊天视口
+from .用聊天导航 import 聊天导航
+from .用聊天读取 import 聊天读取,跟随阈值
+from .用滚动跟随 import 用滚动跟随
+from .用聊天视口 import 聊天视口
 
-__all__=['用聊天滚动']
+__all__=['聊天滚动']
 
-class 聊天滚动席位:
-    '提交后协调滚动策略；新提交输入覆盖待采样读者'
-    def __init__(自身,输入):
-        '输入为 dict'
-        视口面=用聊天视口()
-        自身.视口=视口面['viewport']
-        自身.列表引用=视口面['listRef']
-        自身.列引用=视口面['columnRef']
-        已加载=输入['loadedTurns']
-        末回合=已加载[-1]['turn'] if len(已加载)>0 else None
-        读取面=用聊天读取(自身.视口,输入['chatScroll'],末回合)
-        自身.读取=读取面['reading']
-        自身.状态=读取面['state']
-        导航输入={
-            'firstSeq':输入['firstSeq'],
-            'loadingOlder':输入['loadingOlder'],
-            'hasMore':输入['hasMore'],
-            'loadOlder':输入['loadOlder'],
-            'loadThrough':输入['loadThrough'],
-        }
-        导航面=用聊天导航(自身.视口,自身.读取,导航输入)
-        自身.导航=导航面['navigation']
-        自身.忙回合=导航面['busyTurn']
-        自身.内容={'input':输入,'applied':None,'opened':False}
-        自身.已连=False
 
-    def 连接(自身):
-        '接视口与读取'
-        if 自身.已连:
+class 聊天滚动:
+    '把视口、阅读和历史导航接在一次提交上'
+    def __init__(自身,窗口):
+        '先造视口。阅读要等第一次有存储时再造'
+        自身.窗口=窗口
+        自身.视口=聊天视口()
+        自身.阅读=None
+        自身.导航=None
+        自身.已开=False
+        自身.已应用=None
+        自身.上次输入=None
+        自身.上次视图=None
+        自身.列表=None
+        自身.列=None
+        自身.状态={'initialized':False,'followingTail':True,'activeTurn':None}
+        自身.忙回合值=None
+        自身.已连接=False
+
+    def 当状态(自身,状态):
+        '阅读状态变了就留下，并请视图再画一次'
+        自身.状态=dict(状态)
+        if callable(getattr(自身,'重画',None)):
+            自身.重画()
+
+    def 当忙(自身,回合):
+        '导航忙的回合'
+        自身.忙回合值=回合
+
+    def 确保(自身,存储,初始回合):
+        '第一次看到滚动记忆时造阅读和导航'
+        if 自身.阅读 is not None:
+            自身.阅读.设存储(存储)
             return
-        def 滚动结束():
-            '滚动结束'
-            自身.读取.滚动结束()
-            自身.导航.读者已结算()
+        贴底=True
+        if 存储 is not None and callable(getattr(存储,'read',None)):
+            贴底=存储.read() is None
+        自身.状态={'initialized':False,'followingTail':贴底,'activeTurn':初始回合}
+        跟随=用滚动跟随(贴底,跟随阈值+1)
+        自身.阅读=聊天读取(自身.视口,存储,自身.状态,自身.当状态,跟随)
+        自身.导航=聊天导航(自身.视口,自身.阅读,{'firstSeq':None,'hasMore':False,'loadingOlder':False,'loadOlder':None,'loadThrough':None},自身.当忙)
+
+    def 连接一次(自身):
+        '监听只接一次'
+        if 自身.已连接 or 自身.阅读 is None:
+            return
+        自身.已连接=True
+
+        def 滚动(事件):
+            '折叠进行中且不是读者挪的，先不采样'
+            if not 自身.已开:
+                return
+            if not 事件['movedByReader'] and 自身.视口.动效['foldActive']():
+                return
+            自身.阅读.当滚动(事件)
+
+        def 结束(外层):
+            '滚动停了再调和导航'
+            自身.阅读.当滚动结束(外层)
+            自身.导航.读者已停()
+
         def 交互():
-            '取消导航'
+            '分页被读者打断'
             自身.导航.取消()
+
+        def 意图():
+            '任何阅读手势都取消待定的贴底'
+            自身.视口.动效['cancelInput']()
+            自身.阅读.打断跟随()
+
         def 尺寸():
-            '布局变化'
-            if not 自身.导航.内容已提交():
-                自身.读取.尺寸变化()
-            自身.导航.对齐()
-        自身.拆视口=自身.视口.连接({
-            'scroll':自身.读取.滚动,
-            'scrollEnd':滚动结束,
-            'interact':交互,
-            'resize':尺寸,
-        })
+            '折叠进行中不让尺寸策略抢滚动'
+            if not 自身.已开:
+                return
+            if 自身.导航.内容已提交():
+                自身.导航.调和()
+                return
+            if not 自身.上次输入 or not 自身.上次输入.get('deferCompletedTurns') or not 自身.视口.动效['foldActive']():
+                自身.阅读.当尺寸()
+            自身.导航.调和()
+
+        自身.视口.连接({'scroll':滚动,'scrollEnd':结束,'interact':交互,'intent':意图,'resize':尺寸})
+
         def 采样(样本):
-            '已结算阅读观察'
+            '读者落定后处理内容'
             自身.导航.读者已采样(样本)
             自身.处理内容()
-        自身.拆读取=自身.读取.连接(采样)
-        自身.已连=True
 
-    def 拆除(自身):
-        '断开并重开'
-        if not 自身.已连:
+        自身.阅读.连接(采样)
+        自身.阅读.绑折叠()
+
+    def 挂元素(自身,列表,列):
+        '元素换了才重新挂'
+        if 列表 is None or 列 is None:
             return
-        自身.拆视口()
-        自身.拆读取()
-        自身.内容['opened']=False
-        自身.内容['applied']=None
-        自身.已连=False
+        if 自身.列表 is 列表 and 自身.列 is 列 and 自身.视口.元素 is not None:
+            return
+        自身.列表=列表
+        自身.列=列
+        自身.视口.挂上(列表,列)
 
     def 处理内容(自身):
-        '内容提交后的滚动所有权'
-        当前=自身.内容['input']
-        先前=自身.内容['applied']
-        自有输入=((当前['lastIsUser'] and (先前 is None or 当前['lastKey']!=先前['lastKey']))
-            or (当前['steeringId'] is not None and 先前 is not None and 当前['steeringId']!=先前['steeringId']
-                and 当前['steeringId']!=先前['submissionId'])
-            or (当前['submissionId'] is not None and 先前 is not None and 当前['submissionId']!=先前['submissionId']
-                and 当前['submissionId']!=先前['steeringId']))
-        if 先前 is None:
-            自有输入=当前['lastIsUser'] or 当前['steeringId'] is not None or 当前['submissionId'] is not None
-        if 自身.读取.pending and not 自有输入:
+        '自己的新输入优先于还没采样的读者'
+        当前=自身.上次输入
+        if 当前 is None:
             return
-        自身.内容['applied']=当前
-        if 当前['ready'] and not 自身.内容['opened']:
-            自身.内容['opened']=True
+        if not 当前.get('ready') and not 自身.已开:
+            return
+        先前=自身.已应用
+        自己的=(当前.get('lastIsUser') and 当前.get('lastKey')!=(None if 先前 is None else 先前.get('lastKey'))) or (当前.get('steeringId') is not None and (先前 is None or (当前.get('steeringId')!=先前.get('steeringId') and 当前.get('steeringId')!=先前.get('submissionId')))) or (当前.get('submissionId') is not None and (先前 is None or (当前.get('submissionId')!=先前.get('submissionId') and 当前.get('submissionId')!=先前.get('steeringId'))))
+        if 自身.阅读.待定() and not 自己的:
+            return
+        自身.已应用=dict(当前)
+        if 当前.get('ready') and not 自身.已开:
+            自身.已开=True
             自身.导航.重置()
-            自身.读取.恢复()
+            自身.阅读.恢复()
             return
-        if 自有输入:
+        if 自己的:
             自身.导航.取消()
-            自身.读取.跟随尾()
+            if 当前.get('deferCompletedTurns') and 自身.阅读.跟随输入折叠():
+                return
+            自身.阅读.跟随尾('smooth' if 当前.get('deferCompletedTurns') else 'instant')
             return
         if 自身.导航.内容已提交():
-            自身.导航.对齐()
+            自身.导航.调和()
             return
-        尖变=(先前 is None or 当前['ready']!=先前['ready']
-            or 当前['firstSeq']!=先前['firstSeq'] or 当前['lastKey']!=先前['lastKey']
-            or len(当前['order'])!=len(先前['order']) or 当前['running']!=先前['running']
-            or 当前['steeringId']!=先前['steeringId'] or 当前['submissionId']!=先前['submissionId'])
-        if 尖变 and 自身.读取.followingTail:
+        尖变了=先前 is None or 当前.get('ready')!=先前.get('ready') or 当前.get('firstSeq')!=先前.get('firstSeq') or 当前.get('lastKey')!=先前.get('lastKey') or len(当前.get('order') or [])!=len(先前.get('order') or []) or 当前.get('running')!=先前.get('running') or 当前.get('steeringId')!=先前.get('steeringId') or 当前.get('submissionId')!=先前.get('submissionId')
+        if 尖变了 and 自身.阅读.正贴底():
             自身.导航.取消()
-            自身.读取.跟随尾()
+            if 当前.get('deferCompletedTurns') and 自身.阅读.跟随输入折叠():
+                return
+            自身.阅读.跟随尾()
         else:
-            自身.导航.对齐()
+            自身.导航.调和()
 
-    def 提交输入(自身,输入):
-        '采纳新提交并处理'
-        先前=自身.内容['input']
-        导航输入={
-            'firstSeq':输入['firstSeq'],
-            'loadingOlder':输入['loadingOlder'],
-            'hasMore':输入['hasMore'],
-            'loadOlder':输入['loadOlder'],
-            'loadThrough':输入['loadThrough'],
-        }
-        自身.导航.设输入(导航输入)
-        自身.内容['input']=输入
-        自身.视口.更新回合(输入['loadedTurns'])
-        布局变=先前['order'] is not 输入['order'] or 先前['ready']!=输入['ready']
-        if 布局变:
+    def 提交(自身,输入):
+        '每次渲染后按新内容和布局调和滚动'
+        自身.确保(输入.get('chatScroll'),None if len(输入.get('loadedTurns') or [])==0 else 输入['loadedTurns'][-1].get('turn'))
+        自身.连接一次()
+        自身.挂元素(输入.get('list'),输入.get('column'))
+        先前=自身.上次输入
+        自身.上次输入=dict(输入)
+        自身.导航.设输入({
+            'firstSeq':输入.get('firstSeq'),
+            'loadingOlder':输入.get('loadingOlder'),
+            'hasMore':输入.get('hasMore'),
+            'loadOlder':输入.get('loadOlder'),
+            'loadThrough':输入.get('loadThrough'),
+        })
+        if not 输入.get('deferCompletedTurns'):
+            自身.视口.动效['cancelInput']()
+            自身.阅读.打断跟随()
+        自身.视口.更新回合(输入.get('loadedTurns') or [])
+        布局变了=先前 is None or 先前.get('order') is not 输入.get('order') or 先前.get('ready')!=输入.get('ready')
+        if 布局变了:
             自身.视口.作废()
+        自身.视口.收回下方()
         自身.处理内容()
-        if 布局变:
-            自身.读取.刷新活动回合()
+        if 布局变了 and 自身.已开:
+            自身.阅读.刷新活动回合()
+        视图=输入.get('transcriptView')
+        if 自身.上次视图 is not None and 自身.上次视图!=视图:
+            自身.视口.动效['cancelInput']()
+            自身.阅读.打断跟随()
+            def 闲():
+                '折叠停了再清垫'
+                自身.视口.重置下方()
+                if 自身.已开:
+                    自身.阅读.当尺寸()
+            自身.视口.动效['onFoldIdle'](闲)
+        自身.上次视图=视图
 
-    def 回到底部(自身):
-        '取消导航并跟随尾'
-        自身.导航.取消()
-        自身.读取.跟随尾()
+    def 回到底(自身):
+        '按钮：取消折叠贴底，直接跟尾'
+        自身.视口.动效['cancelInput']()
+        if 自身.导航 is not None:
+            自身.导航.取消()
+        if 自身.阅读 is not None:
+            自身.阅读.跟随尾()
 
-def 用聊天滚动(输入):
-    '铸造滚动席位。输入为 dict'
-    席=聊天滚动席位(输入)
-    席.连接()
-    列表=席.列表引用['current']
-    列=席.列引用['current']
-    if 列表 is not None and 列 is not None:
-        席.视口.附着(列表,列)
-    return {
-        'listRef':席.列表引用,
-        'columnRef':席.列引用,
-        'initialized':席.状态['initialized'],
-        'followingTail':席.状态['followingTail'],
-        'activeTurn':席.状态['activeTurn'],
-        'busyTurn':席.忙回合['值'],
-        'navigateToTurn':席.导航.导航到回合,
-        'loadEarlier':席.导航.加载更早,
-        'returnToBottom':席.回到底部,
-        'seat':席,
-    }
+    def 加载更早(自身):
+        '更早按钮'
+        if 自身.导航 is not None:
+            自身.导航.加载更早()
+
+    def 导航到回合(自身,项):
+        '轨上的一回合'
+        if 自身.导航 is not None:
+            自身.导航.导航到回合(项)

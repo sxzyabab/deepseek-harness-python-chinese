@@ -1,261 +1,401 @@
+__all__=['命名空间','中文','英文','填入']
 
-__all__=['命名空间','中文','英文','恒等翻译']#仅中文公开名
+命名空间='chat'
 
-命名空间='chat'#文案命名空间
+中文={
+    'message.stepProcess.thinking':'正在分析请求',
+    'message.stepProcess.read':'正在读取文件',
+    'message.stepProcess.readImage':'正在读取图片',
+    'message.stepProcess.write':'正在写入文件',
+    'message.stepProcess.search':'正在搜索代码',
+    'message.stepProcess.edit':'正在编辑文件',
+    'message.stepProcess.commands':'正在运行命令',
+    'message.stepProcess.code':'正在运行代码',
+    'message.stepProcess.webSearch':'正在搜索网页',
+    'message.stepProcess.webFetch':'正在访问网页',
+    'message.stepProcess.subagents':'正在协调子智能体',
+    'message.stepProcess.plan':'正在更新计划',
+    'message.stepProcess.questions':'等待你的操作',
+    'message.stepProcess.tools':'正在调用工具',
+    'message.stepProcess.prepare.read':'准备读取文件',
+    'message.stepProcess.prepare.readImage':'准备读取图片',
+    'message.stepProcess.prepare.write':'准备写入文件',
+    'message.stepProcess.prepare.search':'准备搜索代码',
+    'message.stepProcess.prepare.edit':'准备编辑文件',
+    'message.stepProcess.prepare.commands':'准备运行命令',
+    'message.stepProcess.prepare.code':'准备运行代码',
+    'message.stepProcess.prepare.webSearch':'准备搜索网页',
+    'message.stepProcess.prepare.webFetch':'准备访问网页',
+    'message.stepProcess.prepare.subagents':'准备协调子智能体',
+    'message.stepProcess.prepare.plan':'准备更新计划',
+    'message.stepProcess.prepare.questions':'准备提问',
+    'message.stepProcess.prepare.tools':'准备调用工具',
+    'message.stepProcess.done.thinking':'已完成分析',
+    'message.stepProcess.done.read':'已读取文件',
+    'message.stepProcess.done.readImage':'已读取图片',
+    'message.stepProcess.done.write':'已写入文件',
+    'message.stepProcess.done.search':'已搜索代码',
+    'message.stepProcess.done.edit':'修改了文件',
+    'message.stepProcess.done.commands':'执行了命令',
+    'message.stepProcess.done.code':'运行了代码',
+    'message.stepProcess.done.webSearch':'已搜索网页',
+    'message.stepProcess.done.webFetch':'已访问网页',
+    'message.stepProcess.done.subagents':'已协调子智能体',
+    'message.stepProcess.done.plan':'更新了计划',
+    'message.stepProcess.done.questions':'向用户提出了问题',
+    'message.stepProcess.done.tools':'已调用工具',
+    'message.stepProcess.joinTwo':'{first}并{second}',
+    'message.stepProcess.comma':'，',
+    'message.stepProcess.sharedPrefix':'已',
+    'message.stepProcess.more':'{title}等',
+    'message.trigger.request':'收到执行请求',
+    'message.trigger.goal':'继续执行目标',
+    'message.trigger.agent':'收到任务消息',
+    'message.trigger.team':'收到团队消息',
+    'message.trigger.subagent':'子任务状态更新',
+    'message.trigger.github':'收到 GitHub 事件',
+    'message.trigger.webhook':'收到外部事件',
+    'message.trigger.schedule':'自动化任务',
+    'message.trigger.job':'后台任务状态更新',
+    'message.trigger.plugin':'插件状态更新',
+    'message.trigger.explanation':'这条通知触发了本轮回复。',
+    'message.turnProcess.worked':'已完成',
+    'message.turnProcess.took':'已完成，用时 ',
+    'message.turnProcess.failed':'处理失败',
+    'view.chat':'对话',
+    'image.open':'查看大图',
+    'image.loading':'加载图片…',
+    'image.failed':'图片无法预览',
+    'image.dialog':'图片预览',
+    'image.close':'关闭图片预览',
+    'number.groupSeparator':',',
+    'duration.compactSeconds':'{seconds}秒',
+    'duration.compactMinutes':'{minutes}分{seconds}秒',
+    'duration.milliseconds':'{milliseconds}毫秒',
+    'stats.counts':'{turns} 轮 {steps} 步',
+    'stats.cacheHit':'缓存命中 {percent}%',
+    'stats.dialog.title':'会话统计',
+    'stats.dialog.usageTitle':'Token 用量',
+    'stats.dialog.llmTime':'模型用时',
+    'stats.dialog.toolTime':'工具调用用时',
+    'stats.dialog.ttft':'首 token 平均（TTFT）',
+    'stats.dialog.speed':'输出速度（TPS）',
+    'chat.loadingHistory':'载入历史…',
+    'chat.loadError':'历史加载失败：{message}（{code}）',
+    'chat.loadOlder':'加载更早',
+    'chat.toBottom':'回到底部',
+    'chat.deepDiving':'深度求索中',
+    'chat.deepDivingFor':'深度求索中，用时 {duration} ···',
+    'chat.turnNavigation.label':'轮次导航',
+    'chat.turnNavigation.jump':'跳转到第 {turn} 轮',
+    'chat.turnNavigation.jumpLoad':'加载并跳转到第 {turn} 轮',
+    'chat.turnNavigation.turn':'第 {turn} 轮',
+    'settings.performance.title':'性能与用量',
+    'settings.performance.description':'选择性能与用量信息展示的详细程度',
+    'settings.performance.compact':'简洁',
+    'settings.performance.detailed':'详细',
+    'settings.links.title':'网页链接默认打开方式',
+    'settings.links.description':'对话中网页链接的打开位置',
+    'settings.links.sidebar':'应用内侧边栏',
+    'settings.links.newTab':'默认浏览器',
+    'settings.transcript.title':'工作步骤展示',
+    'settings.transcript.description':'选择希望看到多少工具调用细节',
+    'settings.collapse.title':'工作步骤收起时机',
+    'settings.collapse.description':'选择何时自动收起工作步骤',
+    'settings.collapse.completion':'回答结束后',
+    'settings.collapse.nextInput':'下次有新消息时',
+    'settings.transcript.compact':'简洁',
+    'settings.transcript.standard':'标准',
+    'settings.transcript.detailed':'详细',
+    'settings.transcript.verbose':'完全展开',
+    'fileOpen.title':'无法打开文件',
+    'fileOpen.unknown':'无法打开此文件',
+    'message.extraBlock':'附加内容块',
+    'message.systemPrompt':'系统提示词',
+    'message.systemPromptUpdate':'系统提示词更新',
+    'message.toolAdded':'已添加工具：{name}',
+    'message.toolRemoved':'已移除工具：{name}',
+    'message.toolsAdded':'新增：{names}',
+    'message.toolsAddedCount':'新增 {count} 个',
+    'message.toolsChanged':'新增 {added} 个，移除 {removed} 个',
+    'message.toolsRemoved':'移除：{names}',
+    'message.toolsRemovedCount':'移除 {count} 个',
+    'message.toolsUpdated':'工具已更新',
+    'message.contextInjection':'上下文注入',
+    'message.contextRecall':'跨会话召回',
+    'message.referenceSummary':'引用会话 · {labels}',
+    'message.referenceSeparator':'、',
+    'message.context.instructions.loaded':'已载入',
+    'message.context.instructions.added':'已新增',
+    'message.context.instructions.updated':'已更新',
+    'message.context.instructions.removed':'已移除',
+    'message.context.catalog.replaced':'替换目录',
+    'message.context.catalog.more':'…还有 {count} 条',
+    'message.context.snapshot.supersedes':'取代先前的快照',
+    'message.context.relay.from':'来自会话 {session}',
+    'message.context.recall.counts':'保留 {retained} 条 · 省略 {omitted} 条',
+    'message.context.recall.truncated':'已截断',
+    'message.compaction':'上下文已压缩',
+    'message.compaction.running':'正在压缩…',
+    'message.compaction.completed':'已压缩 {items} 条历史记录（约 {tokens} tokens）',
+    'message.compaction.expand':'点击查看压缩摘要',
+    'message.compaction.unavailable':'压缩摘要不可用',
+    'message.compaction.commandTitle':'compact',
+    'message.think':'思考',
+    'message.unknownSurface':'未知 surface 事件：{type}',
+    'message.unknownBlock':'未知内容块',
+    'message.turnProcess.toolCalls.one':'{count} 次工具调用',
+    'message.turnProcess.toolCalls.other':'{count} 次工具调用',
+    'message.turnProcess.messages.one':'{count} 条消息',
+    'message.turnProcess.messages.other':'{count} 条消息',
+    'message.turnProcess.subagents.one':'{count} 个 subagent',
+    'message.turnProcess.subagents.other':'{count} 个 subagent',
+    'message.turnProcess.thoughtForAWhile':'已思考',
+    'message.turnProcess.separator':' · ',
+    'message.stopped':'已停止',
+    'message.branch':'在新对话中分支',
+    'message.branchUnavailable':'仅可从已完成轮次的最后一条消息分支',
+    'message.retry.active':'正在重试模型请求',
+    'message.retry.cancelled':'模型请求重试已取消',
+    'message.retry.started':'已重试模型请求',
+    'message.retry.scheduled':'等待重试模型请求',
+    'message.retry.status':'{label}（{retry}/{maximum}） · {seconds}s',
+    'message.retry.delay':'重试延迟：',
+    'message.retry.failure':'失败原因：',
+    'message.failure.auth':'API 密钥无效',
+    'message.taskStopped':'任务已停止',
+    'message.failure.accountSignedOut':'任务已因退出 DeepSeek 登录而停止。',
+    'message.failure.interrupted':'DSH 进程在本轮完成前退出（例如被强制结束、崩溃或关闭超时），重新启动后本轮已中止。未完成的工具调用结果未知。',
+    'message.failure.accountSignInRequired':'请先登录 DeepSeek，并确认请求地址支持账号认证。',
+    'message.failure.quota':'当前请求的额度已用尽',
+    'message.turnError':'本轮运行失败',
+    'message.maxTokens':'已达到输出 token 上限',
+    'message.maxTokens.hint':'回答被截断，已有输出保留在对话中。发送“继续”可让模型接着输出。',
+    'message.tokensPerSecond':'{tps} tok/s',
+    'message.turnUsage.title':'本轮用量',
+    'message.turnUsage.consumed':'用量 {total}',
+    'message.turnUsage.model':'提供方 / 模型',
+    'message.turnUsage.cacheHit':'缓存命中',
+    'message.turnUsage.input':'未缓存输入',
+    'message.turnUsage.cacheRead':'缓存读取',
+    'message.turnUsage.cacheWrite':'缓存写入',
+    'message.turnUsage.output':'输出',
+    'message.turnUsage.reasoning':'（其中推理 {tokens}）',
+    'message.turnUsage.count':'{count} tok',
+    'duration.secondUnit':'秒',
+    'duration.minuteUnit':'分',
+    'duration.hourUnit':'小时',
+    'command.running':'执行中…',
+    'command.failed':'指令失败',
+    'command.done':'已完成',
+    'command.title':'指令',
+    'row.running':'运行中',
+    'row.failed':'失败',
+    'json.truncated':'… 已截断，共 {total} 字符',
+    'clock.md':'{m}月{d}日',
+    'clock.ymd':'{y}年{m}月{d}日',
+}
 
-def 恒等翻译(键,参数=None):#无文案表
-    '无文案表时返回键本身'
-    return 键#键
+英文={
+    'message.stepProcess.thinking':'Analyzing the request',
+    'message.stepProcess.read':'Reading files',
+    'message.stepProcess.readImage':'Reading images',
+    'message.stepProcess.write':'Writing files',
+    'message.stepProcess.search':'Searching code',
+    'message.stepProcess.edit':'Editing files',
+    'message.stepProcess.commands':'Running commands',
+    'message.stepProcess.code':'Running code',
+    'message.stepProcess.webSearch':'Searching the web',
+    'message.stepProcess.webFetch':'Visiting web pages',
+    'message.stepProcess.subagents':'Coordinating subagents',
+    'message.stepProcess.plan':'Updating the plan',
+    'message.stepProcess.questions':'Waiting for your action',
+    'message.stepProcess.tools':'Calling tools',
+    'message.stepProcess.prepare.read':'Preparing to read files',
+    'message.stepProcess.prepare.readImage':'Preparing to read images',
+    'message.stepProcess.prepare.write':'Preparing to write files',
+    'message.stepProcess.prepare.search':'Preparing to search code',
+    'message.stepProcess.prepare.edit':'Preparing to edit files',
+    'message.stepProcess.prepare.commands':'Preparing to run commands',
+    'message.stepProcess.prepare.code':'Preparing to run code',
+    'message.stepProcess.prepare.webSearch':'Preparing to search the web',
+    'message.stepProcess.prepare.webFetch':'Preparing to visit web pages',
+    'message.stepProcess.prepare.subagents':'Preparing to coordinate subagents',
+    'message.stepProcess.prepare.plan':'Preparing to update the plan',
+    'message.stepProcess.prepare.questions':'Preparing questions',
+    'message.stepProcess.prepare.tools':'Preparing tool calls',
+    'message.stepProcess.done.thinking':'Analysis completed',
+    'message.stepProcess.done.read':'Read files',
+    'message.stepProcess.done.readImage':'Read images',
+    'message.stepProcess.done.write':'Wrote files',
+    'message.stepProcess.done.search':'Searched code',
+    'message.stepProcess.done.edit':'Edited files',
+    'message.stepProcess.done.commands':'Ran commands',
+    'message.stepProcess.done.code':'Ran code',
+    'message.stepProcess.done.webSearch':'Searched the web',
+    'message.stepProcess.done.webFetch':'Visited web pages',
+    'message.stepProcess.done.subagents':'Coordinated subagents',
+    'message.stepProcess.done.plan':'Updated the plan',
+    'message.stepProcess.done.questions':'Asked questions',
+    'message.stepProcess.done.tools':'Called tools',
+    'message.stepProcess.joinTwo':'{first} and {second}',
+    'message.stepProcess.comma':', ',
+    'message.stepProcess.sharedPrefix':'',
+    'message.stepProcess.more':'{title}, etc.',
+    'message.trigger.request':'Execution requested',
+    'message.trigger.goal':'Continuing goal',
+    'message.trigger.agent':'Task message received',
+    'message.trigger.team':'Team message received',
+    'message.trigger.subagent':'Subtask status updated',
+    'message.trigger.github':'GitHub event received',
+    'message.trigger.webhook':'External event received',
+    'message.trigger.schedule':'Automation task',
+    'message.trigger.job':'Background task updated',
+    'message.trigger.plugin':'Plugin status updated',
+    'message.trigger.explanation':'This notification triggered this response.',
+    'message.turnProcess.worked':'Completed',
+    'message.turnProcess.took':'Completed in ',
+    'message.turnProcess.failed':'Failed',
+    'view.chat':'Chat',
+    'image.open':'View full image',
+    'image.loading':'Loading image…',
+    'image.failed':'Image preview unavailable',
+    'image.dialog':'Image preview',
+    'image.close':'Close image preview',
+    'number.groupSeparator':',',
+    'duration.compactSeconds':'{seconds}s',
+    'duration.compactMinutes':'{minutes}m{seconds}s',
+    'duration.milliseconds':'{milliseconds}ms',
+    'stats.counts':'{turns} turns {steps} steps',
+    'stats.cacheHit':'Cache hit {percent}%',
+    'stats.dialog.title':'Session statistics',
+    'stats.dialog.usageTitle':'Token usage',
+    'stats.dialog.llmTime':'LLM time',
+    'stats.dialog.toolTime':'Tool time',
+    'stats.dialog.ttft':'Avg time to first token (TTFT)',
+    'stats.dialog.speed':'Tokens per second (TPS)',
+    'chat.loadingHistory':'Loading history…',
+    'chat.loadError':'Failed to load history: {message} ({code})',
+    'chat.loadOlder':'Load earlier',
+    'chat.toBottom':'Back to bottom',
+    'chat.deepDiving':'Deep diving',
+    'chat.deepDivingFor':'Deep diving for {duration} ···',
+    'chat.turnNavigation.label':'Turn navigation',
+    'chat.turnNavigation.jump':'Jump to turn {turn}',
+    'chat.turnNavigation.jumpLoad':'Load and jump to turn {turn}',
+    'chat.turnNavigation.turn':'Turn {turn}',
+    'settings.performance.title':'Performance & usage',
+    'settings.performance.description':'Choose how much performance and usage information to show',
+    'settings.performance.compact':'Compact',
+    'settings.performance.detailed':'Detailed',
+    'settings.links.title':'Open chat links in',
+    'settings.links.description':'Choose where to open web links',
+    'settings.links.sidebar':'In-App Sidebar',
+    'settings.links.newTab':'Default Browser',
+    'settings.transcript.title':'Work details',
+    'settings.transcript.description':'Choose how much detail to show for tool calls',
+    'settings.collapse.title':'When to Collapse Work Details',
+    'settings.collapse.description':'Choose when to automatically collapse work details',
+    'settings.collapse.completion':'On completion',
+    'settings.collapse.nextInput':'On next message',
+    'settings.transcript.compact':'Compact',
+    'settings.transcript.standard':'Standard',
+    'settings.transcript.detailed':'Detailed',
+    'settings.transcript.verbose':'Verbose',
+    'fileOpen.title':'Couldn’t open file',
+    'fileOpen.unknown':'Couldn’t open this file',
+    'message.extraBlock':'Extra content block',
+    'message.systemPrompt':'System prompt',
+    'message.systemPromptUpdate':'System prompt update',
+    'message.toolAdded':'Tool added: {name}',
+    'message.toolRemoved':'Tool removed: {name}',
+    'message.toolsAdded':'Added: {names}',
+    'message.toolsAddedCount':'{count} added',
+    'message.toolsChanged':'{added} added, {removed} removed',
+    'message.toolsRemoved':'Removed: {names}',
+    'message.toolsRemovedCount':'{count} removed',
+    'message.toolsUpdated':'Tools updated',
+    'message.contextInjection':'Context injection',
+    'message.contextRecall':'Session recall',
+    'message.referenceSummary':'Referenced session · {labels}',
+    'message.referenceSeparator':', ',
+    'message.context.instructions.loaded':'loaded',
+    'message.context.instructions.added':'added',
+    'message.context.instructions.updated':'updated',
+    'message.context.instructions.removed':'removed',
+    'message.context.catalog.replaced':'Replacement catalog',
+    'message.context.catalog.more':'… {count} more',
+    'message.context.snapshot.supersedes':'Supersedes earlier snapshots',
+    'message.context.relay.from':'From session {session}',
+    'message.context.recall.counts':'{retained} kept · {omitted} omitted',
+    'message.context.recall.truncated':'truncated',
+    'message.compaction':'Context compacted',
+    'message.compaction.running':'Compacting context…',
+    'message.compaction.completed':'Compacted {items} history items (~{tokens} tokens)',
+    'message.compaction.expand':'View compaction summary',
+    'message.compaction.unavailable':'Compaction summary unavailable',
+    'message.compaction.commandTitle':'compact',
+    'message.think':'Think',
+    'message.unknownSurface':'Unknown surface event: {type}',
+    'message.unknownBlock':'Unknown content block',
+    'message.turnProcess.toolCalls.one':'{count} tool call',
+    'message.turnProcess.toolCalls.other':'{count} tool calls',
+    'message.turnProcess.messages.one':'{count} message',
+    'message.turnProcess.messages.other':'{count} messages',
+    'message.turnProcess.subagents.one':'{count} subagent',
+    'message.turnProcess.subagents.other':'{count} subagents',
+    'message.turnProcess.thoughtForAWhile':'Thought for a while',
+    'message.turnProcess.separator':' · ',
+    'message.stopped':'Stopped',
+    'message.branch':'Branch into a new conversation',
+    'message.branchUnavailable':'Available only on the last message of a completed turn',
+    'message.retry.active':'Retrying model request',
+    'message.retry.cancelled':'Model request retry cancelled',
+    'message.retry.started':'Retried model request',
+    'message.retry.scheduled':'Waiting to retry model request',
+    'message.retry.status':'{label} ({retry}/{maximum}) · {seconds}s',
+    'message.retry.delay':'Retry delay: ',
+    'message.retry.failure':'Failure reason: ',
+    'message.failure.auth':'API key is invalid',
+    'message.taskStopped':'Task stopped',
+    'message.failure.accountSignedOut':'Stopped because you signed out of DeepSeek.',
+    'message.failure.interrupted':'The DSH process exited before this turn finished (for example, it was killed, crashed, or timed out while shutting down), so the turn was closed when DSH restarted. Unfinished tool calls have unknown outcomes.',
+    'message.failure.accountSignInRequired':'Sign in to DeepSeek and ensure the request destination supports account authentication.',
+    'message.failure.quota':'Request quota exhausted.',
+    'message.turnError':'This turn failed',
+    'message.maxTokens':'Output token limit reached',
+    'message.maxTokens.hint':'The reply was cut off; earlier output is preserved in the conversation. Send "continue" to let the model resume.',
+    'message.tokensPerSecond':'{tps} tok/s',
+    'message.turnUsage.title':'Turn usage',
+    'message.turnUsage.consumed':'Usage {total}',
+    'message.turnUsage.model':'Provider / model',
+    'message.turnUsage.cacheHit':'Cache hit',
+    'message.turnUsage.input':'Uncached input',
+    'message.turnUsage.cacheRead':'Cached input',
+    'message.turnUsage.cacheWrite':'Cache write',
+    'message.turnUsage.output':'Output',
+    'message.turnUsage.reasoning':' ({tokens} reasoning)',
+    'message.turnUsage.count':'{count} tok',
+    'duration.secondUnit':'s',
+    'duration.minuteUnit':'m ',
+    'duration.hourUnit':'h ',
+    'command.running':'Running…',
+    'command.failed':'Command failed',
+    'command.done':'Completed',
+    'command.title':'Command',
+    'row.running':'Running',
+    'row.failed':'Failed',
+    'json.truncated':'… truncated, {total} characters total',
+    'clock.md':'{m}/{d}',
+    'clock.ymd':'{y}-{m}-{d}',
+}
 
-中文={#简体中文词典
-    'view.chat':'对话',#Chat 视图标签
-    'number.groupSeparator':',',#千分位分隔符
-    'duration.compactSeconds':'{seconds}秒',#紧凑秒
-    'duration.compactMinutes':'{minutes}分{seconds}秒',#紧凑分秒
-    'duration.milliseconds':'{milliseconds}毫秒',#毫秒
-    'stats.counts':'{turns} 轮 {steps} 步',#轮次与步骤计数
-    'stats.cacheHit':'缓存命中 {percent}%',#缓存命中率
-    'stats.dialog.title':'会话统计',#统计对话框标题
-    'stats.dialog.usageTitle':'Token 用量',#用量对话框标题
-    'stats.dialog.llmTime':'模型用时',#模型用时
-    'stats.dialog.toolTime':'工具调用用时',#工具用时
-    'stats.dialog.ttft':'首 token 平均（TTFT）',#平均 TTFT
-    'stats.dialog.speed':'输出速度（TPS）',#输出速度
-    'details.title':'详情',#详情标题
-    'details.close':'关闭详情',#关闭详情
-    'details.empty':'点击消息流中的工具行查看详情',#详情空态
-    'details.notInWindow':'该调用不在当前窗口内',#窗口外提示
-    'details.input':'输入',#输入区标题
-    'details.output':'输出',#输出区标题
-    'details.running':'运行中…',#运行中提示
-    'chat.loadingHistory':'载入历史…',#加载历史
-    'chat.loadError':'历史加载失败：{message}（{code}）',#加载失败
-    'chat.loadOlder':'加载更早',#加载更早
-    'chat.toBottom':'回到底部',#回到底部
-    'chat.deepDiving':'深度求索中...',#深度求索中
-    'chat.turnNavigation.label':'轮次导航',#导航标签
-    'chat.turnNavigation.jump':'跳转到第 {turn} 轮',#跳转轮次
-    'chat.turnNavigation.jumpLoad':'加载并跳转到第 {turn} 轮',#加载并跳转
-    'chat.turnNavigation.turn':'第 {turn} 轮',#轮次标签
-    'settings.transcript.title':'工作步骤展示',#设置标题
-    'settings.transcript.description':'选择希望看到多少工具调用细节',#设置说明
-    'settings.transcript.compact':'简洁',#紧凑模式
-    'settings.transcript.standard':'标准',#标准模式
-    'settings.transcript.detailed':'详细',#详细模式
-    'settings.transcript.verbose':'完全展开',#完全展开
-    'settings.performance.title':'性能与用量',#性能标题
-    'settings.performance.description':'选择性能与用量信息展示的详细程度',#性能说明
-    'settings.performance.compact':'简洁',#性能简洁
-    'settings.performance.detailed':'详细',#性能详细
-    'settings.links.title':'网页链接默认打开方式',#链接标题
-    'settings.links.description':'对话中网页链接的打开位置',#链接说明
-    'settings.links.sidebar':'应用内侧边栏',#侧栏
-    'settings.links.newTab':'默认浏览器',#新窗
-    'fileOpen.title':'无法打开文件',#打开文件失败标题
-    'fileOpen.unknown':'无法打开此文件',#打开文件失败正文
-    'fileOpen.folderTitle':'无法打开文件夹',#打开文件夹失败标题
-    'fileOpen.folderUnknown':'无法打开此文件夹',#打开文件夹失败正文
-    'message.extraBlock':'附加内容块',#附加块
-    'message.systemPrompt':'系统提示词',#系统提示词
-    'message.systemPromptUpdate':'系统提示词更新',#系统提示更新卡
-    'message.contextInjection':'上下文注入',#上下文注入
-    'message.contextRecall':'跨会话召回',#跨会话召回
-    'message.referenceSummary':'引用会话 · {labels}',#引用摘要
-    'message.referenceSeparator':'、',#引用分隔符
-    'message.context.instructions.loaded':'已载入',#指令已载入
-    'message.context.instructions.added':'已新增',#指令已新增
-    'message.context.instructions.updated':'已更新',#指令已更新
-    'message.context.instructions.removed':'已移除',#指令已移除
-    'message.context.catalog.replaced':'替换目录',#目录替换
-    'message.context.catalog.more':'…还有 {count} 条',#目录更多
-    'message.context.snapshot.supersedes':'取代先前的快照',#快照取代
-    'message.context.relay.from':'来自会话 {session}',#中继来源
-    'message.context.recall.counts':'保留 {retained} 条 · 省略 {omitted} 条',#召回计数
-    'message.context.recall.truncated':'已截断',#召回截断
-    'message.compaction':'上下文已压缩',#压缩完成
-    'message.compaction.running':'正在压缩…',#压缩进行中
-    'message.compaction.completed':'已压缩 {items} 条历史记录（约 {tokens} tokens）',#压缩结果
-    'message.compaction.expand':'点击查看压缩摘要',#展开摘要
-    'message.compaction.unavailable':'压缩摘要不可用',#摘要不可用
-    'message.compaction.commandTitle':'compact',#压缩命令标题
-    'message.think':'思考',#思考标签
-    'message.unknownSurface':'未知 surface 事件：{type}',#未知 surface
-    'message.unknownBlock':'未知内容块',#未知块
-    'message.turnProcess.toolCalls.one':'{count} 次工具调用',#工具调用单数
-    'message.turnProcess.toolCalls.other':'{count} 次工具调用',#工具调用复数
-    'message.turnProcess.messages.one':'{count} 条消息',#消息单数
-    'message.turnProcess.messages.other':'{count} 条消息',#消息复数
-    'message.turnProcess.subagents.one':'{count} 个 subagent',#subagent 单数
-    'message.turnProcess.subagents.other':'{count} 个 subagent',#subagent 复数
-    'message.turnProcess.thoughtForAWhile':'已思考',#已思考
-    'message.turnProcess.separator':' · ',#过程分隔符
-    'message.stopped':'已停止',#已停止
-    'message.branch':'在新对话中分支',#分支动作
-    'message.branchUnavailable':'仅可从已完成轮次的最后一条消息分支',#分支不可用
-    'message.retry.active':'正在重试模型请求',#重试进行中
-    'message.retry.cancelled':'模型请求重试已取消',#重试已取消
-    'message.retry.started':'已重试模型请求',#已发起重试
-    'message.retry.scheduled':'等待重试模型请求',#等待重试
-    'message.retry.status':'{label}（{retry}/{maximum}） · {seconds}s',#重试状态
-    'message.retry.delay':'重试延迟：',#重试延迟前缀
-    'message.retry.failure':'失败原因：',#失败原因前缀
-    'message.failure.auth':'API 密钥无效',#鉴权失败
-    'message.turnError':'本轮运行失败',#轮次错误
-    'message.maxTokens':'已达到输出 token 上限',#达上限
-    'message.maxTokens.hint':'回答被截断，已有输出保留在对话中。发送“继续”可让模型接着输出。',#上限提示
-    'message.ranFor':'用时 {duration}',#运行时长
-    'message.tokensPerSecond':'{tps} tok/s',#消息级吞吐
-    'message.turnUsage.title':'本轮用量',#用量标题
-    'message.turnUsage.consumed':'用量 {total}',#用量合计
-    'message.turnUsage.model':'提供方 / 模型',#模型行
-    'message.turnUsage.cacheHit':'缓存命中',#缓存命中
-    'message.turnUsage.input':'未缓存输入',#未缓存输入
-    'message.turnUsage.cacheRead':'缓存读取',#缓存读取
-    'message.turnUsage.cacheWrite':'缓存写入',#缓存写入
-    'message.turnUsage.output':'输出',#输出
-    'message.turnUsage.reasoning':'（其中推理 {tokens}）',#推理子集
-    'message.turnUsage.count':'{count} tok',#token 计数
-    'message.turnTime.title':'本轮用时和速度',#用时标题
-    'message.turnTime.duration':'本轮总用时',#总用时
-    'message.turnTime.speed':'输出速度（TPS）',#输出速度
-    'message.turnTime.ttft':'首 token 用时（TTFT）',#TTFT
-    'duration.seconds':'{seconds}秒',#秒
-    'duration.minutes':'{minutes}分{seconds}秒',#分秒
-    'duration.hours':'{hours}小时{minutes}分{seconds}秒',#时分秒
-    'command.running':'执行中…',#命令执行中
-    'command.failed':'指令失败',#命令失败
-    'command.done':'已完成',#命令完成
-    'command.title':'指令',#命令标题
-    'row.running':'运行中',#行运行中
-    'row.failed':'失败',#行失败
-    'json.truncated':'… 已截断，共 {total} 字符',#JSON 截断
-    'clock.md':'{m}月{d}日',#月日
-    'clock.ymd':'{y}年{m}月{d}日',#年月日
-}#中文结束
 
-英文={#英文词典
-    'view.chat':'Chat',#Chat 视图标签
-    'number.groupSeparator':',',#千分位分隔符
-    'duration.compactSeconds':'{seconds}s',#紧凑秒
-    'duration.compactMinutes':'{minutes}m{seconds}s',#紧凑分秒
-    'duration.milliseconds':'{milliseconds}ms',#毫秒
-    'stats.counts':'{turns} turns {steps} steps',#轮次与步骤计数
-    'stats.cacheHit':'Cache hit {percent}%',#缓存命中率
-    'stats.dialog.title':'Session statistics',#统计对话框标题
-    'stats.dialog.usageTitle':'Token usage',#用量对话框标题
-    'stats.dialog.llmTime':'LLM time',#模型用时
-    'stats.dialog.toolTime':'Tool time',#工具用时
-    'stats.dialog.ttft':'Avg time to first token (TTFT)',#平均 TTFT
-    'stats.dialog.speed':'Tokens per second (TPS)',#输出速度
-    'details.title':'Details',#详情标题
-    'details.close':'Close details',#关闭详情
-    'details.empty':'Click a tool row in the message flow to view its details',#详情空态
-    'details.notInWindow':'This call is outside the current window',#窗口外提示
-    'details.input':'Input',#输入区标题
-    'details.output':'Output',#输出区标题
-    'details.running':'Running…',#运行中提示
-    'chat.loadingHistory':'Loading history…',#加载历史
-    'chat.loadError':'Failed to load history: {message} ({code})',#加载失败
-    'chat.loadOlder':'Load earlier',#加载更早
-    'chat.toBottom':'Back to bottom',#回到底部
-    'chat.deepDiving':'Deep diving...',#深度求索中
-    'chat.turnNavigation.label':'Turn navigation',#导航标签
-    'chat.turnNavigation.jump':'Jump to turn {turn}',#跳转轮次
-    'chat.turnNavigation.jumpLoad':'Load and jump to turn {turn}',#加载并跳转
-    'chat.turnNavigation.turn':'Turn {turn}',#轮次标签
-    'settings.transcript.title':'Work details',#设置标题
-    'settings.transcript.description':'Choose how much detail to show for tool calls',#设置说明
-    'settings.transcript.compact':'Compact',#紧凑模式
-    'settings.transcript.standard':'Standard',#标准模式
-    'settings.transcript.detailed':'Detailed',#详细模式
-    'settings.transcript.verbose':'Verbose',#完全展开
-    'settings.performance.title':'Performance & usage',#性能标题
-    'settings.performance.description':'Choose how much performance and usage information to show',#性能说明
-    'settings.performance.compact':'Compact',#性能简洁
-    'settings.performance.detailed':'Detailed',#性能详细
-    'settings.links.title':'Open chat links in',#链接标题
-    'settings.links.description':'Choose where to open web links',#链接说明
-    'settings.links.sidebar':'In-App Sidebar',#侧栏
-    'settings.links.newTab':'Default Browser',#新窗
-    'fileOpen.title':"Couldn't open file",#打开文件失败标题
-    'fileOpen.unknown':"Couldn't open this file",#打开文件失败正文
-    'fileOpen.folderTitle':"Couldn't open folder",#打开文件夹失败标题
-    'fileOpen.folderUnknown':"Couldn't open this folder",#打开文件夹失败正文
-    'message.extraBlock':'Extra content block',#附加块
-    'message.systemPrompt':'System prompt',#系统提示词
-    'message.systemPromptUpdate':'System prompt update',#系统提示更新卡
-    'message.contextInjection':'Context injection',#上下文注入
-    'message.contextRecall':'Session recall',#跨会话召回
-    'message.referenceSummary':'Referenced session · {labels}',#引用摘要
-    'message.referenceSeparator':', ',#引用分隔符
-    'message.context.instructions.loaded':'loaded',#指令已载入
-    'message.context.instructions.added':'added',#指令已新增
-    'message.context.instructions.updated':'updated',#指令已更新
-    'message.context.instructions.removed':'removed',#指令已移除
-    'message.context.catalog.replaced':'Replacement catalog',#目录替换
-    'message.context.catalog.more':'… {count} more',#目录更多
-    'message.context.snapshot.supersedes':'Supersedes earlier snapshots',#快照取代
-    'message.context.relay.from':'From session {session}',#中继来源
-    'message.context.recall.counts':'{retained} kept · {omitted} omitted',#召回计数
-    'message.context.recall.truncated':'truncated',#召回截断
-    'message.compaction':'Context compacted',#压缩完成
-    'message.compaction.running':'Compacting context…',#压缩进行中
-    'message.compaction.completed':'Compacted {items} history items (~{tokens} tokens)',#压缩结果
-    'message.compaction.expand':'View compaction summary',#展开摘要
-    'message.compaction.unavailable':'Compaction summary unavailable',#摘要不可用
-    'message.compaction.commandTitle':'compact',#压缩命令标题
-    'message.think':'Think',#思考标签
-    'message.unknownSurface':'Unknown surface event: {type}',#未知 surface
-    'message.unknownBlock':'Unknown content block',#未知块
-    'message.turnProcess.toolCalls.one':'{count} tool call',#工具调用单数
-    'message.turnProcess.toolCalls.other':'{count} tool calls',#工具调用复数
-    'message.turnProcess.messages.one':'{count} message',#消息单数
-    'message.turnProcess.messages.other':'{count} messages',#消息复数
-    'message.turnProcess.subagents.one':'{count} subagent',#subagent 单数
-    'message.turnProcess.subagents.other':'{count} subagents',#subagent 复数
-    'message.turnProcess.thoughtForAWhile':'Thought for a while',#已思考
-    'message.turnProcess.separator':' · ',#过程分隔符
-    'message.stopped':'Stopped',#已停止
-    'message.branch':'Branch into a new conversation',#分支动作
-    'message.branchUnavailable':'Available only on the last message of a completed turn',#分支不可用
-    'message.retry.active':'Retrying model request',#重试进行中
-    'message.retry.cancelled':'Model request retry cancelled',#重试已取消
-    'message.retry.started':'Retried model request',#已发起重试
-    'message.retry.scheduled':'Waiting to retry model request',#等待重试
-    'message.retry.status':'{label} ({retry}/{maximum}) · {seconds}s',#重试状态
-    'message.retry.delay':'Retry delay: ',#重试延迟前缀
-    'message.retry.failure':'Failure reason: ',#失败原因前缀
-    'message.failure.auth':'API key is invalid',#鉴权失败
-    'message.turnError':'This turn failed',#轮次错误
-    'message.maxTokens':'Output token limit reached',#达上限
-    'message.maxTokens.hint':'The reply was cut off; earlier output is preserved in the conversation. Send "continue" to let the model resume.',#上限提示
-    'message.ranFor':'Ran for {duration}',#运行时长
-    'message.tokensPerSecond':'{tps} tok/s',#消息级吞吐
-    'message.turnUsage.title':'Turn usage',#用量标题
-    'message.turnUsage.consumed':'Usage {total}',#用量合计
-    'message.turnUsage.model':'Provider / model',#模型行
-    'message.turnUsage.cacheHit':'Cache hit',#缓存命中
-    'message.turnUsage.input':'Uncached input',#未缓存输入
-    'message.turnUsage.cacheRead':'Cached input',#缓存读取
-    'message.turnUsage.cacheWrite':'Cache write',#缓存写入
-    'message.turnUsage.output':'Output',#输出
-    'message.turnUsage.reasoning':' ({tokens} reasoning)',#推理子集
-    'message.turnUsage.count':'{count} tok',#token 计数
-    'message.turnTime.title':'Turn time and speed',#用时标题
-    'message.turnTime.duration':'Total run time',#总用时
-    'message.turnTime.speed':'Tokens per second (TPS)',#输出速度
-    'message.turnTime.ttft':'Time to first token (TTFT)',#TTFT
-    'duration.seconds':'{seconds}s',#秒
-    'duration.minutes':'{minutes}m {seconds}s',#分秒
-    'duration.hours':'{hours}h {minutes}m {seconds}s',#时分秒
-    'command.running':'Running…',#命令执行中
-    'command.failed':'Command failed',#命令失败
-    'command.done':'Completed',#命令完成
-    'command.title':'Command',#命令标题
-    'row.running':'Running',#行运行中
-    'row.failed':'Failed',#行失败
-    'json.truncated':'… truncated, {total} characters total',#JSON 截断
-    'clock.md':'{m}/{d}',#月日
-    'clock.ymd':'{y}-{m}-{d}',#年月日
-}#英文结束
-
+def 填入(模板,取值=None):
+    '把 {name} 换成这次的值。显示走中文表，不调用文案函数'
+    if not isinstance(取值,dict):
+        return 模板
+    结果=模板
+    for 键,值 in 取值.items():
+        结果=结果.replace('{'+str(键)+'}','' if 值 is None else str(值))
+    return 结果

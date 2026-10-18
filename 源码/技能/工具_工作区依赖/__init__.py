@@ -6,7 +6,7 @@ from ...依赖.schemastery import 字符串字段
 from ...内核.工具 import 定义工具
 from .异常 import 工作区依赖错误
 
-__all__=['名称','依赖','配置','应用','默认','语法解析主运行时','读主运行时','工作区依赖路径','解析主运行时','安装主运行时']
+__all__=['名称','依赖','配置','应用','默认','语法解析主运行时','读取主运行时','工作区依赖路径','解析主运行时','安装主运行时']
 
 名称='tool-workspace-dependencies'
 依赖=['tools']
@@ -104,7 +104,7 @@ def 语法解析主运行时(值):
         结果['pnpm']=pnpm
     return 结果
 
-def 读主运行时(根):
+def 读取主运行时(根):
     '读并规范化构建元数据，不改源文件'
     文件=open(os.path.join(根,'runtime.json'),'r',encoding='utf-8')
     try:
@@ -163,7 +163,7 @@ def 存在路径(路径):
 
 def 兼容清单(来源):
     '读清单并核对本机'
-    清单=读主运行时(来源)
+    清单=读取主运行时(来源)
     本平台='win32' if sys.platform=='win32' else sys.platform
     if 清单['platform']!=本平台 or 清单['arch']!=当前架构():
         raise 工作区依赖错误('主运行时: 平台或架构不兼容')
@@ -184,7 +184,7 @@ def 安装主运行时(来源,根):
     根在=存在路径(根)
     if not 根在 and 先前在:
         os.rename(先前,根)
-    if 存在路径(os.path.join(根,'runtime.json')) and 紧凑json编码(读主运行时(根))==紧凑json编码(清单):
+    if 存在路径(os.path.join(根,'runtime.json')) and 紧凑json编码(读取主运行时(根))==紧凑json编码(清单):
         路径表=工作区依赖路径(根,清单)
         校验载荷条目(路径表)
         return 路径表

@@ -1,0 +1,9 @@
+{
+    "secret-rule":"密钥规则",
+    "locales":"区域文案",
+    "format-tables":"格式表",
+    "credential-scanner":"凭证扫描器",
+    "credential-masks":"凭证掩码",
+    "SecretText":"密钥文本",
+    "credential-formats":"凭证格式"
+}

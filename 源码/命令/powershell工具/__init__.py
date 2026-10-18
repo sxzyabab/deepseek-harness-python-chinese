@@ -6,7 +6,7 @@ from ...基础设施.js特性 import PromiseEX as 期约
 from ...基础设施.通用工具.序列化编码 import 紧凑json编码
 from ...依赖.schemastery import 布尔字段#配置字段
 from ...内核.工具 import 定义工具,工具体后中止#定义工具与体后中止码
-from ...模型后端.llm.异常 import 装备错误#Harness错误
+from ...模型后端.llm.异常 import harness错误#Harness错误
 from ..命令 import 解析退出状态#共用退出状态解析
 from ...沙盒.沙盒 import (
     升级目标,#可广告的升级目标
@@ -127,7 +127,7 @@ def 规范Pwsh结果(结果):#规范化前台结果
 
 def 抛中止():#抛出工具调用中止
     '抛出体后中止的 AbortError'
-    错误=装备错误('tool call aborted',工具体后中止)#中止错误
+    错误=harness错误('tool call aborted',工具体后中止)#中止错误
     错误.name='AbortError'#名字
     raise 错误#抛出
 

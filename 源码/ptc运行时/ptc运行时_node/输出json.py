@@ -1,5 +1,5 @@
 '外层输出账本用的 JSON 字符串前缀计量'
-__all__=['json字符串字节上限','json值字节上限','截断json字符串字节']#仅中文公开名
+__all__=['计量json字符串字节上限','计量json值字节上限','截断json字符串字节']#仅中文公开名
 
 原生列表=list#模块捕获的 list
 原生字典=dict#模块捕获的 dict
@@ -7,7 +7,7 @@ __all__=['json字符串字节上限','json值字节上限','截断json字符串�
 原生字符串=str#模块捕获的 str
 原生长度=len#模块捕获的 len
 
-def 字节长度(文本):#UTF-8 字节数
+def 计算字节长度(文本):#UTF-8 字节数
     '经 UTF-8 计算字节长度'
     return 原生长度(文本.encode('utf-8'))#UTF-8 字节
 
@@ -24,9 +24,9 @@ def 序列化字符字节(字符):#JSON 引号内一个码点的序列化字节
         if 码==0x08 or 码==0x09 or 码==0x0a or 码==0x0c or 码==0x0d:#短转义
             return 2#\\b \\t \\n \\f \\r
         return 6#\\uXXXX
-    return 字节长度(字符)#其余按 UTF-8
+    return 计算字节长度(字符)#其余按 UTF-8
 
-def json字符串字节上限(文本,最大字节):#计量一个 JSON 字符串
+def 计量json字符串字节上限(文本,最大字节):#计量一个 JSON 字符串
     """计量一个 JSON 字符串而不物化完整转义形式。
     文本是候选字符串。
     最大字节是调用方可接纳的最大序列化大小。
@@ -41,7 +41,7 @@ def json字符串字节上限(文本,最大字节):#计量一个 JSON 字符串
             return None#越界
     return 字节#精确字节
 
-def json值字节上限(值,最大字节):#计量一个无损 JSON 值
+def 计量json值字节上限(值,最大字节):#计量一个无损 JSON 值
     """计量一个无损 JSON 值而不分配序列化文本。
     值已校验为无损 JSON。
     最大字节是调用方可接纳的最大序列化大小。
@@ -62,7 +62,7 @@ def json值字节上限(值,最大字节):#计量一个无损 JSON 值
                 if not 加上(4):#null 四字节
                     return None#越界
             elif 原生类型(节点) is str:#字符串
-                串字节=json字符串字节上限(节点,最大字节-字节)#字符串预算
+                串字节=计量json字符串字节上限(节点,最大字节-字节)#字符串预算
                 if 串字节 is None:#越界
                     return None#越界
                 字节+=串字节#累加
@@ -70,7 +70,7 @@ def json值字节上限(值,最大字节):#计量一个无损 JSON 值
                 if not 加上(4 if 节点 else 5):#true/false
                     return None#越界
             elif 原生类型(节点) in (int,float):#数字
-                if not 加上(字节长度(原生字符串(节点))):#数字文本
+                if not 加上(计算字节长度(原生字符串(节点))):#数字文本
                     return None#越界
             elif 原生类型(节点) is 原生列表:#数组
                 if not 加上(2):#[]
@@ -93,7 +93,7 @@ def json值字节上限(值,最大字节):#计量一个无损 JSON 值
             任务.append({'kind':'value','value':项})#访问项
             continue#下一任务
         键=当前['keys'][当前['index']]#对象键
-        键字节=json字符串字节上限(键,最大字节-字节)#键字符串
+        键字节=计量json字符串字节上限(键,最大字节-字节)#键字符串
         if 键字节 is None:#越界
             return None#越界
         if not 加上(键字节+1):#键加冒号

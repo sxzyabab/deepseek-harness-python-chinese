@@ -1,7 +1,9 @@
-__all__=['命名空间','中文','英文']#仅中文公开名
+'技能工具行的 skill 命名空间词表。页面显示用中文表原文'
 
-命名空间='skill'#词典命名空间名
-中文={#简体中文词条（键集合的权威源）
+__all__=['命名空间','中文','英文']
+
+命名空间='skill'#词典命名空间
+中文={#简体中文，键集合的权威源
     'row.title':'加载技能',
     'row.running':'正在加载 skill',
     'row.preparing':'准备加载技能',
@@ -11,7 +13,7 @@ __all__=['命名空间','中文','英文']#仅中文公开名
     'row.inspect':'查看',
     'menu.userOnly':'仅用户',
 }
-英文={#英文词条，对照中文权威源核验键齐全
+英文={#英文词条留下。显示不走这张表
     'row.title':'Skill',
     'row.running':'Loading skill',
     'row.preparing':'Preparing to load a skill',

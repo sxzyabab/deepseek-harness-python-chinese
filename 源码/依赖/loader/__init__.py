@@ -6,7 +6,7 @@ from .插件配置 import 插件配置#插件配置节点
 from .插件组 import 组,标记为组插件,是组插件#组插件与组载体登记
 from .隔离 import 隔离#隔离钩子
 from .插件树 import 插件树#插件树
-from ..工具 import 插值,是否表达式节点,表达式键#配置表达式
+from ..工具 import 插值,是否表达式节点,表达式键,设置内部数据#配置表达式与内部数据面
 
 class 加载器(插件树):
     """拥有加载器插件树并导入已配置插件的服务。"""
@@ -19,9 +19,10 @@ class 加载器(插件树):
         共享=os.environ.get('CORDIS_SHARED')#宿主传进来的共享环境
         自身.环境数据=json.loads(共享) if 共享 else {'startTime':当前毫秒()}#共享环境
         自身.名称='加载器'#服务名，拦截配置按它查找
+        自身.ctx=上下文#官方服务用 ctx 指所属上下文
         自身.内部加载器=模块加载器.从内部()#Node 内部加载器
         自身.内建表={}#cordis: 说明符到内建插件
-        cordis.设标记(自身,cordis.符号.追踪器,{'关联服务':'加载器','追踪属性':'所属上下文'})#调用方上下文重绑
+        设置内部数据(自身,'追踪器',{'关联服务':'加载器','追踪属性':'所属上下文'})#调用方上下文重绑
         上下文.反射.提供服务('加载器',自身)#按纤程生命周期登记
         上下文.监听('internal/config',_配置插值,{'全局':True})#配置插值
         上下文.监听('internal/update',_保存更新(自身),{'全局':True,'前置':True})#写回配置文件
@@ -55,11 +56,16 @@ class 加载器(插件树):
         return#由宿主覆盖
 
     def 取出默认导出(自身,导出):
-        """从模块导出里取出默认导出的插件对象。"""
+        """模块自己带入口时就是插件。否则取 default。"""
         if 导出 is None:
             return None#空导出
+        入口=getattr(导出,'apply',None)#协议入口
+        if 入口 is None:
+            入口=getattr(导出,'应用',None)#中文入口
+        if isinstance(入口,type) or callable(入口):
+            return 导出#模块命名空间带着 inject
         if hasattr(导出,'default'):
-            return getattr(导出,'default')#只读 default 槽
+            return getattr(导出,'default')#只有 default
         return 导出#没有默认导出就用模块本身
 
 def _配置插值(纤程,配置,续体):

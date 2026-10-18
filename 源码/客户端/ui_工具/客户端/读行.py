@@ -1,60 +1,32 @@
-from .调用模型 import 派生工具行
-from .读卡模型 import 读卡模型
-from .工具行 import 工具行
 from .文案 import 会话命名空间
+from .读卡模型 import 读卡模型,读调用行
+from .读取族表行 import 读族行
+from .槽 import 槽名工具调用视图
 
 __all__=['读行','读工具视图']
 
 class 读行:
-    '图标加读取路径。槽位只调用构造，键齐了就画'
-    def __init__(自身,属性=None):
-        '记下 props，并挂上空的工具行。工具行由渲染画出'
-        自身.属性=属性 if 属性 is not None else {}
-        自身.行=工具行()
-        if isinstance(自身.属性,dict) and ('block' in 自身.属性 or 'phase' in 自身.属性):
-            自身.渲染()
+    '展开已完成的读取，并按调用起点打开路径'
+    def __new__(类,属性):
+        '交给读族行'
+        return 读族行(属性,{
+            'read':读卡模型(属性['block'],属性.get('cwd'),属性.get('home')),
+            'filePathLine':读调用行(属性['block']),
+        })
 
-    def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性 if 属性 is not None else {}
-
-    def 渲染(自身):
-        '派生后交给工具行'
-        属性=自身.属性
-        工具名=属性['toolName'] if 'toolName' in 属性 else None
-        块=属性['block'] if 'block' in 属性 else None
-        工作目录=属性['cwd'] if 'cwd' in 属性 else None
-        模型=派生工具行(工具名,块,工作目录)
-        读=读卡模型(块,工作目录)
-        载荷={
-            't':属性['t'] if 't' in 属性 else None,
-            'variant':模型['variant'] if 'variant' in 模型 else None,
-            'toolName':工具名,
-            'icon':'browse',
-            'title':模型['title'] if 'title' in 模型 else None,
-            'summary':模型['summary'] if 'summary' in 模型 else None,
-            'body':None,
-            'output':模型['output'] if 'output' in 模型 else None,
-            'errorSummary':模型['errorSummary'] if 'errorSummary' in 模型 else None,
-            'read':读,
-            'state':模型['state'] if 'state' in 模型 else None,
-            'filePath':模型['filePath'] if 'filePath' in 模型 else None,
-            'onOpenFile':属性['openFile'] if 'openFile' in 属性 else None,
-            'inspect':属性['inspect'] if 'inspect' in 属性 else None,
-        }
-        自身.行.更新(载荷)
-        return 自身.行.渲染()
-
-    def __call__(自身,属性=None):
-        '有新属性则刷新后渲染'
-        if 属性 is not None:
-            自身.更新(属性)
-        return 自身.渲染()
+def 应用读工具视图(上下文,配置=None):
+    '登记 read'
+    def 登记():
+        '写入按键视图槽'
+        return 上下文.slots.register({
+            'name':槽名工具调用视图,
+            'key':'read',
+            'locale':会话命名空间,
+        },读行)
+    上下文.slots.inject(槽名工具调用视图,登记)
 
 读工具视图={
     'name':'read-toolview',
     'inject':['slots'],
-    'key':'read',
-    'locale':会话命名空间,
-    'component':读行,
+    'apply':应用读工具视图,
 }

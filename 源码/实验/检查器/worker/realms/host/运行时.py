@@ -46,7 +46,7 @@ class Host运行时后端:#Host Runtime后端
             **可选原生字段('timeout',请求['timeoutMs'] if 'timeoutMs' in 请求 else None),#超时
         }).然后(自身.完成)#请求完成后再转换
 
-    def 取属性(自身,请求):#取属性
+    def 获取属性(自身,请求):#获取属性
         'Runtime.getProperties，返回期约'
         return 自身.目标.请求('Runtime.getProperties',{#请求
             'objectId':请求['handle'],#对象id

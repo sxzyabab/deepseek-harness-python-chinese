@@ -1,6 +1,6 @@
 import json,math,os,re,shutil,signal,socket,stat,subprocess,sys,tempfile,threading,time#子进程与帧泵
 from ...依赖.schemastery import 数字字段,字符串字段,复合类型字段#配置
-from ...ptc运行时.ptc运行时 import ptc运行时,保留绑定全局,保留错误成员,双下划线成员,可移植保留字#缝
+from ...ptc运行时.ptc运行时 import 编程式工具调用运行时,保留绑定全局,保留错误成员,双下划线成员,可移植保留字#缝
 from ...内核.会话 import 快照json值#无损快照
 from ...基础设施.js特性 import PromiseEX as 期约扩展#运行结果与结束期约
 from ...工具.超时 import 定时器延迟上限毫秒,等待中止#定时上限
@@ -15,7 +15,7 @@ from .协议 import (
 )
 from .异常 import python运行时错误#本包异常
 
-__all__=['python子进程ptc运行时','宿主帧解析上限','读进程启动','解析python可执行','分离残余',
+__all__=['python子进程ptc运行时','宿主帧解析上限','读取进程启动','解析python可执行','分离残余',
     '检查完成值','编码json纯值','含非无损数字','含不安全整数词','日志截断标记','校验子帧']#仅中文公开名
 
 标识=re.compile(r'^[A-Za-z_][A-Za-z0-9_]*\Z',re.ASCII)#标识符
@@ -52,7 +52,7 @@ def 消息于(错误):#安全渲染
     except Exception:#不可渲染
         return '<unrenderable rejection value>'#占位
 
-def 读进程启动(pid):#身份半边
+def 读取进程启动(pid):#身份半边
     'Linux /proc 启动时刻；其余平台空'
     if sys.platform!='linux':#非 Linux
         return None#空
@@ -230,7 +230,7 @@ def 截消息(消息,最大字节):#原始字节帽
     'pythonBin':字符串字段(默认值='python3'),#解释器
 })#配置结束
 
-class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
+class python子进程ptc运行时(编程式工具调用运行时):#CPython 子进程后端
     '每次请求一个全新 CPython 子进程；fd 3 JSON-lines'
     Config=配置
     def __init__(自身,上下文,配置值=None):#加载校验
@@ -310,7 +310,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
             项['settle']({'kind':'abort','message':'runtime disposed'})#中止
         return 期约扩展.全部([项['finished'] for 项 in 表])#全部子退出才算拆除完成
 
-    def 解析(自身,请求):#填 cwd 与墙钟
+    def 解析执行(自身,请求):#填 cwd 与墙钟
         '不支持沙箱与逐次超时'
         if 请求.get('sandboxPolicy') is not None:#沙箱
             raise python运行时错误('dsh-ptc-runtime-python: 沙箱策略不受支持')
@@ -327,7 +327,7 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
         规格['timeoutMs']=自身.配置['maxWallMs']#墙钟
         return 规格#规格
 
-    def 运行(自身,请求):#一次程序
+    def 运行程序(自身,请求):#一次程序
         '无文件围栏。校验失败直接抛出；已中止与物化失败仍返回已结算期约，成功路径返回未完成期约'
         if 请求.get('sandboxPolicy') is not None or 请求.get('timeoutMs')!=自身.配置['maxWallMs']:#政策
             raise python运行时错误('dsh-ptc-runtime-python: 不支持的执行策略或超时')
@@ -533,13 +533,13 @@ class python子进程ptc运行时(ptc运行时):#CPython 子进程后端
                 return False#有
             except OSError as 错误:#失败
                 return getattr(错误,'errno',None)==getattr(os,'ESRCH',3)#ESRCH
-        领袖启动=读进程启动(子.pid) if 子.pid is not None else None#身份
+        领袖启动=读取进程启动(子.pid) if 子.pid is not None else None#身份
         def 杀组(信号值):#杀组
             '负 pid 组信号'
             try:#杀
                 if 子.pid is None:#无
                     return#停
-                现在=读进程启动(子.pid)#现在
+                现在=读取进程启动(子.pid)#现在
                 if 领袖启动 is not None and 现在 is not None and 现在!=领袖启动:#复用
                     return#拒
                 os.killpg(子.pid,信号值)#杀

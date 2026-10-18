@@ -13,7 +13,7 @@ __all__=[#仅中文公开名
     '主',
 ]#公开面结束
 
-def 读标志(名,缺省=None):#读一对--flag value
+def 读取标志(名,缺省=None):#读一对--flag value
     '读一对 `--flag value`'
     位置=None#找位置
     标志='--'+名#完整标志
@@ -31,13 +31,13 @@ def 读标志(名,缺省=None):#读一对--flag value
 def 主():#命令行入口
     '从本仓库打包 Preview 部署'
     仓库根=os.path.abspath(os.path.join(os.path.dirname(__file__),'..','..','..','..'))#仓库根
-    配置档=读标志('profile','web')#profile名
-    输出=读标志('out')#输出路径
+    配置档=读取标志('profile','web')#profile名
+    输出=读取标志('out')#输出路径
     输出文件=输出 if os.path.isabs(输出) else os.path.abspath(os.path.join(os.getcwd(),输出))#绝对输出
     结果=打包虚拟文件系统镜像({#打基础镜像
         'config':组合配置档(仓库根,配置档),#组合配置
         'profile':配置档,#配置档名
-        'root':读标志('root','/dsh'),#虚拟根
+        'root':读取标志('root','/dsh'),#虚拟根
         'workspaces':索引工作区包(仓库根),#包索引
         'resolveFrom':仓库根,#解析起点
         'configTrees':配置树列表(仓库根),#配置树

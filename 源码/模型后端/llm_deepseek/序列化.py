@@ -2,7 +2,7 @@
 import json,base64
 from ..llm.异常 import 语言模型错误 as 大模型错误#大模型错误
 from ..llm import 请求图片句柄文案
-from .回放 import 读回放
+from .回放 import 读取回放
 
 __all__=['序列化']
 
@@ -22,7 +22,7 @@ def 工具输入(原始):
 
 def 助手(消息,模型,回放降级=None):
     '助手块转线路块'
-    回放=读回放(消息,模型,回放降级)
+    回放=读取回放(消息,模型,回放降级)
     结果=[]
     下标=0
     for 块 in 消息['content']:

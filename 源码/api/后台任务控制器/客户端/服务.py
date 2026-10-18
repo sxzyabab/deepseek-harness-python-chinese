@@ -1,166 +1,181 @@
-from ....基础设施.通用工具 import 启动守护线程
-from ....依赖.cordis.服务 import 服务
-from ...网关.异常 import 远程流载体错误
+'ctx.jobs：按引用计数共享名册流和观察流，并把人类终止原样交出去'
+from ....基础设施.通用工具 import 启动守护线程#流的消费不占调用方
+from ....依赖.cordis.服务 import 服务#服务基类
+from ...网关.异常 import 远程流载体错误#开口之后的流结束可以重试
 
-__all__=['客户端作业']
+__all__=['客户端作业','已结算远程结果']
+
+class 已结算远程结果:
+    '同步远程调用已经拿到的结果。等待立刻交回，不挂起'
+    def __init__(自身,值):
+        '记下结果'
+        自身._值=值#远程结果
+
+    def 等待(自身):
+        '取出结果'
+        return 自身._值#已结算
 
 class 客户端作业(服务):
-    '引用计数的名册流与观察流，外加终止透传'
+    '同一会话的名册、同一作业的观察各共享一条流'
     def __init__(自身,上下文,远程,模型):
-        '远程为含 $stream 与 job 的 dict'
-        super().__init__(上下文,'jobs')
-        自身._远程=远程
-        自身._模型=模型
-        自身.状态=模型
-        自身._表行项={}
-        自身._观察项={}
+        '远程含 $stream 与 job。卸下时停掉还开着的流'
+        super().__init__(上下文,'jobs')#登记 jobs
+        自身._远程=远程#流工厂与 job 面
+        自身._模型=模型#名册与观察
+        自身.状态=模型#界面读的是这一份
+        自身._表行项={}#会话 id → 名册流
+        自身._观察项={}#作业 id → 观察流
         def 拆除效果():
-            '关掉仍打开的流'
+            '卸下时停掉全部流'
             def 清理():
-                '等到每条载体结束'
-                打开=list(自身._表行项.values())+list(自身._观察项.values())
-                自身._表行项.clear()
-                自身._观察项.clear()
-                for 项 in 打开:
-                    项['stopped']=True
-                for 项 in 打开:
-                    try:
-                        项['dispose']()
-                    except BaseException:
-                        pass
-            return 清理
-        上下文.副作用(拆除效果,'job-controller.client.streams')
+                '每条载体都停，并等到消费线程退出。一条拆除失败不挡住其余'
+                打开=list(自身._表行项.values())+list(自身._观察项.values())#当时还开着的
+                自身._表行项.clear()#表清空，后继不能再命中旧项
+                自身._观察项.clear()#观察表同样
+                for 项 in 打开:#先标停
+                    项['stopped']=True#消费线程看见后不再改模型
+                for 项 in 打开:#再拆载体并等到读循环结束
+                    try:#一条失败继续下一条
+                        项['dispose']()#停载体
+                    except BaseException as 拆除错误:#没有消费方
+                        '载体拆除失败没有别处接收，这一条仍然算停掉'
+                    线程=项['线程']#消费线程
+                    if 线程 is not None:#已经启动
+                        线程.join()#等到迭代器关掉
+            return 清理#拆除器
+        上下文.副作用(拆除效果,'job-controller.client.streams')#跟插件一起拆
 
     def 终止(自身,会话标识,标识):
-        '人类终止透传'
-        return 自身._远程['job'].kill({'sessionId':会话标识,'jobId':标识})
+        '人类终止透传。名册流自己会收敛，调用方负责展示失败'
+        值=自身._远程['job'].kill({'sessionId':会话标识,'jobId':标识})#同步远程
+        return 已结算远程结果(值)#界面用等待取出
 
     def 监视表行(自身,会话标识):
-        '引用计数监视一名册'
-        return 自身._取得(
-            自身._表行项,
-            str(会话标识),
-            lambda:自身._开表行(会话标识),
-            lambda:自身._模型.丢弃表行(会话标识),
-        )
+        '引用计数监视一名册。最后一个离开时流和行一起走'
+        def 开工():
+            '没有活着的项时打开名册流'
+            return 自身._开表行(会话标识)#新流
+        def 清空():
+            '最后一名离开后丢掉名册'
+            自身._模型.丢弃表行(会话标识)#去掉行
+        return 自身._取得(自身._表行项,str(会话标识),开工,清空)#共享或新开
 
     def 观察(自身,会话标识,标识):
-        '引用计数观察一作业'
-        return 自身._取得(
-            自身._观察项,
-            str(标识),
-            lambda:自身._开观察(会话标识,标识),
-            lambda:自身._模型.观察已停止(标识),
-        )
+        '引用计数观察一条作业。无主作业的会话标识是 None'
+        def 开工():
+            '没有活着的项时打开观察流'
+            return 自身._开观察(会话标识,标识)#新流
+        def 清空():
+            '最后一名离开后丢掉观察态'
+            自身._模型.观察已停止(标识)#去掉
+        return 自身._取得(自身._观察项,str(标识),开工,清空)#按作业 id 共享
 
     def _取得(自身,表,键,开工,清空):
-        '共享未停止项或新开一项'
-        已有=表.get(键)
-        if 已有 is not None and not 已有['stopped']:
-            已有['refs']+=1
-            return 自身._释放器(表,键,已有,清空)
-        项=开工()
-        表[键]=项
-        return 自身._释放器(表,键,项,清空)
+        '共享还没停的项，否则新开一项，交回只减这一项的释放函数'
+        已有=表.get(键)#当前占位
+        if 已有 is not None and not 已有['stopped']:#还活着
+            已有['refs']=已有['refs']+1#多一名
+            return 自身._释放器(表,键,已有,清空)#绑这一项
+        项=开工()#新开
+        表[键]=项#占位
+        return 自身._释放器(表,键,项,清空)#绑这一项
 
     def _释放器(自身,表,键,项,清空):
-        '绑定铸造时的那一项，不绑表中现占位者'
-        已释放=[False]
+        '释放函数绑的是铸出来的那一项。同键后来换上的新流不会被这次释放拆掉'
+        已释放=False#只减一次
         def 释放():
-            '减引用；到零则拆除'
-            if 已释放[0]:
-                return
-            已释放[0]=True
-            项['refs']-=1
-            if 项['refs']>0:
-                return
-            if 表.get(键) is 项:
-                del 表[键]
-            项['stopped']=True
+            '减引用。到零就停掉这一项，拆完后若没有后继再清空模型'
+            nonlocal 已释放
+            if 已释放:#重复释放
+                return#不动
+            已释放=True#记下
+            项['refs']=项['refs']-1#少一名
+            if 项['refs']>0:#还有人
+                return#流继续
+            if 表.get(键) is 项:#占位仍然是这一项
+                del 表[键]#摘掉，后继可以新开
+            项['stopped']=True#消费线程不再改模型
             def 收尾():
-                '拆除后若无后继再清空模型'
-                try:
-                    项['dispose']()
-                except BaseException:
-                    pass
-                if 键 in 表:
-                    return
-                清空()
-            启动守护线程(收尾)
-        return 释放
+                '拆完并等到读循环结束，没有后继才清空模型'
+                try:#拆载体
+                    项['dispose']()#停
+                except BaseException as 拆除错误:#拒绝时 then 不跑
+                    return#不清理模型
+                线程=项['线程']#消费线程
+                if 线程 is not None:#已经启动
+                    线程.join()#等到迭代器关掉
+                if 键 in 表:#拆的过程里已经有后继
+                    return#后继的模型留着
+                清空()#没有后继才清
+            启动守护线程(收尾)#调用方不等待
+        return 释放#交给监视者
 
     def _开表行(自身,会话标识):
-        '打开一条名册流'
-        名='job rows '+str(会话标识)
+        '打开一条名册流。开口后的结束可以重试，开口前的结束是终态'
+        名='job rows '+str(会话标识)#流的名字
         def 开口(信号):
             '打开一代名册'
-            return 自身._远程['job'].list({'sessionId':会话标识},信号)
+            return 自身._远程['job'].list({'sessionId':会话标识},信号)#整表帧
         def 已结束(已接受):
-            '开口后结束可重试；开口前结束为终态'
-            if 已接受:
-                return 远程流载体错误(名+' ended before release')
-            return Exception(名+' ended before its first frame')
-        流=自身._远程['$stream']({'name':名,'open':开口,'ended':已结束})
-        项={'refs':1,'stopped':False,'dispose':流.dispose}
+            '开口后结束是宿主重载；开口前结束不再重试'
+            if 已接受:#已经有过帧
+                return 远程流载体错误(名+' ended before release')#可重试
+            return Exception(名+' ended before its first frame')#终态
+        流=自身._远程['$stream']({'name':名,'open':开口,'ended':已结束})#可重连流
+        项={'refs':1,'stopped':False,'dispose':流.dispose,'线程':None}#一名引用
         def 消费():
-            '把整表帧写入模型'
-            try:
-                for 条目 in 流:
-                    自身._模型.替换表行(会话标识,条目.value['jobs'])
-                    条目.accept()
-            except BaseException:
-                if not 项['stopped']:
-                    自身._模型.丢弃表行(会话标识)
-            finally:
-                项['stopped']=True
-                try:
-                    项['dispose']()
-                except BaseException:
-                    pass
-        启动守护线程(消费)
-        return 项
+            '把整表帧写进模型'
+            try:#读到流结束或失败
+                for 条目 in 流:#一代接一代
+                    自身._模型.替换表行(会话标识,条目.value['jobs'])#整表
+                    条目.accept()#这一代开口已接受
+            except BaseException as 流出错误:#终态失败不留旧表
+                if not 项['stopped']:#不是我们自己停的
+                    自身._模型.丢弃表行(会话标识)#去掉旧表
+            finally:#无论成败都停载体
+                项['stopped']=True#不再改模型
+                项['dispose']()#停
+        项['线程']=启动守护线程(消费)#后台读
+        return 项#交给引用计数
 
     def _开观察(自身,会话标识,标识):
-        '打开一条观察流'
-        名='job observation '+str(标识)
+        '打开一条观察流。锚之后的结束从游标续，锚之前的结束是终态'
+        名='job observation '+str(标识)#流的名字
         def 开口(信号):
             '带游标打开一代观察'
-            请求={'jobId':标识}
-            if 会话标识 is not None:
-                请求['sessionId']=会话标识
-            起点=自身._模型.游标(标识)
-            if 起点 is not None:
-                请求['from']=起点
-            return 自身._远程['job'].follow(请求,信号)
+            请求={'jobId':标识}#目标作业
+            if 会话标识 is not None:#有主作业才带会话
+                请求['sessionId']=会话标识#围栏调用方
+            起点=自身._模型.游标(标识)#上次的 next
+            if 起点 is not None:#续读
+                请求['from']=起点#绝对偏移
+            return 自身._远程['job'].follow(请求,信号)#观察帧
         def 已结束(已接受):
-            '锚后结束可重试'
-            if 已接受:
-                return 远程流载体错误(名+' ended before settlement')
-            return Exception(名+' ended before its anchor')
-        流=自身._远程['$stream']({'name':名,'open':开口,'ended':已结束})
-        项={'refs':1,'stopped':False,'dispose':流.dispose}
+            '锚后结束可以重试；锚前结束不再重试'
+            if 已接受:#已经有锚
+                return 远程流载体错误(名+' ended before settlement')#可重试
+            return Exception(名+' ended before its anchor')#终态
+        流=自身._远程['$stream']({'name':名,'open':开口,'ended':已结束})#可重连流
+        项={'refs':1,'stopped':False,'dispose':流.dispose,'线程':None}#一名引用
         def 消费():
-            '按帧推进观察态'
-            try:
-                for 条目 in 流:
-                    帧=条目.value
-                    if 帧['type']=='opened':
-                        自身._模型.观察已打开(标识,帧)
-                        条目.accept()
-                        continue
-                    if 帧['type']=='output':
-                        自身._模型.观察输出(标识,帧)
-                        continue
-                    自身._模型.观察已结算(标识)
-                    break
-            except BaseException as 错误:
-                if not 项['stopped']:
-                    自身._模型.观察失败(标识,错误)
-            finally:
-                项['stopped']=True
-                try:
-                    项['dispose']()
-                except BaseException:
-                    pass
-        启动守护线程(消费)
-        return 项
+            '按帧推进观察态。终态帧在流结束被分类之前离开循环'
+            try:#读到终态、失败或拆掉
+                for 条目 in 流:#一代接一代
+                    帧=条目.value#这一帧
+                    if 帧['type']=='opened':#锚
+                        自身._模型.观察已打开(标识,帧)#安装视图
+                        条目.accept()#这一代开口已接受
+                        continue#下一帧
+                    if 帧['type']=='output':#输出
+                        自身._模型.观察输出(标识,帧)#追加
+                        continue#不在这里接受
+                    自身._模型.观察已结算(标识)#终态
+                    break#离开循环再关流
+            except BaseException as 错误:#终态失败
+                if not 项['stopped']:#不是我们自己停的
+                    自身._模型.观察失败(标识,错误)#记下
+            finally:#无论成败都停载体
+                项['stopped']=True#不再改模型
+                项['dispose']()#停
+        项['线程']=启动守护线程(消费)#后台读
+        return 项#交给引用计数

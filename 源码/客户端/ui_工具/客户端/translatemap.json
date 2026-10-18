@@ -27,5 +27,22 @@
     "inspection-details-model":"检视结果详情模型",
     "todo-diff-model":"待办差异模型",
     "todo-history":"待办历史",
-    "primitive-labels":"原语文案"
+    "primitive-labels":"原语文案",
+    "ExitCodeBadge":"退出代码角标",
+    "read-image-row":"读取图像表行",
+    "image-card-model":"图像卡片模型",
+    "recorded-path":"已记录路径",
+    "raw-tool-call":"原始工具调用",
+    "QuestionToolRow":"问题工具表行",
+    "details-row":"细节列表表行",
+    "read-family-row":"读取族表行",
+    "ask-question-card-model":"询问问题卡片模型",
+    "AskQuestionCard":"询问问题卡片",
+    "ExitCodeBadge.module":"退出代码角标.module",
+    "QuestionToolRow.module":"问题工具表行.module",
+    "ToolRow.module":"工具行.module",
+    "ToolDetails.module":"工具详情.module",
+    "ToolCallTree.module":"工具调用树.module",
+    "bash-sample.module":"bash样例.module",
+    "AskQuestionCard.module":"询问问题卡片.module"
 }

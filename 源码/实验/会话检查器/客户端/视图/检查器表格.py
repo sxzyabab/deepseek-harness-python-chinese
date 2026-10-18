@@ -1,834 +1,763 @@
-'会话日志和对话分组共用的虚拟原始数据表'
+'会话日志和对话分组共用的虚拟表格'
 
-import math
-import time
-import datetime
-from nicegui import ui as 界面
-from .表格模型 import 检查器表格层级,行已折叠
-from .表格布局 import 检查器表格布局,行高
-from .格式 import 检查器预览,失败说明
-from .原始json import 检查器json,未定义
-from .类型筛选 import 检查器类型筛选
-from .类型筛选器 import 类型筛选器
-from .检查器详情 import 检查器详情
-from .检查器对象树 import 检查器json树,检查器对象树
+from .....客户端.模块.客户端.通告 import 取握手窗口
+import os#样式
+from .....客户端.ui_对话.异常 import 注入模块样式文件,模块节点,标样式模块#样式
+from .....客户端.ui_基础界面组件.提示泡 import 提示泡#序号提示
+from .表格模型 import 检查器表格层级,检查器行已折叠#折叠和粘性
+from .表格布局 import 检查器表格布局,检查器行高#滚动锚
+from .格式 import 检查器预览#没有现成摘要时
+from .原始json import 检查器json#详情文本
+from .类型筛选 import 检查器类型筛选#已确认的筛选
+from .类型筛选器 import 类型筛选器#筛选按钮
+from .检查器详情 import 检查器详情#原文面板
+from .检查器对象树 import 检查器json树,检查器对象树#详情树
 
-__all__=['检查器表格']
+样式模块='session-inspector'#检查器样式
+过扫描=12#视口外多画的行数
 
-def 读(值,键,默认=None):
-    '字典或对象上的字段'
-    if 值 is None:
-        return 默认
-    if isinstance(值,dict):
-        return 值.get(键,默认)
-    return getattr(值,键,默认)
+def 确保样式(文档):
+    '表格和详情共用这一份样式'
+    注入模块样式文件(文档,'dsh-session-inspector',os.path.join(os.path.dirname(__file__),'检查器.module.css'),样式模块)#只插一次
 
-def 矩形字段(矩形,键):
-    'DOMRect 或字典上的一个数'
-    if isinstance(矩形,dict):
-        return 矩形.get(键,0)
-    return getattr(矩形,键)
-
-def utc片段(毫秒):
-    'UTC 的 HH:MM:SS.mmm'
-    时刻=datetime.datetime.fromtimestamp(毫秒/1000,datetime.timezone.utc)
-    return 时刻.strftime('%H:%M:%S.')+f'{时刻.microsecond//1000:03d}'
-
-def 现在():
-    '与 performance.now 同一量纲的毫秒'
-    return time.perf_counter()*1000
-
-def 画出屑(项):
-    '对象导航面包屑：分隔符和可点的层级'
-    with 界面.row().classes('objectBreadcrumbs'):
-        for 一条 in 项:
-            if not isinstance(一条,dict):
-                continue
-            for 子 in 一条.get('children') or []:
-                if not isinstance(子,dict):
-                    continue
-                文=子.get('text') or ''
-                if 子.get('type')=='button':
-                    点=子.get('onClick')
-                    钮=界面.button(文, on_click=点 if callable(点) else None).props('flat no-caps dense')
-                    if 子.get('disabled'):
-                        钮.disable()
-                    if 子.get('title'):
-                        钮.tooltip(str(子['title']))
-                elif 文:
-                    界面.label(文)
-
-def 默认范围提取(范围):
-    'overscan 内的连续下标'
-    if 范围['count']<=0:
-        return []
-    开始=max(范围['startIndex']-范围['overscan'],0)
-    结束=min(范围['endIndex']+范围['overscan'],范围['count']-1)
-    if 开始>结束:
-        return []
-    return list(range(开始,结束+1))
-
-class 滚动宿主:
-    '还没有真实滚动元素时的几何'
-    def __init__(自身):
-        '初始视口高 600'
-        自身.scrollTop=0
-        自身.clientHeight=600
-        自身.clientTop=0
-        自身.scrollHeight=0
-
-    def getBoundingClientRect(自身):
-        '与 clientHeight 一致的矩形'
-        return {'top':0,'left':0,'width':0,'height':自身.clientHeight,'right':0,'bottom':自身.clientHeight}
-
-class 虚拟器:
-    '固定行高的视口窗口，对齐表格用到的 virtualizer 方法'
-    def __init__(自身):
-        '偏移和视口在第一次配置时按 anchorTo 摆放'
-        自身.scrollOffset=0
-        自身.scrollRect={'width':0,'height':600}
-        自身.选项={}
-        自身._已初始化=False
-
-    def 配置(自身,选项):
-        '换选项；只有第一次使用 anchorTo'
-        自身.选项=选项
-        if not 自身._已初始化:
-            高度=读(选项.get('initialRect'),'height',600)
-            自身.scrollRect={'width':0,'height':高度}
-            if 选项.get('anchorTo')=='end':
-                自身.scrollToEnd()
-            自身._已初始化=True
-        宿主=选项['getScrollElement']()
-        if 宿主 is None:
-            return
-        高度=getattr(宿主,'clientHeight',None)
-        if isinstance(高度,(int,float)) and not isinstance(高度,bool) and 高度>0:
-            自身.scrollRect={'width':0,'height':高度}
-        顶=getattr(宿主,'scrollTop',None)
-        if isinstance(顶,(int,float)) and not isinstance(顶,bool):
-            自身.scrollOffset=顶
-
-    def _项开始(自身,下标):
-        '含表头留白的起点'
-        return 自身.选项.get('paddingStart',0)+下标*行高
-
-    def getTotalSize(自身):
-        '表头、行和底留白的总高'
-        选项=自身.选项
-        return 选项.get('paddingStart',0)+选项['count']*行高+选项.get('paddingEnd',0)
-
-    def scrollToOffset(自身,偏移):
-        '滚到绝对偏移，并写回宿主'
-        自身.scrollOffset=max(0,偏移)
-        取=自身.选项.get('getScrollElement')
-        宿主=None if 取 is None else 取()
-        if 宿主 is not None:
-            宿主.scrollTop=自身.scrollOffset
-
-    def scrollToEnd(自身):
-        '贴到底部'
-        自身.scrollToOffset(max(0,自身.getTotalSize()-自身.scrollRect['height']))
-
-    def scrollToIndex(自身,下标,选项=None):
-        '按对齐方式滚到一行'
-        选项={} if 选项 is None else 选项
-        开始=自身._项开始(下标)
-        尺寸=自身.选项['estimateSize'](下标)
-        视口=自身.scrollRect['height']
-        if 选项.get('align')=='center':
-            自身.scrollToOffset(开始-(视口-尺寸)/2)
-        else:
-            自身.scrollToOffset(开始)
-
-    def _基础范围(自身):
-        '当前偏移能看见的行下标'
-        数量=自身.选项['count']
-        起点=自身.选项.get('paddingStart',0)
-        视口=自身.scrollRect['height']
-        偏移=自身.scrollOffset
-        超扫=自身.选项.get('overscan',0)
-        if 数量<=0:
-            return {'startIndex':0,'endIndex':-1,'overscan':超扫,'count':数量}
-        开始=max(0,int((偏移-起点)/行高))
-        结束=min(数量-1,math.ceil((偏移+视口-起点)/行高)-1)
-        if 结束<开始:
-            结束=开始
-        return {'startIndex':开始,'endIndex':结束,'overscan':超扫,'count':数量}
-
-    def getVirtualItems(自身):
-        '范围提取器给出的虚拟行'
-        索引=自身.选项['rangeExtractor'](自身._基础范围())
-        项=[]
-        for 下标 in 索引:
-            始=自身._项开始(下标)
-            尺寸=自身.选项['estimateSize'](下标)
-            项.append({'key':自身.选项['getItemKey'](下标),'index':下标,'start':始,'end':始+尺寸,'size':尺寸})
-        return 项
+def 类名(名字列表):
+    '去掉空的类名'
+    留下=[]#有效类名
+    for 名 in 名字列表:#逐个
+        if 名:#有
+            留下.append(名)#留下
+    return ' '.join(留下)#空格分隔
 
 class 数据行:
-    '一行的高亮动画；依赖不变则不重开'
-    def __init__(自身):
-        '元素和上一次记录都空着'
-        自身.元素=None
-        自身.先前记录=None
-        自身.先前脉冲=0
-        自身._见过=False
-        自身._效果键=None
-        自身.动画=None
-
-    def 见(自身,记录):
-        '对齐首次渲染时的 useRef 初值'
-        if not 自身._见过:
-            自身.先前记录=记录
-            自身._见过=True
-
-    def 跑效果(自身,记录,新增,闪,脉冲):
-        '记录、新增或定位脉冲变化时闪一下'
-        键=(id(记录) if 记录 is not None else None,新增,闪,脉冲)
-        if 自身._效果键==键:
-            return
-        变了=自身.先前记录 is not 记录
-        自身.先前记录=记录
-        导航了=脉冲>0 and 自身.先前脉冲!=脉冲
-        自身.先前脉冲=脉冲
-        if 自身.动画 is not None:
-            自身.动画.cancel()
-            自身.动画=None
-        if 自身.元素 is None:
-            return
-        自身._效果键=键
-        if (not 闪 and not 导航了) or (not 变了 and not 新增 and not 导航了):
-            return
-        if window.matchMedia('(prefers-reduced-motion: reduce)').matches:
-            return
-        颜色=getComputedStyle(自身.元素).getPropertyValue('--dsw-specific-bubble-highlight')
-        自身.动画=自身.元素.animate([{'backgroundColor':颜色},{'backgroundColor':'transparent'}],{'duration':700})
-
-class 检查器表格:
-    '分页层级、稳定虚拟行键，以及选中行的实时详情'
+    '表格里的一行。记录变了并且允许闪时，用主题高亮闪一下'
     def __init__(自身,属性):
-        '默认跟着最新一行，详情高度留给详情面板自己'
-        自身.属性=属性
-        自身.失败=None
-        自身.选中=None
-        自身.对象历史=None
-        自身.定位=None
-        自身._已应用定位=None
-        自身._已应用选取=None
-        自身.展开={}
-        自身.类型查询=''
-        自身.滚动区=滚动宿主()
-        自身.跟随='tail'
-        自身.视口={'offset':0,'height':600}
-        自身.展开锚=None
-        自身.间距代=0
-        自身._已提交=None
-        自身._见到={}
-        自身._行已初始化=False
-        自身._到达={}
-        自身._到达键=None
-        自身._筛选=None
-        自身._筛选查询=None
-        自身._过滤=None
-        自身._过滤键=None
-        自身._层级=None
-        自身._层级键=None
-        自身._布局=None
-        自身._布局键=None
-        自身._全部行=()
-        自身._行标=''
-        自身.虚拟=虚拟器()
-        自身.筛选器=None
-        自身.详情=None
-        自身._数据行={}
-        自身._json树=None
-        自身._json键=None
-        自身._对象树=None
-        自身._对象键=None
-        自身._待滚动=None
+        '记下行和回调'
+        自身.属性=属性#属性
+        自身.根=None#tr
+        自身.先前记录=未读#上一份记录
+        自身.先前脉冲=0#上一次定位脉冲
+        自身.动画=None#高亮动画
 
     def 更新(自身,属性):
-        '刷新 props；表格状态留在这一次挂载上'
-        自身.属性=属性
+        '换成新的选中、折叠和记录'
+        自身.属性=属性#新属性
 
-    def _建议(自身,查询):
-        '从全部已加载行取类型候选'
-        return 检查器类型筛选(查询).建议(自身._全部行,自身.属性['typeOf'])
-
-    def _定位聊天(自身,目标):
-        '有导航时揭示目标；没有目标则揭示空坐标'
-        导航=自身.属性.get('navigation')
-        if 导航 is None:
-            return
-        导航['reveal']({} if 目标 is None else 目标)
-
-    def _选择(自身,键):
-        '选中一行，清掉对象历史，并揭示它在对话里的位置'
-        自身.选中=键
-        自身.对象历史=None
-        导航=自身.属性.get('navigation')
-        目标=None if 导航 is None else 导航['target'](键)
-        自身._定位聊天(目标)
-
-    def _定位行(自身,键):
-        '必要时清掉筛选，展开祖先，并把这一行滚到中间'
-        筛选=自身._筛选
-        过滤=自身._过滤
-        清筛选=筛选 is not None and 筛选.活动 and not any(行['key']==键 for 行 in 过滤['rows'])
-        if 清筛选:
-            自身.类型查询=''
-            自身._筛选查询=None
-        自身.跟随='scroll'
-        自身.选中=键
-        源=自身._全部行 if 清筛选 else 过滤['rows']
-        按键={行['key']:行 for 行 in 源}
-        下一=dict(自身.展开)
-        父=按键[键].get('parent') if 键 in 按键 else None
-        while 父 is not None:
-            行=按键.get(父)
-            if 行 is None:
-                break
-            下一[父]={'state':行.get('disclosure'),'collapsed':False}
-            父=行.get('parent')
-        自身.展开=下一
-        脉冲=1 if 自身.定位 is None else 自身.定位['pulse']+1
-        自身.定位={'key':键,'pulse':脉冲}
-
-    def _切换(自身,行,元素):
-        '手折一行，并用该行顶部当滚动锚'
-        宿主=自身.滚动区
-        自身.跟随='manual'
-        行顶=矩形字段(元素.getBoundingClientRect(),'top')
-        宿顶=矩形字段(宿主.getBoundingClientRect(),'top')
-        自身.展开锚={'key':行['key'],'top':行顶-宿顶-宿主.clientTop}
-        自身.视口['offset']=宿主.scrollTop
-        自身.视口['height']=宿主.clientHeight
-        下一=dict(自身.展开)
-        下一[行['key']]={'state':行.get('disclosure'),'collapsed':not 行已折叠(行,自身.展开)}
-        自身.展开=下一
-
-    def _导航(自身,引用):
-        '压入对象面包屑；有表格行时同时定位'
-        先前=自身.对象历史
-        自身.对象历史={
-            'rootKey':自身.选中 if 先前 is None else 先前['rootKey'],
-            'rootLabel':自身._行标 if 先前 is None else 先前['rootLabel'],
-            'references':([] if 先前 is None else list(先前['references']))+[引用],
-        }
-        自身._定位聊天(引用.get('target'))
-        if 引用.get('rowKey') is not None:
-            自身._定位行(引用['rowKey'])
-        自身.渲染()
-
-    def _回到(自身,下标):
-        '退回面包屑的某一级'
-        历史=自身.对象历史
-        引用=None if 下标==0 else 历史['references'][下标-1]
-        键=历史['rootKey'] if 下标==0 else (None if 引用 is None else 引用.get('rowKey'))
-        if 下标==0:
-            导航=自身.属性.get('navigation')
-            目标=None if 导航 is None else 导航['target'](历史['rootKey'])
-            自身.对象历史=None
-        else:
-            目标=None if 引用 is None else 引用.get('target')
-            自身.对象历史={**历史,'references':历史['references'][:下标]}
-        if 键 is not None:
-            自身._定位行(键)
-        自身._定位聊天(目标)
-        自身.渲染()
-
-    def 应用筛选(自身,查询):
-        '确认类型筛选后从顶部按滚动模式看结果'
-        自身.跟随='scroll'
-        自身.类型查询=检查器类型筛选(查询).查询
-        自身._筛选查询=None
-        自身.展开={}
-        自身.间距代+=1
-        自身.选中=None
-        自身.对象历史=None
-        自身.定位=None
-        自身._待滚动=0
-        if 自身.虚拟 is not None:
-            自身.虚拟.scrollToOffset(0)
-        自身.渲染()
-
-    def _最新(自身):
-        '回到尾随最新行'
-        自身.跟随='tail'
-        自身.间距代+=1
-        自身.渲染()
-
-    def _更早(自身):
-        '加载上一页；失败记到表头下'
-        自身.跟随='scroll'
-        自身.失败=None
-        结果=自身.属性['loadOlder']()
-        if hasattr(结果,'捕获'):
-            def 记下(错误):
-                '把拒绝原因写成字符串'
-                自身.失败=失败说明(错误)
-                自身.渲染()
-                return None
-            结果.捕获(记下)
-
-    def _滚动(自身,事件):
-        '非手动模式下，离底部 40 像素内算尾随'
-        当前=事件['currentTarget'] if isinstance(事件,dict) else 事件.currentTarget
-        自身.视口['offset']=当前.scrollTop
-        if 自身.跟随!='manual':
-            剩余=当前.scrollHeight-当前.clientHeight-当前.scrollTop
-            自身.跟随='tail' if 剩余<=40 else 'scroll'
-
-    def _关闭(自身):
-        '关掉详情和对象历史'
-        自身.选中=None
-        自身.对象历史=None
-        自身.渲染()
-
-    def _记滚动区(自身,元素):
-        '宿主交出真实滚动元素后换掉占位'
-        if 元素 is not None:
-            自身.滚动区=元素
-
-    def _确保筛选(自身,全部行):
-        '查询或行身份变了才重算筛选'
-        if 自身._筛选 is None or 自身._筛选查询!=自身.类型查询:
-            自身._筛选=检查器类型筛选(自身.类型查询)
-            自身._筛选查询=自身.类型查询
-            自身._过滤键=None
-        键=(id(全部行),自身.属性.get('typeOf'),id(自身._筛选))
-        if 自身._过滤键!=键:
-            自身._过滤=自身._筛选.应用(全部行,自身.属性['typeOf'])
-            自身._过滤键=键
-
-    def _应用选取(自身):
-        '新的选取行出现在表里时定位一次'
-        选取=自身.属性.get('pickedRow')
-        if 选取 is None or 自身._已应用选取 is 选取:
-            return
-        if not any(行['key']==选取['key'] for 行 in 自身._全部行):
-            return
-        自身._已应用选取=选取
-        自身.对象历史=None
-        自身._定位行(选取['key'])
-
-    def _确保层级(自身):
-        '可见行或展开选择变了才重建层级和布局'
-        过滤行=自身._过滤['rows']
-        层键=(id(过滤行),id(自身.展开))
-        if 自身._层级键!=层键:
-            自身._层级=检查器表格层级(过滤行,自身.展开)
-            自身._层级键=层键
-            自身._布局键=None
-        布局键=(id(自身._层级),id(自身.展开),自身.间距代)
-        if 自身._布局键!=布局键:
-            提交=自身._已提交
-            先前=None
-            if 提交 is not None and 提交['disclosures'] is 自身.展开 and 提交['spacingGeneration']==自身.间距代:
-                先前=提交['layout']
-            自身._布局=检查器表格布局(自身._层级,先前,自身.视口,自身.展开锚)
-            自身._布局键=布局键
-
-    def _确保到达(自身,全部行):
-        '第一次见到的行不算新增；之后 700 毫秒内算新增'
-        if 全部行 is 自身._到达键:
-            return
-        此刻=现在()
-        下一={}
-        for 行 in 全部行:
-            键=行['key']
-            if 键 in 自身._见到:
-                下一[键]=自身._见到[键]
-            else:
-                下一[键]=-math.inf if not 自身._行已初始化 else 此刻
-        if len(全部行)>0:
-            自身._行已初始化=True
-        自身._见到=下一
-        自身._到达=下一
-        自身._到达键=全部行
-
-    def _配置虚拟(自身,布局,锚偏移):
-        '把范围提取器指到这一份布局'
-        虚拟=自身.虚拟
-        视口高=自身.视口['height']
-        def 提取(范围,布局=布局,锚偏移=锚偏移,虚拟=虚拟,视口高=视口高):
-            '锚定偏移时先按该偏移算可见行，再并上吸顶行'
-            偏移=虚拟.scrollOffset if 锚偏移 is None else 锚偏移
-            if 锚偏移 is None:
-                可见=范围
-            else:
-                可见={'startIndex':max(0,math.floor(偏移/行高)-1),'endIndex':min(范围['count']-1,math.ceil((偏移+视口高)/行高)-1),'overscan':范围['overscan'],'count':范围['count']}
-            合并=[]
-            见过=set()
-            for 下标 in list(布局.偏移处吸顶下标(偏移))+默认范围提取(可见):
-                if 下标 not in 见过:
-                    见过.add(下标)
-                    合并.append(下标)
-            合并.sort()
-            return 合并
-        def 键于(下标,布局=布局):
-            '布局项的行键'
-            return 布局.项[下标]['key']
-        def 尺寸于(下标,布局=布局):
-            '布局项的行高'
-            return 布局.项[下标]['size']
-        虚拟.配置({
-            'count':len(布局.项),
-            'getScrollElement':lambda:自身.滚动区,
-            'estimateSize':尺寸于,
-            'getItemKey':键于,
-            'overscan':12,
-            'initialRect':{'width':0,'height':600},
-            'anchorTo':'start' if 布局.滚动偏移 is not None or 自身.跟随=='manual' else 'end',
-            'scrollEndThreshold':40,
-            'paddingStart':行高,
-            'scrollPaddingStart':行高,
-            'rangeExtractor':提取,
-            'paddingEnd':布局.底内边距,
-        })
-
-    def _摆放(自身,布局,锚偏移):
-        '布局效果：锚点优先，否则尾随且没有底留白时贴底'
-        虚拟=自身.虚拟
-        if 自身._待滚动 is not None:
-            虚拟.scrollToOffset(自身._待滚动)
-            自身._待滚动=None
-        if 锚偏移 is not None:
-            虚拟.scrollToOffset(锚偏移)
-        elif 自身.跟随=='tail' and 布局.底内边距==0:
-            虚拟.scrollToEnd()
-        自身.视口['offset']=getattr(自身.滚动区,'scrollTop',0)
-        自身.视口['height']=虚拟.scrollRect.get('height',600)
-        自身.展开锚=None
-        自身._已提交={'layout':布局,'disclosures':自身.展开,'spacingGeneration':自身.间距代}
-        if 自身.定位 is not None and 自身._已应用定位 is not 自身.定位:
-            下标=-1
-            for 序号,项 in enumerate(布局.项):
-                if 项['key']==自身.定位['key']:
-                    下标=序号
-                    break
-            if 下标!=-1:
-                虚拟.scrollToIndex(下标,{'align':'center'})
-                自身._已应用定位=自身.定位
-
-    def _一行(自身,条目,吸顶级,翻译,闪,显示时间):
-        '一行的记录、摘要和点击'
-        行=条目['row']
-        记录=自身.属性['useRecord'](行['key'])
-        折叠=行已折叠(行,自身.展开)
-        到达=自身._到达[行['key']]
-        新增=现在()-到达<700
-        脉冲=自身.定位['pulse'] if 自身.定位 is not None and 自身.定位['key']==行['key'] else 0
-        行件=自身._数据行.get(行['key'])
-        if 行件 is None:
-            行件=数据行()
-            自身._数据行[行['key']]=行件
-        行件.见(记录)
-        if 行件.元素 is not None:
-            行件.跑效果(记录,新增,闪,脉冲)
-        if 折叠 and 记录 is not None and 记录.get('collapsedSummary') is not None:
-            摘要=记录.get('collapsedSummary')
-        elif 记录 is not None and 记录.get('summary') is not None:
-            摘要=记录.get('summary')
-        else:
-            摘要=检查器预览(None if 记录 is None else 记录.get('value'))
-        上下文行=自身._筛选.活动 and 行['key'] not in 自身._过滤['matches']
-        类名=[]
-        if 行['key']==自身.选中:
-            类名.append('selected')
-        if 吸顶级 is not None:
-            类名.append('sticky')
-        if 上下文行:
-            类名.append('contextRow')
-        def 记(元素,行件=行件,记录=记录,新增=新增,闪=闪,脉冲=脉冲):
-            '元素到达后再跑高亮'
-            行件.元素=元素
-            if 元素 is not None:
-                行件.跑效果(记录,新增,闪,脉冲)
-        def 点折(行=行):
-            '折起或展开这一行'
-            自身._切换(行,行件.元素)
-        def 点选(键=行['key']):
-            '选中这一行'
-            自身._选择(键)
-        格=[
-            {'type':'td','className':'identity','children':[{'type':'Tooltip','label':'' if 记录 is None else (记录.get('identity') or ''),'side':'right','portal':True,'children':{'type':'span','className':'identityText','tabIndex':0,'text':None if 记录 is None else 记录.get('identity')}}]},
-            {'type':'td','style':{'paddingInlineStart':8+行['depth']*20},'children':[
-                None if not 自身._层级.是分支(行['key']) else {'type':'button','className':'disclosure','aria-label':翻译('table.expand') if 折叠 else 翻译('table.collapse'),'aria-expanded':not 折叠,'text':'▸' if 折叠 else '▾','onClick':点折},
-                {'type':'button','className':'record','text':None if 记录 is None else 记录.get('type'),'onClick':点选},
-            ]},
-            {'type':'td','text':None if 记录 is None else 记录.get('location')},
-        ]
-        if 显示时间:
-            时刻=None if 记录 is None else 记录.get('time')
-            格.append({'type':'td','text':'' if 时刻 is None else utc片段(时刻)})
-        格.append({'type':'td','children':[{'type':'button','className':'preview','text':摘要,'onClick':点选}]})
-        return {
-            'type':'tr',
-            'key':行['key'],
-            'ref':记,
-            'aria-selected':行['key']==自身.选中,
-            'data-inspector-context':'' if 上下文行 else None,
-            'title':翻译('filter.context') if 上下文行 else None,
-            'className':' '.join(类名),
-            'style':None if 吸顶级 is None else {'top':(吸顶级+1)*行高,'zIndex':9-吸顶级},
-            'cells':格,
-        }
-
-    def _详情(自身,记录,翻译):
-        '选中行的原文或对象树'
-        if 自身.选中 is None:
-            if 自身._对象树 is not None:
-                自身._对象树.拆除()
-                自身._对象树=None
-                自身._对象键=None
-            自身.详情=None
-            return None
-        对象表=自身.属性.get('objects')
-        if 对象表 is not None:
-            详情=检查器json()
-        elif 记录 is None or 'value' not in 记录:
-            详情=检查器json()
-        else:
-            详情=检查器json(记录['value'] if 记录['value'] is not 未定义 else 未定义)
-        if 记录 is None:
-            文本=翻译('table.removed')
-        elif 详情['failed']:
-            文本=翻译('table.rawError')+'\n'+详情['text']
-        else:
-            文本=详情['text']
-        对象目标=None if 自身.对象历史 is None or len(自身.对象历史['references'])==0 else 自身.对象历史['references'][-1]
-        if 对象目标 is not None:
-            详情值=对象目标['read']()
-        elif 记录 is None or 'value' not in 记录:
-            详情值=未定义
-        else:
-            详情值=记录['value']
-        树件=None
-        屑项=None
-        if 对象表 is None:
-            if 记录 is not None and not 详情['failed']:
-                if 自身._json树 is None or 自身._json键!=自身.选中:
-                    自身._json树=检查器json树({'text':详情['text'],'t':翻译})
-                    自身._json键=自身.选中
-                else:
-                    自身._json树.更新({'text':详情['text'],'t':翻译})
-                树件=自身._json树
-        else:
-            屑=[自身.对象历史['rootLabel'] if 自身.对象历史 is not None else 自身._行标]
-            if 自身.对象历史 is not None:
-                for 引用 in 自身.对象历史['references']:
-                    屑.append(f"{翻译('object.'+引用['kind'])} · {引用['identity']}")
-            项=[]
-            末=len(屑)-1
-            for 下标,标签 in enumerate(屑):
-                def 点(下标=下标):
-                    '退回这一级'
-                    自身._回到(下标)
-                项.append({'type':'li','key':下标,'children':[
-                    None if 下标==0 else {'type':'span','aria-hidden':True,'text':'›'},
-                    {'type':'button','title':标签,'text':标签,'disabled':下标==末,'aria-current':'page' if 下标==末 else None,'onClick':点},
-                ]})
-            树键=自身.选中 if 对象目标 is None or 对象目标.get('id') is None else 对象目标['id']
-            树属性={'value':详情值,'objects':对象表,'navigate':自身._导航,'t':翻译}
-            if 自身._对象树 is None or 自身._对象键!=树键:
-                if 自身._对象树 is not None:
-                    自身._对象树.拆除()
-                自身._对象树=检查器对象树(树属性)
-                自身._对象键=树键
-            else:
-                自身._对象树.更新(树属性)
-            屑项=项
-            树件=自身._对象树
-        def 铺开(树件=树件,屑项=屑项,翻译=翻译):
-            '在详情体内画出面包屑和值树'
-            if 树件 is None:
-                return None
-            if 屑项 is None:
-                return 树件.渲染()
-            画出屑(屑项)
-            return {'type':'fragment','children':[
-                {'type':'nav','className':'objectBreadcrumbs','aria-label':翻译('object.navigation'),'children':[{'type':'ol','children':屑项}]},
-                树件.渲染(),
-            ]}
-        详情属性={'text':文本,'failed':详情['failed'],'children':None,'铺开':铺开,'close':自身._关闭,'t':翻译}
-        if 自身.详情 is None:
-            自身.详情=检查器详情(详情属性)
-        else:
-            自身.详情.更新(详情属性)
-        return 自身.详情.渲染()
+    def 拆除(自身):
+        '停动画并卸行'
+        if 自身.动画 is not None:#还在闪
+            自身.动画.cancel()#停
+        自身.动画=None#清空
+        if 自身.根 is not None:#还在
+            自身.根.remove()#拿掉
+        自身.根=None#清空
 
     def 渲染(自身):
-        '工具条、虚拟表和选中详情'
-        属性=自身.属性
-        翻译=属性['t']
-        全部行=属性['useRows'](lambda 值:值)
-        自身._全部行=全部行
-        还有=属性['useSession'](lambda 值:读(值,'hasMore'))
-        加载中=属性['useSession'](lambda 值:读(值,'loadingOlder'))
-        打开错误=属性['useSession'](lambda 值:读(值,'openError'))
-        自身._确保到达(全部行)
-        自身._确保筛选(全部行)
-        自身._应用选取()
-        自身._确保筛选(全部行)
-        自身._确保层级()
-        布局=自身._布局
-        锚偏移=None if 自身._已提交 is not None and 自身._已提交['layout'] is 布局 else 布局.滚动偏移
-        自身._配置虚拟(布局,锚偏移)
-        自身._摆放(布局,锚偏移)
-        自身._配置虚拟(布局,None)
-        项表=自身.虚拟.getVirtualItems()
-        粘下标=布局.偏移处吸顶下标(自身.虚拟.scrollOffset)
-        粘={}
-        for 级,下标 in enumerate(粘下标):
-            粘[下标]=级
-        末项=None if len(项表)==0 else 项表[-1]
-        底=0 if 末项 is None else max(0,自身.虚拟.getTotalSize()-末项['end'])
-        记录=属性['useRecord']('' if 自身.选中 is None else 自身.选中)
-        类型='' if 记录 is None or 记录.get('type') is None else 记录.get('type')
-        身份=自身.选中 if 记录 is None or 记录.get('identity') is None else 记录.get('identity')
-        自身._行标=f'{类型} · {身份}'
-        列数=5 if 属性['showTime'] else 4
-        闪=属性['flash']
-        显示时间=属性['showTime']
-        行块=[]
-        for 位置,项 in enumerate(项表):
-            上端=行高 if 位置==0 else 项表[位置-1]['end']
-            间隙=项['start']-上端
-            条目=布局.项[项['index']]
-            块={'key':项['key']}
-            if 间隙>0:
-                块['gap']={'type':'tr','aria-hidden':True,'cells':[{'type':'td','colSpan':列数,'style':{'height':间隙,'padding':0}}]}
-            块['row']=自身._一行(条目,粘.get(项['index']),翻译,闪,显示时间)
-            行块.append(块)
-        底行=None
-        if 底>0:
-            底行={'type':'tr','aria-hidden':True,'data-inspector-fold-space':'' if 布局.底内边距>0 else None,'cells':[{'type':'td','colSpan':列数,'style':{'height':底,'padding':0}}]}
-        数量=f"{len(自身._过滤['matches'])} / {len(全部行)}" if 自身._筛选.活动 else str(len(全部行))
-        筛选属性={'value':自身.类型查询,'suggest':自身._建议,'apply':自身.应用筛选,'t':翻译}
-        if 自身.筛选器 is None:
-            自身.筛选器=类型筛选器(筛选属性)
-        else:
-            自身.筛选器.更新(筛选属性)
-        错误文=自身.失败
-        if 错误文 is None and 打开错误 is not None:
-            原文=读(打开错误,'message')
-            错误文=None if 原文 is None else 失败说明(str(原文))
-        表头=[{'className':'idColumn','text':翻译('table.id')},{'className':'typeColumn','children':[{'type':'span','className':'typeHeader','text':翻译('table.type'),'filter':None}]},{'className':'locationColumn','text':翻译('table.location')}]
-        if 显示时间:
-            表头.append({'className':'timeColumn','text':翻译('table.time')})
-        表头.append({'text':翻译('table.data')})
-        树={
-            'type':'section',
-            'className':'root',
-            'cssModule':'检查器.module.css',
-            'aria-label':属性['title'],
-            'toolbar':{
-                'className':'toolbar',
-                'title':属性.get('modeSelector',属性['title']),
-                'count':数量,
-                'older':None if not 还有 else {'type':'button','disabled':加载中,'text':翻译('table.loading') if 加载中 else 翻译('table.older'),'onClick':自身._更早},
-                'latest':{'type':'button','text':翻译('table.latest'),'onClick':自身._最新},
-            },
-            'notice':None if 属性.get('notice') is None else {'className':'pickNotice','role':'status','text':属性['notice']},
-            'alert':None if 错误文 is None else {'type':'p','role':'alert','text':错误文},
-            'scroller':{
-                'ref':自身._记滚动区,
-                'className':'scroller',
-                'onScroll':自身._滚动,
-                'table':{
-                    'className':'table',
-                    'aria-label':属性['title'],
-                    'aria-rowcount':len(布局.层级.行)+1,
-                    'head':表头,
-                    'rows':行块,
-                    'bottom':底行,
-                },
-                'empty':None if len(布局.层级.行)!=0 else {'type':'p','className':'empty','text':翻译('table.empty')},
-            },
-            'details':None,
-        }
-        壳=界面.column().classes('检查器表格')
-        壳.props(f'aria-label="{属性["title"]}"')
-        with 壳:
-            条=树['toolbar']
-            with 界面.row().classes('检查器条'):
-                界面.label(str(条['title'])+' '+str(条['count']))
-                更早=条.get('older')
-                if isinstance(更早,dict):
-                    更早钮=界面.button(更早['text'], on_click=更早['onClick']).props('flat no-caps')
-                    if 更早.get('disabled'):
-                        更早钮.disable()
-                界面.button(条['latest']['text'], on_click=条['latest']['onClick']).props('flat no-caps')
-            if isinstance(树.get('notice'),dict) and 树['notice'].get('text'):
-                界面.label(树['notice']['text'])
-            if isinstance(树.get('alert'),dict) and 树['alert'].get('text'):
-                界面.label(树['alert']['text'])
-            滚=树['scroller']
-            with 界面.row().classes('检查器表头'):
-                for 列 in 滚['table']['head']:
-                    with 界面.row().classes(str(列.get('className') or '')):
-                        if 列.get('text'):
-                            界面.label(str(列['text']))
-                        for 子 in 列.get('children') or []:
-                            if not isinstance(子,dict):
-                                continue
-                            if 子.get('text'):
-                                界面.label(str(子['text']))
-                            if 'filter' in 子:
-                                子['filter']=自身.筛选器.渲染()
-            if isinstance(滚.get('empty'),dict):
-                界面.label(滚['empty']['text'])
-            def 画格(项):
-                '单元格里的文字和按钮'
-                if 项 is None:
-                    return
-                if isinstance(项,(list,tuple)):
-                    for 子 in 项:
-                        画格(子)
-                    return
-                if not isinstance(项,dict):
-                    return
-                文=项.get('text')
-                点击=项.get('onClick')
-                if 项.get('type')=='button':
-                    def 点(事件=None,点击=点击):
-                        '点行后重画选中和详情'
-                        if callable(点击):
-                            点击()
-                        自身.渲染()
-                    界面.button('' if 文 is None else str(文), on_click=点).props('flat no-caps dense')
-                    return
-                if 文 is not None and 文!='':
-                    界面.label(str(文))
-                画格(项.get('children'))
-            def 留白(行节点):
-                '虚拟列表里的空隙'
-                if not isinstance(行节点,dict):
-                    return
-                格=行节点.get('cells') or []
-                if len(格)==0 or not isinstance(格[0],dict):
-                    return
-                样式=格[0].get('style')
-                高=样式.get('height') if isinstance(样式,dict) else None
-                if 高:
-                    界面.element('div').style(f'height:{高}px;padding:0')
-            for 块 in 滚['table']['rows']:
-                if isinstance(块,dict):
-                    留白(块.get('gap'))
-                行=块.get('row') if isinstance(块,dict) else None
-                with 界面.row().classes('检查器行'):
-                    if isinstance(行,dict):
-                        画格(行.get('cells'))
-                    else:
-                        界面.label(str(块.get('key') or ''))
-            留白(滚['table'].get('bottom'))
-            树['details']=自身._详情(记录,翻译)
-        return 树
+        '画出序号、类型、位置、可选时间和预览'
+        属性=自身.属性#当前
+        窗口=属性['window']#窗口
+        文档=窗口.document#文档
+        行=属性['row']#行元数据
+        记录源=属性['useRecord'](行['key'])#这一行的记录
+        记录=None if 记录源 is None else 记录源#钩子已经选出快照
+        if callable(getattr(记录源,'getSnapshot',None)):#万一交来的是源
+            记录=记录源.getSnapshot()#再读
+        变了=自身.先前记录 is not 未读 and 自身.先前记录 is not 记录#记录换了
+        自身.先前记录=记录#记下
+        导航脉冲=属性.get('pulse') or 0#定位脉冲
+        刚定位=导航脉冲>0 and 自身.先前脉冲!=导航脉冲#这一次定位
+        自身.先前脉冲=导航脉冲#记下
+        if 自身.动画 is not None:#旧动画
+            自身.动画.cancel()#停
+            自身.动画=None#清空
+        if 自身.根 is not None:#重画
+            自身.根.remove()#拿掉
+        根=文档.createElement('tr')#行
+        标样式模块(根,样式模块)#模块
+        根.setAttribute('aria-selected','true' if 属性.get('selected') else 'false')#是否选中
+        if 属性.get('context'):#筛选留下的祖先
+            根.setAttribute('data-inspector-context','')#上下文行
+            根.setAttribute('title','匹配记录的父级上下文')#中文说明
+        根.className=类名([
+            'selected' if 属性.get('selected') else '',
+            'sticky' if 属性.get('stickyLevel') is not None else '',
+            'contextRow' if 属性.get('context') else '',
+        ])#状态类名
+        if 属性.get('stickyLevel') is not None:#钉住
+            根.style.top=str((属性['stickyLevel']+1)*检查器行高)+'px'#表头之下
+            根.style.zIndex=str(9-属性['stickyLevel'])#越外层越高
+        序号格=模块节点(文档,'td',样式模块,'identity')#序号
+        身份='' if not isinstance(记录,dict) or 记录.get('identity') is None else str(记录.get('identity'))#身份文本
+        字=模块节点(文档,'span',样式模块,'identityText')#可聚焦的文本
+        字.setAttribute('tabindex','0')#键盘可聚焦
+        字.textContent=身份#文本
+        提示泡({'window':窗口,'label':身份,'side':'right','portal':True,'children':字}).渲染()#右侧提示
+        序号格.appendChild(字)#放入
+        根.appendChild(序号格)#序号列
+        类型格=文档.createElement('td')#类型
+        标样式模块(类型格,样式模块)#模块
+        类型格.style.paddingInlineStart=str(8+行.get('depth',0)*20)+'px'#按深度缩进
+        if 属性.get('branch'):#有子行
+            展开钮=模块节点(文档,'button',样式模块,'disclosure')#展开
+            展开钮.setAttribute('type','button')#按钮
+            合着=属性.get('collapsed') is True#当前合着
+            展开钮.setAttribute('aria-label','展开子行' if 合着 else '收起子行')#中文
+            展开钮.setAttribute('aria-expanded','false' if 合着 else 'true')#状态
+            展开钮.textContent='▸' if 合着 else '▾'#记号
+            def 点展开(事件,这一行=行,元素=根):
+                '把这一行和它的位置交给表格'
+                属性['toggle'](这一行,元素)#切换
+            展开钮.addEventListener('click',点展开)#点击
+            类型格.appendChild(展开钮)#放入
+        类型钮=模块节点(文档,'button',样式模块,'record')#类型按钮
+        类型钮.setAttribute('type','button')#按钮
+        类型钮.textContent='' if not isinstance(记录,dict) else str(记录.get('type') or '')#类型
+        def 点类型(事件,键=行['key']):
+            '选中这一行'
+            属性['select'](键)#选择
+        类型钮.addEventListener('click',点类型)#点击
+        类型格.appendChild(类型钮)#放入
+        根.appendChild(类型格)#类型列
+        位置格=文档.createElement('td')#位置
+        标样式模块(位置格,样式模块)#模块
+        位置格.textContent='' if not isinstance(记录,dict) else str(记录.get('location') or '')#T/S
+        根.appendChild(位置格)#位置列
+        if 属性.get('showTime'):#日志才有时间
+            时间格=文档.createElement('td')#时间
+            标样式模块(时间格,样式模块)#模块
+            时刻=None if not isinstance(记录,dict) else 记录.get('time')#毫秒
+            if isinstance(时刻,(int,float)) and not isinstance(时刻,bool):#有时间
+                时间格.textContent=窗口.Date(时刻).toISOString().slice(11,23)#UTC 的时分秒
+            根.appendChild(时间格)#时间列
+        摘要=''#预览
+        if isinstance(记录,dict):#有记录
+            if 属性.get('collapsed') and 记录.get('collapsedSummary') is not None:#折叠摘要
+                摘要=str(记录.get('collapsedSummary'))#用它
+            elif 记录.get('summary') is not None:#自带摘要
+                摘要=str(记录.get('summary'))#用它
+            else:#现算
+                摘要=检查器预览(记录.get('value'))#有界预览
+        数据格=文档.createElement('td')#数据
+        标样式模块(数据格,样式模块)#模块
+        预览钮=模块节点(文档,'button',样式模块,'preview')#预览按钮
+        预览钮.setAttribute('type','button')#按钮
+        预览钮.textContent=摘要#预览
+        def 点预览(事件,键=行['key']):
+            '点预览也是选中'
+            属性['select'](键)#选择
+        预览钮.addEventListener('click',点预览)#点击
+        数据格.appendChild(预览钮)#放入
+        根.appendChild(数据格)#数据列
+        自身.根=根#记住
+        允许闪=属性.get('flash') or 刚定位#对话新行或刚定位
+        if 允许闪 and (变了 or 属性.get('added') or 刚定位) and not 窗口.matchMedia('(prefers-reduced-motion: reduce)').matches:#需要闪
+            颜色=窗口.getComputedStyle(根).getPropertyValue('--dsw-specific-bubble-highlight')#主题高亮
+            自身.动画=根.animate([{'backgroundColor':颜色},{'backgroundColor':'transparent'}],{'duration':700})#闪一下
+        return 根#行
 
-    def __call__(自身,属性=None):
-        '对齐 React 调用'
-        if 属性 is not None:
-            自身.更新(属性)
-        return 自身.渲染()
+未读=object()#区分还没读过和记录就是空
+
+class 检查器表格:
+    '分页的层级表。行键稳定，选中后看原始数据'
+    def __init__(自身,属性):
+        '记下钩子和本地状态，并画出表'
+        自身.属性=属性#属性
+        自身.根=None#section
+        自身.失败=None#加载更早的失败
+        自身.选中=None#选中行键
+        自身.对象历史=None#对象导航栈
+        自身.揭示=None#要滚到的行
+        自身.已应用揭示=None#已经滚过的揭示
+        自身.已应用选取=None#已经处理的点选
+        自身.披露={}#手动展开
+        自身.类型查询=''#已确认的类型片段
+        自身.跟随='tail'#tail、scroll、manual
+        自身.视口={'offset':0,'height':600}#滚动几何
+        自身.披露锚=None#刚点的展开行
+        自身.间距世代=0#手动展开后不再沿用上一份空白
+        自身.已见={}#行第一次出现的时间
+        自身.已初始化=False#已经见过行
+        自身.已提交=None#上一份布局
+        自身.滚动器=None#滚动容器
+        自身.表体=None#tbody
+        自身.行实例={}#行键到数据行
+        自身.筛选器=None#类型筛选按钮
+        自身.详情=None#详情面板
+        自身.退订=[]#钩子退订
+        自身.已订=False#是否订过
+        自身.绘制中=False#避免重入
+        自身.待重画=False#绘制中又来了一次
+        自身.渲染()#画出
+
+    def 更新(自身,属性):
+        '换成新的钩子和点选'
+        自身.属性=属性#新属性
+
+    def 拆除(自身):
+        '卸订阅、行和详情'
+        for 退 in 自身.退订:#每个订阅
+            退()#拆
+        自身.退订=[]#清空
+        自身.已订=False#可再订
+        for 行 in 自身.行实例.values():#每一行
+            行.拆除()#卸
+        自身.行实例.clear()#清空
+        if 自身.筛选器 is not None:#筛选
+            自身.筛选器.拆除()#卸
+        自身.筛选器=None#清空
+        if 自身.详情 is not None:#详情
+            自身.详情.拆除()#卸
+        自身.详情=None#清空
+        if 自身.根 is not None:#整表
+            自身.根.remove()#拿掉
+        自身.根=None#清空
+
+    def 订上(自身):
+        '行和会话变化时重画'
+        if 自身.已订:#订过
+            return#不重复
+        自身.已订=True#记下
+        def 变更():
+            '根已经离开页面就退订，否则重画'
+            if 自身.根 is not None and 自身.根.parentNode is None:#被摘掉
+                自身.拆除()#卸干净
+                return#停
+            自身.渲染()#重画
+        for 名 in ('useRows','useSession','useRecord'):#三份钩子
+            钩=自身.属性.get(名)#钩子
+            if 钩 is not None and callable(getattr(钩,'_subscribe',None)):#渲染器的钩子
+                自身.退订.append(钩._subscribe(变更))#订
+
+    def 现在(自身):
+        '浏览器的当前毫秒'
+        return 取握手窗口().performance.now()#性能时钟
+
+    def 套用筛选(自身,查询):
+        '确认后回到顶部，并清掉选中和手动展开'
+        自身.跟随='scroll'#不要追尾
+        自身.类型查询=检查器类型筛选(查询).查询#规范化
+        自身.披露={}#展开作废
+        自身.间距世代=自身.间距世代+1#空白重新算
+        自身.选中=None#清选中
+        自身.对象历史=None#清导航
+        自身.揭示=None#不清滚动到旧行
+        自身.渲染()#重画
+        if 自身.滚动器 is not None:#有滚动容器
+            自身.滚动器.scrollTop=0#回到顶
+
+    def 切换(自身,行,元素):
+        '记住这一行在视口里的位置，再反转折叠'
+        if 自身.滚动器 is None:#还没有表
+            return#不能量
+        自身.跟随='manual'#不要追尾
+        宿主=自身.滚动器#滚动容器
+        自身.披露锚={'key':行['key'],'top':元素.getBoundingClientRect().top-宿主.getBoundingClientRect().top-宿主.clientTop}#视口内位置
+        自身.视口={'offset':宿主.scrollTop,'height':宿主.clientHeight}#量之前的几何
+        下一=dict(自身.披露)#拷贝
+        下一[行['key']]={'state':行.get('disclosure'),'collapsed':not 检查器行已折叠(行,自身.披露)}#反转
+        自身.披露=下一#换上
+        自身.渲染()#重画
+
+    def 定位聊天(自身,目标):
+        '有导航就把坐标交给主对话'
+        导航=自身.属性.get('navigation')#导航
+        if 导航 is None:#这张表不定位
+            return#停
+        导航['reveal'](目标 or {})#闪对话
+
+    def 选择(自身,键):
+        '选中行，清掉对象栈，并定位到对话'
+        自身.选中=键#选中
+        自身.对象历史=None#从这一行重新导航
+        导航=自身.属性.get('navigation')#导航
+        目标=None if 导航 is None else 导航['target'](键)#这一行的坐标
+        自身.定位聊天(目标)#闪对话
+        自身.渲染()#打开详情
+
+    def 定位行(自身,键,全部行,过滤行,筛选):
+        '展开祖先。行被筛选藏住时先清掉筛选'
+        清筛选=筛选.生效 and not any(行['key']==键 for 行 in 过滤行)#当前过滤里没有
+        if 清筛选:#先取消筛选
+            自身.类型查询=''#清空
+        自身.跟随='scroll'#滚到这一行，不追尾
+        自身.选中=键#选中
+        来源=全部行 if 清筛选 else 过滤行#用哪一份找父
+        按键={}#键到行
+        for 行 in 来源:#索引
+            按键[行['key']]=行#记下
+        下一=dict(自身.披露)#拷贝
+        父=按键.get(键,{}).get('parent')#父键
+        while 父 is not None:#沿祖先打开
+            行=按键.get(父)#父行
+            if 行 is None:#断了
+                break#停
+            下一[父]={'state':行.get('disclosure'),'collapsed':False}#打开
+            父=行.get('parent')#再上一层
+        自身.披露=下一#换上
+        脉冲=1 if 自身.揭示 is None else 自身.揭示.get('pulse',0)+1#新的一次
+        自身.揭示={'key':键,'pulse':脉冲}#等布局后滚动
+
+    def 导航(自身,引用):
+        '压入对象栈，定位对话，行还在就滚到那一行'
+        属性=自身.属性#当前
+        记录=自身.当前记录()#选中记录
+        行标签=(str(记录.get('type') or '') if isinstance(记录,dict) else '')+' · '+(str(记录.get('identity')) if isinstance(记录,dict) and 记录.get('identity') is not None else str(自身.选中))#面包屑根
+        先前=自身.对象历史#已有栈
+        自身.对象历史={
+            'rootKey':自身.选中 if 先前 is None else 先前.get('rootKey'),#最初的行
+            'rootLabel':行标签 if 先前 is None else 先前.get('rootLabel'),#最初的标签
+            'references':list(先前.get('references') if 先前 is not None else [])+[引用],#压入
+        }#新栈
+        自身.定位聊天(引用.get('target'))#闪对话
+        if 引用.get('rowKey') is not None:#表格里有这一行
+            全部=自身.读行()#全部行
+            筛选=检查器类型筛选(自身.类型查询)#当前筛选
+            过滤=筛选.套用(全部,属性['typeOf'])#过滤结果
+            自身.定位行(引用['rowKey'],全部,过滤['rows'],筛选)#滚过去
+        自身.渲染()#重画详情
+
+    def 回到(自身,下标):
+        '面包屑回到某一层，并滚到对应行'
+        历史=自身.对象历史#当前栈
+        if 历史 is None:#没有栈
+            return#停
+        引用=None if 下标==0 else 历史['references'][下标-1]#这一层
+        键=历史['rootKey'] if 下标==0 else (None if 引用 is None else 引用.get('rowKey'))#行键
+        导航=自身.属性.get('navigation')#导航
+        if 下标==0:#回到根行
+            目标=None if 导航 is None else 导航['target'](历史['rootKey'])#根坐标
+            自身.对象历史=None#清栈
+        else:#回到中间层
+            目标=None if 引用 is None else 引用.get('target')#该层坐标
+            自身.对象历史={'rootKey':历史['rootKey'],'rootLabel':历史['rootLabel'],'references':历史['references'][:下标]}#截断
+        if 键 is not None:#有行
+            全部=自身.读行()#全部行
+            筛选=检查器类型筛选(自身.类型查询)#筛选
+            过滤=筛选.套用(全部,自身.属性['typeOf'])#结果
+            自身.定位行(键,全部,过滤['rows'],筛选)#滚过去
+        自身.定位聊天(目标)#闪对话
+        自身.渲染()#重画
+
+    def 读行(自身):
+        '当前全部行，不经筛选'
+        def 原样(值):
+            '整份行列表'
+            return 值#原样
+        行=自身.属性['useRows'](原样)#钩子
+        return list(行 or [])#没有时当空
+
+    def 当前记录(自身):
+        '选中行的记录。没有选中时读空键'
+        钩=自身.属性['useRecord']#按键记录
+        快照=钩(自身.选中 or '')#快照或源
+        if callable(getattr(快照,'getSnapshot',None)):#还是源
+            return 快照.getSnapshot()#读
+        return 快照#已经是记录
+
+    def 渲染(自身):
+        '画出工具栏、可见行和选中详情'
+        if 自身.绘制中:#重入
+            自身.待重画=True#记一笔
+            return 自身.根#先返回
+        自身.绘制中=True#占住
+        try:#画完一定放开
+            属性=自身.属性#当前
+            窗口=属性['window']#窗口
+            文档=窗口.document#文档
+            确保样式(文档)#样式
+            全部=自身.读行()#全部行
+            def 还有(值):
+                '会话是否还有更早的页'
+                return isinstance(值,dict) and 值.get('hasMore') is True#还有
+            def 在载(值):
+                '是否正在加载更早'
+                return isinstance(值,dict) and 值.get('loadingOlder') is True#在载
+            def 打开错(值):
+                '打开会话的错误'
+                if not isinstance(值,dict):#没有快照
+                    return None#无
+                return 值.get('openError')#错误
+            还有更多=属性['useSession'](还有)#翻页
+            加载中=属性['useSession'](在载)#忙碌
+            打开错误=属性['useSession'](打开错)#打开失败
+            选取=属性.get('pickedRow')#对话里点到的行
+            if 选取 is not None and 自身.已应用选取 is not 选取 and any(行['key']==选取.get('key') for 行 in 全部):#新的点选而且行在
+                自身.已应用选取=选取#记下
+                自身.对象历史=None#从这一行开始
+                筛选前=检查器类型筛选(自身.类型查询)#当前筛选
+                过滤前=筛选前.套用(全部,属性['typeOf'])#过滤
+                自身.定位行(选取['key'],全部,过滤前['rows'],筛选前)#展开并选中
+            筛选=检查器类型筛选(自身.类型查询)#确认后的筛选
+            过滤=筛选.套用(全部,属性['typeOf'])#行和命中
+            层级=检查器表格层级(过滤['rows'],自身.披露)#可见层级
+            先前布局=None#手动展开不用上一份
+            if 自身.已提交 is not None and 自身.已提交['disclosures'] is 自身.披露 and 自身.已提交['spacingGeneration']==自身.间距世代:#同一套展开
+                先前布局=自身.已提交['layout']#用来保住折叠锚
+            布局=检查器表格布局(层级,先前布局,自身.视口,自身.披露锚)#这一份布局
+            现在=自身.现在()#当前时间
+            到达={}#行第一次出现的时间
+            for 行 in 全部:#每一行
+                已有=自身.已见.get(行['key'])#见过
+                if 已有 is None:#新行
+                    到达[行['key']]=现在 if 自身.已初始化 else float('-inf')#第一次不闪历史
+                else:#见过
+                    到达[行['key']]=已有#沿用
+            if len(全部)>0:#有行
+                自身.已初始化=True#之后的新行可以闪
+            自身.已见=到达#换上
+            自身.保证骨架(文档,窗口,属性,全部,过滤,筛选,还有更多,加载中,打开错误)#工具栏和表
+            自身.填行(文档,窗口,属性,布局,层级,过滤,筛选,到达)#可见行
+            自身.安放滚动(窗口,布局)#锚、追尾、定位
+            自身.画详情(文档,窗口,属性,筛选)#选中详情
+            自身.订上()#变化后重画
+        finally:#放开
+            自身.绘制中=False#结束
+        if 自身.待重画:#绘制中又来了
+            自身.待重画=False#清掉
+            return 自身.渲染()#再画
+        return 自身.根#表格
+
+    def 保证骨架(自身,文档,窗口,属性,全部,过滤,筛选,还有更多,加载中,打开错误):
+        '第一次建表。之后只改文字、通知和按钮'
+        if 自身.根 is None:#第一次
+            根=模块节点(文档,'section',样式模块,'root')#整页
+            根.setAttribute('aria-label',属性.get('title') or '')#标题
+            栏=模块节点(文档,'div',样式模块,'toolbar')#工具栏
+            标题=文档.createElement('span')#左侧标题
+            栏.appendChild(标题)#放入
+            更早=文档.createElement('button')#加载更早
+            更早.setAttribute('type','button')#按钮
+            def 点更早(事件):
+                '翻页时停住追尾。失败留在表上'
+                自身.跟随='scroll'#不追尾
+                自身.失败=None#清旧失败
+                try:#同步翻页
+                    自身.属性['loadOlder']()#加载
+                except Exception as 错误:#翻页失败
+                    自身.失败=str(错误)#留下
+                自身.渲染()#重画
+            更早.addEventListener('click',点更早)#点击
+            栏.appendChild(更早)#放入
+            最新=文档.createElement('button')#跟踪最新
+            最新.setAttribute('type','button')#按钮
+            最新.textContent='跟踪最新'#中文
+            def 点最新(事件):
+                '回到追尾，并丢掉为折叠留下的空白'
+                自身.跟随='tail'#追尾
+                自身.间距世代=自身.间距世代+1#空白重算
+                自身.渲染()#重画
+            最新.addEventListener('click',点最新)#点击
+            栏.appendChild(最新)#放入
+            根.appendChild(栏)#工具栏
+            通知=模块节点(文档,'div',样式模块,'pickNotice')#选取说明
+            通知.setAttribute('role','status')#状态
+            根.appendChild(通知)#先放着，没有说明时藏起
+            警告=文档.createElement('p')#失败
+            警告.setAttribute('role','alert')#警告
+            根.appendChild(警告)#先放着
+            滚动=模块节点(文档,'div',样式模块,'scroller')#滚动容器
+            def 滚动时(事件):
+                '离开底部就不再追尾。手动展开时不改跟随'
+                盒=事件.currentTarget#滚动容器
+                自身.视口['offset']=盒.scrollTop#记下
+                if 自身.跟随!='manual':#不是手动展开
+                    差=盒.scrollHeight-盒.clientHeight-盒.scrollTop#离底部
+                    自身.跟随='tail' if 差<=40 else 'scroll'#靠近底部才追
+            滚动.addEventListener('scroll',滚动时)#滚动
+            表=模块节点(文档,'table',样式模块,'table')#表
+            表.setAttribute('aria-label',属性.get('title') or '')#标题
+            头=文档.createElement('thead')#表头
+            头行=文档.createElement('tr')#表头行
+            标样式模块(头行,样式模块)#模块
+            for 文案,类 in (('序号','idColumn'),('类型','typeColumn'),('T/S','locationColumn')):#前三列
+                格=模块节点(文档,'th',样式模块,类)#列
+                if 类=='typeColumn':#类型列带筛选
+                    盒=模块节点(文档,'span',样式模块,'typeHeader')#标题和按钮
+                    字=文档.createElement('span')#文字
+                    字.textContent='类型'#中文
+                    盒.appendChild(字)#放入
+                    格.appendChild(盒)#放入
+                else:#普通列
+                    格.textContent=文案#中文
+                头行.appendChild(格)#放入
+            时间头=模块节点(文档,'th',样式模块,'timeColumn')#时间列
+            时间头.textContent='时间 (UTC)'#中文
+            头行.appendChild(时间头)#先放着
+            数据头=文档.createElement('th')#数据列
+            标样式模块(数据头,样式模块)#模块
+            数据头.textContent='数据'#中文
+            头行.appendChild(数据头)#放入
+            头.appendChild(头行)#表头行
+            表.appendChild(头)#表头
+            体=文档.createElement('tbody')#表体
+            表.appendChild(体)#表体
+            滚动.appendChild(表)#表
+            空=模块节点(文档,'p',样式模块,'empty')#没有记录
+            空.textContent='暂无记录'#中文
+            滚动.appendChild(空)#放入
+            根.appendChild(滚动)#滚动区
+            自身.根=根#记住
+            自身.滚动器=滚动#记住
+            自身.表体=体#记住
+            自身.标题节=标题#左侧文字
+            自身.更早钮=更早#翻页
+            自身.通知节=通知#选取说明
+            自身.警告节=警告#失败
+            自身.时间头=时间头#可隐藏
+            自身.空节=空#空状态
+            自身.类型盒=头行.children[1].firstChild#类型标题盒
+            if 属性.get('parent') is not None:#有挂点
+                属性['parent'].appendChild(根)#挂上
+        选择器=属性.get('modeSelector')#展示形式
+        左侧=自身.标题节#标题槽
+        while 左侧.firstChild is not None:#清掉旧内容
+            左侧.removeChild(左侧.firstChild)#拿掉
+        if 选择器 is not None:#有选择器
+            左侧.appendChild(选择器)#放进去
+            左侧.appendChild(文档.createTextNode(' · '))#分隔
+        else:#用标题
+            左侧.appendChild(文档.createTextNode((属性.get('title') or '')+' · '))#标题
+        if 筛选.生效:#正在筛选
+            计数=str(len(过滤['matches']))+' / '+str(len(全部))#命中/全部
+        else:#没有筛选
+            计数=str(len(全部))#行数
+        左侧.appendChild(文档.createTextNode(计数))#数字
+        自身.更早钮.disabled=加载中 is True#加载时不能再点
+        自身.更早钮.textContent='加载中…' if 加载中 else '加载更早'#中文
+        自身.更早钮.style.display='' if 还有更多 else 'none'#没有更早就藏起
+        说明=属性.get('notice')#选取说明
+        if 说明 is None:#没有
+            自身.通知节.style.display='none'#藏起
+        else:#有说明
+            自身.通知节.style.display=''#显示
+            自身.通知节.textContent=说明#中文
+        错误文=自身.失败#翻页失败
+        if 错误文 is None and 打开错误 is not None:#打开失败
+            if isinstance(打开错误,dict):#结构化错误
+                错误文=打开错误.get('message')#消息
+            else:#异常或其他
+                错误文=getattr(打开错误,'message',None) or str(打开错误)#文本
+        if 错误文 is None:#没有失败
+            自身.警告节.style.display='none'#藏起
+        else:#有失败
+            自身.警告节.style.display=''#显示
+            自身.警告节.textContent=str(错误文)#文本
+        自身.时间头.style.display='' if 属性.get('showTime') else 'none'#对话分组没有时间
+        自身.根.setAttribute('aria-label',属性.get('title') or '')#标题
+        def 建议(查询):
+            '从全部已加载行取候选'
+            return 检查器类型筛选(查询).建议(全部,属性['typeOf'])#同步
+        if 自身.筛选器 is None:#第一次
+            自身.筛选器=类型筛选器({'window':窗口,'parent':自身.类型盒,'value':自身.类型查询,'suggest':建议,'apply':自身.套用筛选})#按钮
+        else:#更新查询
+            自身.筛选器.更新({'window':窗口,'parent':自身.类型盒,'value':自身.类型查询,'suggest':建议,'apply':自身.套用筛选})#新属性
+            if 自身.筛选器.根 is not None and 自身.筛选器.根.parentNode is not 自身.类型盒:#不在类型列
+                自身.类型盒.appendChild(自身.筛选器.根)#挂上
+            自身.筛选器.渲染()#刷新按下状态
+
+    def 填行(自身,文档,窗口,属性,布局,层级,过滤,筛选,到达):
+        '只画视口附近的行，粘性祖先额外留下'
+        while 自身.表体.firstChild is not None:#清表体
+            自身.表体.removeChild(自身.表体.firstChild)#拿掉
+        数量=len(布局.项)#数据行数
+        偏移=自身.视口['offset']#当前滚动
+        if 布局.滚动偏移 is not None and (自身.已提交 is None or 自身.已提交['layout'] is not 布局):#这份布局要求跳转
+            偏移=布局.滚动偏移#先按锚画
+        高度=自身.视口['height'] or 600#视口高度
+        if 数量==0:#没有行
+            下标列表=[]#不画
+        else:#有行
+            首=max(0,int(偏移/检查器行高))#第一可见行
+            起=max(0,首-1-过扫描)#再往上一点
+            止=min(数量-1,int((偏移+高度)/检查器行高)+过扫描)#再往下一点
+            粘性=布局.偏移处粘性下标(偏移)#钉住的祖先
+            集合=set(粘性)#先放祖先
+            号=起#可见起点
+            while 号<=止:#可见范围
+                集合.add(号)#加上
+                号=号+1#下一个
+            下标列表=sorted(集合)#从上到下
+        列数=5 if 属性.get('showTime') else 4#列数
+        上一结束=检查器行高#表头占一行
+        现在=自身.现在()#判断新行
+        用过=set()#这一轮画了的行
+        for 位置,项下标 in enumerate(下标列表):#每个可见项
+            项=布局.项[项下标]#布局项
+            起点=检查器行高+(项下标*检查器行高)#虚拟起点，表头之后
+            空隙=起点-上一结束#中间空档
+            if 空隙>0:#需要占位
+                空行=文档.createElement('tr')#占位行
+                空行.setAttribute('aria-hidden','true')#不读
+                空格=文档.createElement('td')#一格撑开
+                空格.setAttribute('colspan',str(列数))#跨列
+                空格.style.height=str(空隙)+'px'#高度
+                空格.style.padding='0'#不留内边距
+                空行.appendChild(空格)#放入
+                自身.表体.appendChild(空行)#放入表
+            上一结束=起点+检查器行高#这一行的底
+            行=项['row']#行数据
+            实例=自身.行实例.get(行['key'])#已有实例
+            行属性={
+                'window':窗口,'row':行,'selected':行['key']==自身.选中,
+                'branch':层级.是分支(行['key']),'collapsed':检查器行已折叠(行,自身.披露),
+                'added':现在-到达.get(行['key'],现在)<700,
+                'stickyLevel':None,'pulse':自身.揭示['pulse'] if 自身.揭示 is not None and 自身.揭示.get('key')==行['key'] else 0,
+                'context':筛选.生效 and 行['key'] not in 过滤['matches'],
+                'select':自身.选择,'toggle':自身.切换,'useRecord':属性['useRecord'],
+                'flash':属性.get('flash'),'showTime':属性.get('showTime'),
+            }#这一行
+            粘性层=None#是否钉住
+            for 层,粘下标 in enumerate(布局.偏移处粘性下标(偏移)):#当前粘性
+                if 粘下标==项下标:#就是这一行
+                    粘性层=层#层号
+                    break#停
+            行属性['stickyLevel']=粘性层#可能为空
+            if 实例 is None:#第一次
+                实例=数据行(行属性)#新建
+                自身.行实例[行['key']]=实例#留下
+            else:#还在
+                实例.更新(行属性)#换属性
+            节点=实例.渲染()#画出
+            if 节点 is not None:#有行
+                自身.表体.appendChild(节点)#放入
+            用过.add(行['key'])#记过
+        末尾=0#表尾空白
+        if len(下标列表)>0:#有可见行
+            最后=下标列表[-1]#最后一项
+            最后底=检查器行高+(最后+1)*检查器行高#它的底
+            总高=(数量+1)*检查器行高+布局.底边距#含表头和折叠空白
+            末尾=max(0,总高-最后底)#剩下的高度
+        if 末尾>0:#需要尾部占位
+            空行=文档.createElement('tr')#占位
+            空行.setAttribute('aria-hidden','true')#不读
+            if 布局.底边距>0:#折叠留下的空白
+                空行.setAttribute('data-inspector-fold-space','')#标记
+            空格=文档.createElement('td')#一格
+            空格.setAttribute('colspan',str(列数))#跨列
+            空格.style.height=str(末尾)+'px'#高度
+            空格.style.padding='0'#不留内边距
+            空行.appendChild(空格)#放入
+            自身.表体.appendChild(空行)#放入
+        for 键,实例 in list(自身.行实例.items()):#没画到的行
+            if 键 not in 用过:#离开视口
+                实例.拆除()#卸
+                del 自身.行实例[键]#忘掉
+        自身.空节.style.display='' if 数量==0 else 'none'#没有可见行
+        自身.滚动器.firstChild.setAttribute('aria-rowcount',str(len(层级.行)+1))#含表头
+
+    def 安放滚动(自身,窗口,布局):
+        '先跳到锚或追尾，再记下视口。新的定位滚到行中间'
+        盒=自身.滚动器#滚动容器
+        锚偏移=None#这份布局要不要跳
+        if 布局.滚动偏移 is not None and (自身.已提交 is None or 自身.已提交['layout'] is not 布局):#新布局
+            锚偏移=布局.滚动偏移#跳到这里
+        if 锚偏移 is not None:#有锚
+            盒.scrollTop=锚偏移#跳
+        elif 自身.跟随=='tail' and 布局.底边距==0:#追尾且没有折叠空白
+            盒.scrollTop=盒.scrollHeight#到底
+        自身.视口={'offset':盒.scrollTop,'height':盒.clientHeight or 600}#量之后的几何
+        自身.披露锚=None#用过了
+        自身.已提交={'layout':布局,'disclosures':自身.披露,'spacingGeneration':自身.间距世代}#提交
+        if 自身.揭示 is not None and 自身.已应用揭示 is not 自身.揭示:#还没滚到
+            下标=-1#目标行
+            for 号,项 in enumerate(布局.项):#找行
+                if 项['key']==自身.揭示['key']:#命中
+                    下标=号#记下
+                    break#停
+            if 下标>=0:#在可见层级里
+                目标=max(0,下标*检查器行高-盒.clientHeight/2)#行中
+                盒.scrollTop=目标#滚过去
+                自身.视口['offset']=盒.scrollTop#更新
+                自身.已应用揭示=自身.揭示#记过
+
+    def 画详情(自身,文档,窗口,属性,筛选):
+        '没有选中就卸掉详情。对话分组用对象树，日志用 JSON 树'
+        if 自身.选中 is None:#没有选中
+            if 自身.详情 is not None:#还开着
+                自身.详情.拆除()#卸
+            自身.详情=None#清空
+            return#停
+        记录=自身.当前记录()#选中记录
+        对象表=属性.get('objects')#对话对象
+        详情=检查器json(None if 对象表 is not None else (None if not isinstance(记录,dict) else 记录.get('value')))#日志才序列化
+        if 记录 is None:#行没了
+            文本='该记录已移除或结算，请选择当前记录。'#中文
+            失败=False#不是序列化失败
+        elif 详情['failed']:#写不出 JSON
+            文本='无法序列化这条记录，可以选择其他记录继续查看。\n'+详情['text']#中文加错误
+            失败=True#失败
+        else:#成功
+            文本=详情['text']#JSON
+            失败=详情['failed']#假
+        子=None#详情内容
+        if 对象表 is None:#日志
+            if 记录 is not None and not 详情['failed']:#可以画 JSON 树
+                if not hasattr(自身,'json树') or 自身.json树 is None or getattr(自身,'json键',None)!=自身.选中:#换行
+                    自身.json树=检查器json树({'window':窗口,'text':详情['text']})#新树
+                    自身.json键=自身.选中#记下
+                else:#同一行
+                    自身.json树.更新({'window':窗口,'text':详情['text']})#换文本
+                子=自身.json树.渲染()#树
+        else:#对话对象
+            历史=自身.对象历史#导航栈
+            当前引用=None if 历史 is None or len(历史.get('references') or [])==0 else 历史['references'][-1]#栈顶
+            值=记录.get('value') if isinstance(记录,dict) else None#根值
+            if 当前引用 is not None:#在看链接进去的对象
+                值=当前引用['read']()#再读
+            行标签=''#根标签
+            if isinstance(记录,dict):#有记录
+                行标签=str(记录.get('type') or '')+' · '+str(记录.get('identity') if 记录.get('identity') is not None else 自身.选中)#类型和身份
+            else:#没有记录
+                行标签=' · '+str(自身.选中)#只有键
+            屑=[历史['rootLabel'] if 历史 is not None else 行标签]#第一层
+            种类表={'node':'Node','nodeData':'Node Data','group':'Group','groupData':'Group Data','turn':'Turn','turnData':'Turn Data','step':'Step','stepData':'Step Data'}#中文表原文
+            for 引用 in (历史.get('references') if 历史 is not None else []) or []:#每一跳
+                种类=引用.get('kind')#对象种类
+                屑.append(种类表.get(种类,种类 or '')+' · '+str(引用.get('identity')))#种类和身份
+            导航条=模块节点(文档,'nav',样式模块,'objectBreadcrumbs')#面包屑
+            导航条.setAttribute('aria-label','原始数据导航')#中文
+            列表=文档.createElement('ol')#有序列表
+            for 下标,标签 in enumerate(屑):#每一层
+                项=文档.createElement('li')#一项
+                if 下标>0:#不是第一层
+                    隔=文档.createElement('span')#分隔
+                    隔.setAttribute('aria-hidden','true')#装饰
+                    隔.textContent='›'#记号
+                    项.appendChild(隔)#放入
+                钮=文档.createElement('button')#一层
+                钮.setAttribute('type','button')#按钮
+                钮.setAttribute('title',标签)#完整标签
+                钮.textContent=标签#文本
+                最后=下标==len(屑)-1#当前层
+                钮.disabled=最后#当前层不能再点
+                if 最后:#当前
+                    钮.setAttribute('aria-current','page')#当前页
+                def 点屑(事件,层=下标):
+                    '回到这一层'
+                    自身.回到(层)#截断栈
+                钮.addEventListener('click',点屑)#点击
+                项.appendChild(钮)#放入
+                列表.appendChild(项)#放入
+            导航条.appendChild(列表)#列表
+            对象键=当前引用.get('id') if 当前引用 is not None else 自身.选中#树的身份
+            if not hasattr(自身,'对象树') or 自身.对象树 is None or getattr(自身,'对象键',None)!=对象键:#换了对象
+                自身.对象树=检查器对象树({'window':窗口,'value':值,'objects':对象表,'navigate':自身.导航})#新树
+                自身.对象键=对象键#记下
+            else:#同一个对象
+                自身.对象树.更新({'window':窗口,'value':值,'objects':对象表,'navigate':自身.导航})#换值
+            盒=文档.createElement('div')#面包屑加树
+            盒.appendChild(导航条)#面包屑
+            树节点=自身.对象树.渲染()#树
+            if 树节点 is not None:#有树
+                盒.appendChild(树节点)#放入
+            子=盒#作为详情子节点
+        def 关闭():
+            '关掉详情和对象栈'
+            自身.选中=None#清选中
+            自身.对象历史=None#清栈
+            自身.渲染()#重画
+        详情属性={'window':窗口,'parent':自身.根,'text':文本,'failed':失败,'children':子,'close':关闭}#详情
+        if 自身.详情 is None:#第一次
+            自身.详情=检查器详情(详情属性)#新建
+        else:#还在
+            自身.详情.更新(详情属性)#换内容
+            自身.详情.渲染()#重画

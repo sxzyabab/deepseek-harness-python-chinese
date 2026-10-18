@@ -2,21 +2,22 @@ from ...异常 import 右侧侧栏错误
 
 __all__=['向导种类','页面地址','默认种子']
 
-向导种类='guide'#向导签种类（线路字面量）
+向导种类='guide'
 
 
 def 页面地址(种类):
-    '页面签记录地址：`sidebar://<kind>`。调用方只点名种类，不拼地址'
-    return 'sidebar://'+种类#页面地址
+    '页面签记录地址 sidebar://<kind>。调用方只点种类'
+    return 'sidebar://'+种类
 
 
 def 默认种子(标签表):
-    '按已登记引导入口数量解析默认页面；零个或多个入口时回退向导'
-    入口=list(标签表.guide())#引导入口
-    唯一=len(入口)==1#恰一入口
-    种类=入口[0]['kind'] if 唯一 else 向导种类#唯一则用其 kind
-    定义=标签表.get(种类)#类型定义
-    if 定义 is None:#未登记
-        raise 右侧侧栏错误('默认标签种类 "'+种类+'" 未登记')
-    取标题=定义['title'] if isinstance(定义,dict) else 定义.title#标题 thunk
-    return {'kind':种类,'title':取标题(页面地址(种类))}#种子
+    '零个或多个入口时用向导，只有一个入口时用那个种类'
+    入口表=标签表.向导()
+    仅有=入口表[0] if len(入口表)>0 else None
+    其余=入口表[1:]
+    单独=仅有 is not None and len(其余)==0
+    种类=仅有['kind'] if 单独 else 向导种类
+    定义=标签表.取(种类)
+    if 定义 is None:
+        raise 右侧侧栏错误('sidebarRight: default tab kind "'+种类+'" is not registered')
+    return {'kind':种类,'title':定义['title'](页面地址(种类))}

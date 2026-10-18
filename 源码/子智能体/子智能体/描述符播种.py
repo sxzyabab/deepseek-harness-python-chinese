@@ -2,7 +2,7 @@ import json#编码父 id 与结构化结果
 from ...模型后端.llm.消息 import 创建用户消息,截上下文摘要#用户消息与通知摘要
 
 __all__=[#仅中文公开名
-    '创建智能体消息','附可续跑返回指引','创建结算消息',
+    '创建智能体消息','附可续运行返回指引','创建结算消息',
 ]#公开面结束
 
 def 智能体消息来源(发送方):
@@ -16,8 +16,8 @@ def 创建智能体消息(发送方,内容):
         'source':智能体消息来源(发送方),#归属
     })#消息
 
-def 附可续跑返回指引(父标识,提示):
-    '在可续跑子体的初始任务后追加返回指引'
+def 附可续运行返回指引(父标识,提示):
+    '在可续运行子体的初始任务后追加返回指引'
     编码父=json.dumps(父标识)#JSON 字符串
     return [*提示,{#原任务加指引
         'type':'text',#文本
@@ -30,12 +30,12 @@ def 附可续跑返回指引(父标识,提示):
         ),#指引
     }]#块列表
 
-def 结算摘要(子标识,停止原因,可续跑):
+def 结算摘要(子标识,停止原因,可续运行):
     '用父任务的词汇说明后台子体为何结束'
     主语='Background subagent '+str(子标识)#主语
     if 停止原因=='completed':#完成
-        if 可续跑:#还能再收消息
-            return 主语+' finished and will do no further work unless you send it more.'#可续跑
+        if 可续运行:#还能再收消息
+            return 主语+' finished and will do no further work unless you send it more.'#可续运行
         return 主语+' finished. It cannot receive follow-up messages.'#外部
     if 停止原因=='aborted':#中止
         return 主语+' was stopped before it finished.'#中止
@@ -47,9 +47,9 @@ def 结算摘要(子标识,停止原因,可续跑):
         return 主语+' failed before it finished.'#失败
     return 主语+' ended abnormally ('+str(停止原因)+') before it finished.'#未知终态
 
-def 创建结算消息(子标识,终态,可续跑=True):
+def 创建结算消息(子标识,终态,可续运行=True):
     '用子体非空收尾文本建造运行时自己的结算通知'
-    摘要=结算摘要(子标识,终态['stopReason'],可续跑)#一行说明
+    摘要=结算摘要(子标识,终态['stopReason'],可续运行)#一行说明
     收尾文本=[]#只留非空文本块
     for 块 in 终态['output']:#逐块
         if isinstance(块,dict) and 块.get('type')=='text' and isinstance(块.get('text'),str) and len(块['text'])>0:#非空文本

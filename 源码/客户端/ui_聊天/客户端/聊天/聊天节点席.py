@@ -1,171 +1,217 @@
-from ..约定.回合过程 import 回合过程独立种类#过程折叠独立种类
-from ..存储 import 已存回合过程条目#持久过程开合
-from .可搜索隐藏 import 可搜索隐藏#可搜索隐藏
-
-__all__=['聊天节点席']#仅中文公开名
-
 import json
-from nicegui import ui as 界面
-from ...异常 import 页面失败文案
+from ....存储 import 创建快照存储
+from ....ui_基础界面组件.markdown.json块 import json块
+from ....ui_对话.异常 import 标样式模块
+from ..存储 import 回合过程是否打开
+from ..约定.回合过程 import 回合过程始终打开
+from ..约定.组树 import 在该层或更外
+from .流程动效 import 正在隐藏或收起
+from .用披露 import 注入聊天样式,取钩,真属性,挂节点
 
-def 恒等翻译(键,参数=None):
-    '无文案表时返回键本身'
-    return 键#键即文案
+__all__=['聊天节点席']
 
-def 空渲染槽(*位置参数,**关键字参数):
-    '未注入槽渲染时不画'
-    return None#不画
+样式模块='chat-view'
 
-def 绘制已登记组件(值,回退=None,看见=None):
-    '沿槽结果找到组件并调用渲染。回退对象由调用方另行绘制。'
-    if 值 is None or 值 is 回退:
-        return False
-    if 看见 is None:
-        看见=set()
-    编号=id(值)
-    if 编号 in 看见:
-        return False
-    看见.add(编号)
-    if not isinstance(值,(dict,list,tuple,str,bytes)):
-        方法=getattr(值,'渲染',None)
-        if 方法 is None:
-            return False
-        方法()
-        return True
-    画了=False
-    序列=值.values() if isinstance(值,dict) else 值
-    for 子 in 序列:
-        if 绘制已登记组件(子,回退,看见):
-            画了=True
-    return 画了
 
-def 回合数据(节点):
-    '仅 turn/step 位置。节点为 dict'
-    位置=节点['location'] if 'location' in 节点 else None#位置
-    种=位置['kind'] if 位置 is not None and 'kind' in 位置 else None#种
-    if 种 in ('turn','step'):
-        回合=位置['turn'] if 'turn' in 位置 else None#回合
-        return 回合['data'] if 回合 is not None and 'data' in 回合 else None#数据
-    return None#无
+def 回合数据自(节点):
+    '回合或步骤位置上的回合数据存储'
+    if not isinstance(节点,dict):
+        return None
+    位置=节点.get('location')
+    if not isinstance(位置,dict) or 位置.get('kind') not in ('turn','step'):
+        return None
+    回合=位置.get('turn')
+    if isinstance(回合,dict):
+        return 回合.get('data')
+    return None
 
-def 回合号(节点):
-    '仅 turn/step。节点为 dict'
-    位置=节点['location'] if 'location' in 节点 else None#位置
-    种=位置['kind'] if 位置 is not None and 'kind' in 位置 else None#种
-    if 种 in ('turn','step'):
-        回合=位置['turn'] if 'turn' in 位置 else None#回合
-        return 回合['turn'] if 回合 is not None and 'turn' in 回合 else None#号
-    return None#无
+
+def 回合号自(节点):
+    '节点落在哪一回合'
+    if not isinstance(节点,dict):
+        return None
+    位置=节点.get('location')
+    if not isinstance(位置,dict) or 位置.get('kind') not in ('turn','step'):
+        return None
+    回合=位置.get('turn')
+    if isinstance(回合,dict):
+        return 回合.get('turn')
+    return None
+
+
+def 选节点(钩,键,选择=None):
+    '钩子直接给节点，或再套一层选择'
+    if not callable(钩):
+        return None
+    if 选择 is None:
+        return 钩(键)
+    return 钩(键,选择)
+
 
 class 聊天节点席:
-    '订阅一 Node 键；兄弟更新不重挂'
+    '订阅一个稳定键，套上回合过程显隐，再交给对应渲染器'
     def __init__(自身,属性=None):
-        '记下 props'
-        自身.属性=属性 if 属性 is not None else {}#合成
-        自身.包装=None#可搜索隐藏
+        '记下节点键'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.根=None
+        自身.隐藏席=None
+        自身.披露重置=创建快照存储(0)
+        if 'window' in 自身.属性:
+            自身.渲染()
 
     def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性 if 属性 is not None else {}#新
+        '刷新属性'
+        自身.属性=属性 if isinstance(属性,dict) else {}
 
     def 渲染(自身):
-        '过程折叠 + 槽分发或 JSON 回退'
-        属性=自身.属性#props
-        节点键=属性['nodeKey'] if 'nodeKey' in 属性 else None#键
-        用节点=属性['useChatNode'] if 'useChatNode' in 属性 else None#读节点
-        用过程=属性['useChatNodeProcess'] if 'useChatNodeProcess' in 属性 else None#过程呈现
-        用存储=属性['useStore'] if 'useStore' in 属性 else None#UI store
-        动作=属性['actions'] if 'actions' in 属性 and 属性['actions'] is not None else {}#动作
-        渲染槽=属性['renderSlot'] if 'renderSlot' in 属性 else 空渲染槽#槽
-        翻译=属性['t'] if 't' in 属性 else 恒等翻译#文案
-        紧凑=属性['compactTranscript'] is True if 'compactTranscript' in 属性 else False#紧凑
-        历史不全=属性['historyIncomplete'] is True if 'historyIncomplete' in 属性 else False#历史不全
-        节点=用节点(节点键) if 用节点 is not None else None#节点
-        if 节点 is None:#未物化
-            if 自身.包装 is not None and 自身.包装.根 is not None:
-                try:
-                    自身.包装.根.clear()
-                    自身.包装.根.set_visibility(False)
-                except Exception as 错误:
-                    自身.包装=None
-                    界面.label(页面失败文案(错误))
-            return
-        过程呈现=用过程(节点键) if 用过程 is not None else None#呈现
-        规格=过程呈现['spec'] if 过程呈现 is not None and 'spec' in 过程呈现 else None#规格
-        存条目=None#存
-        if 用存储 is not None and 规格 is not None:#可存
-            回合=规格['turn'] if 'turn' in 规格 else None#回合
-            def 取存(态):
-                '已存过程条目'
-                return 已存回合过程条目(态,回合)#存
-            存条目=用存储(取存)#存
-        答步=规格['answerStep'] if 规格 is not None and 'answerStep' in 规格 else None#答步
-        存步=存条目['answerStep'] if 存条目 is not None and 'answerStep' in 存条目 else None#存步
-        过程条目=存条目 if 规格 is not None and 答步 is not None and 存步==答步 else None#匹配
-        过程开=过程条目 is not None#开合
-        def 设开(开):
-            '写入 store'
-            写=动作['setTurnProcessOpen'] if 'setTurnProcessOpen' in 动作 else None#写
-            if 写 is not None and 规格 is not None and 答步 is not None:#可写
-                写(规格['turn'] if 'turn' in 规格 else None,答步,开)#写
-        锚序=规格['answerAnchorSeq'] if 规格 is not None and 'answerAnchorSeq' in 规格 else None#锚序
-        过回合=过程呈现['turn'] if 过程呈现 is not None and 'turn' in 过程呈现 else None#过回合
-        规回合=规格['turn'] if 规格 is not None and 'turn' in 规格 else None#规回合
-        已关=过程呈现['turnClosed'] is True if 过程呈现 is not None and 'turnClosed' in 过程呈现 else False#已关
-        窗口就绪=规格 is not None and 过程呈现 is not None and 紧凑 is True and 锚序 is not None and 过回合==规回合 and 已关 is True and 历史不全 is False#就绪
-        锚=节点['anchorSeq'] if 'anchorSeq' in 节点 else None#锚
-        种=节点['kind'] if 'kind' in 节点 else None#种
-        起序=规格['processStartSeq'] if 规格 is not None and 'processStartSeq' in 规格 else None#起序
-        成员=窗口就绪 is True and 种 not in 回合过程独立种类 and 锚 is not None and 起序 is not None and 锚序 is not None and 锚>=起序 and 锚<锚序#成员
-        数据=节点['data'] if 'data' in 节点 else None#数据
-        步=数据['step'] if 数据 is not None and 'step' in 数据 else None#步
-        答案=窗口就绪 is True and 种=='assistant-step' and 步==答步#答案
-        持披露=种=='turn-process' or 答案 is True#披露主
-        有外=过程呈现['hasExternalProcess'] is True if 过程呈现 is not None and 'hasExternalProcess' in 过程呈现 else False#有外
-        内联=规格['inlineReasoning'] is True if 规格 is not None and 'inlineReasoning' in 规格 else False#内联
-        可折=窗口就绪 is True and (成员 is True or (持披露 is True and (有外 is True or 内联 is True)))#可折
-        过程面={'spec':规格,'foldable':可折,'open':过程开,'setOpen':设开} if 规格 is not None else None#过程面
-        控件失活=种=='turn-process' and 可折 is False#失活
-        紧凑答=答案 is True and 可折 is True and (过程呈现['compactAnswer'] is True if 过程呈现 is not None and 'compactAnswer' in 过程呈现 else False) and 过程开 is False#紧凑答
-        过程隐=控件失活 is True or (可折 is True and 成员 is True and 过程开 is False)#隐藏
-        def 揭开():
-            '成员则开'
-            if 成员 is True:#成员
-                设开(True)
-        if 自身.包装 is None:
-            自身.包装=可搜索隐藏(过程隐,揭开)
-        else:
-            自身.包装.隐藏=过程隐
-            自身.包装.揭示=揭开
-        自身.包装.渲染()
-        if 成员 is True:
-            自身.包装.根.classes(add='过程成员')
-        if 紧凑答 is True:
-            自身.包装.根.classes(add='过程答案')
-        def 截断标签(总):
-            'json.truncated'
-            return 翻译('json.truncated',{'total':总})#标签
-        属主={'selectedCallId':属性['selectedCallId'] if 'selectedCallId' in 属性 else None,'cwd':属性['cwd'] if 'cwd' in 属性 else None,'openFile':属性['openFile'] if 'openFile' in 属性 else None,'inspectCall':属性['inspectCall'] if 'inspectCall' in 属性 else None,'forkAt':属性['forkAt'] if 'forkAt' in 属性 else None,'loadImage':属性['loadImage'] if 'loadImage' in 属性 else None,'renderMessageImages':属性['renderMessageImages'] if 'renderMessageImages' in 属性 else None,'fileMentions':属性['fileMentions'] if 'fileMentions' in 属性 else None,'turnProcess':过程面,'node':节点,'t':翻译}#属主
-        回退={'type':'json-block','label':翻译('message.unknownSurface',{'type':种}),'payload':节点['data'] if 'data' in 节点 else None,'truncatedLabel':截断标签}#回退
-        with 自身.包装.根:
-            画出=渲染槽('conversation.chat.node',属主,{'entryKey':种,'hookContext':回合数据(节点),'fallback':回退})
-            if 画出 is 回退:
-                界面.label(翻译('message.unknownSurface',{'type':种}))
-                载荷=节点['data'] if 'data' in 节点 else None
-                if 载荷 is not None:
-                    try:
-                        原文=json.dumps(载荷,ensure_ascii=False,indent=2)
-                    except TypeError:
-                        原文=str(载荷)
-                    if len(原文)>2000:
-                        界面.label(截断标签(len(原文)))
-                        原文=原文[:2000]
-                    界面.code(原文).classes('载荷')
-                return
-            绘制已登记组件(画出,回退)
+        '过程成员收起时用可搜索隐藏，不卸子树'
+        属性=自身.属性
+        if 'window' not in 属性:
+            return 自身.根
+        窗口=属性['window']
+        文档=窗口.document
+        注入聊天样式(文档,样式模块,'聊天视图.module.css')
+        键=属性.get('nodeKey')
+        节点=选节点(属性.get('useChatNode'),键)
+        if not isinstance(节点,dict):
+            if 自身.根 is not None:
+                自身.根.remove()
+                自身.根=None
+            return None
+        组分=属性.get('groupPart')
+        回合=回合号自(节点)
+        呈现=选节点(属性.get('useChatNodeProcess'),键)
+        规格=呈现.get('spec') if isinstance(呈现,dict) else None
+        贴底=属性.get('useChatNodeBottom')
+        在底=贴底(键) is True if callable(贴底) else False
+        推迟=在底 and 属性.get('deferCollapse') is True
+        存储钩=属性.get('useStore')
+        已存开=False
+        if callable(存储钩) and isinstance(规格,dict):
+            def 选开(状态):
+                '读者对这一过程的开合'
+                return 回合过程是否打开(状态,规格,推迟)
+            已存开=存储钩(选开) is True
+        进行中=isinstance(呈现,dict) and 呈现.get('turnClosed') is not True
+        交错=isinstance(呈现,dict) and 呈现.get('hasInterleavedInput') is True
+        总开=进行中 or 交错 or 回合过程始终打开(节点)
+        过程开=总开 or 已存开
 
-    def __call__(自身,属性=None):
-        '对齐'
-        if 属性 is not None:
-            自身.更新(属性)#刷
-        自身.渲染()#画
+        def 设开(打开):
+            '写回这一回答代的开合'
+            if isinstance(规格,dict) and not 总开 and callable(属性.get('actions',{}).get('setTurnProcessOpen') if isinstance(属性.get('actions'),dict) else None):
+                属性['actions']['setTurnProcessOpen'](规格.get('turn'),规格.get('answerStep') or 0,打开)
+
+        策略=取钩(属性,'usePresentation')
+        if 策略 is None:
+            策略=属性.get('usePresentation')
+        折完成=False
+        if callable(策略):
+            def 选折(政策):
+                '完成回合要不要折叠'
+                return isinstance(政策,dict) and 政策.get('foldCompletedTurns') is True
+            折完成=策略(选折) is True
+        窗口就绪=isinstance(规格,dict) and isinstance(呈现,dict) and 折完成 and 呈现.get('turn')==规格.get('turn') and (呈现.get('turnStarted') is True or 呈现.get('turnClosed') is True)
+        成员=窗口就绪 and not 在该层或更外(节点,'turn') and 节点.get('anchorSeq') is not None and 规格.get('processStartSeq') is not None and 节点['anchorSeq']>=规格['processStartSeq'] and (进行中 or 规格.get('answerAnchorSeq') is None or 节点['anchorSeq']<规格['answerAnchorSeq'] or (组分=='reasoning' and 节点.get('kind')=='assistant-step' and isinstance(节点.get('data'),dict) and 节点['data'].get('step')==规格.get('answerStep')))
+        答案=窗口就绪 and not 进行中 and 组分!='reasoning' and 节点.get('kind')=='assistant-step' and isinstance(节点.get('data'),dict) and 节点['data'].get('step')==规格.get('answerStep')
+        持披露=节点.get('kind')=='turn-process' or 答案
+        可折=窗口就绪 and (进行中 or 成员 or 持披露)
+        有内容=isinstance(规格,dict) and not 交错 and (isinstance(呈现,dict) and (呈现.get('hasExternalProcess') is True or 规格.get('inlineReasoning') is True))
+        过程面=None
+        if isinstance(规格,dict):
+            过程面={'spec':规格,'foldable':可折,'hasContent':有内容,'open':过程开,'setOpen':设开}
+        控件失活=节点.get('kind')=='turn-process' and 折完成 and not 可折
+        紧凑答=答案 and 可折 and isinstance(呈现,dict) and 呈现.get('compactAnswer') is True and not 过程开
+        过程隐=控件失活 or (可折 and 成员 and not 过程开)
+
+        def 揭开():
+            '成员被找到时打开过程'
+            if 成员:
+                设开(True)
+
+        if 自身.根 is None:
+            自身.根=文档.createElement('div')
+            自身.根.className='flowItem'
+            标样式模块(自身.根,样式模块)
+        流键=节点.get('key') if 组分 is None or 组分=='response' else json.dumps([节点.get('key'),组分],ensure_ascii=False)
+        自身.根.setAttribute('data-chat-anchor-key','' if 流键 is None else str(流键))
+        自身.根.setAttribute('data-chat-flow-key','' if 流键 is None else str(流键))
+        真属性(自身.根,'data-chat-paging-anchor',节点.get('kind')!='turn-process')
+        自身.根.setAttribute('data-chat-node-key','' if 节点.get('key') is None else str(节点.get('key')))
+        if 组分 is None:
+            自身.根.removeAttribute('data-chat-group-part')
+        else:
+            自身.根.setAttribute('data-chat-group-part',str(组分))
+        自身.根.setAttribute('data-chat-flow-kind',str(节点.get('kind')))
+        if 回合 is None:
+            自身.根.removeAttribute('data-chat-turn')
+        else:
+            自身.根.setAttribute('data-chat-turn',str(回合))
+        真属性(自身.根,'data-turn-process-member',成员)
+        真属性(自身.根,'data-turn-process-hidden',过程隐)
+        真属性(自身.根,'data-turn-process-answer',紧凑答)
+        组动作=取钩(属性,'useGroupAction')
+        if 组动作 is None:
+            组动作=属性.get('useGroupAction')
+        if callable(组动作):
+            if 自身.隐藏席 is None:
+                自身.隐藏席=组动作(过程隐,揭开)
+            elif hasattr(自身.隐藏席,'准备'):
+                自身.隐藏席.准备(过程隐,揭开)
+            if hasattr(自身.隐藏席,'绑'):
+                自身.隐藏席.绑(自身.根)
+        if 成员 and 过程隐 and 自身.根 is not None and 正在隐藏或收起(自身.根):
+            if hasattr(自身.披露重置,'set') and hasattr(自身.披露重置,'getSnapshot'):
+                自身.披露重置.set(自身.披露重置.getSnapshot()+1)
+        while 自身.根.firstChild is not None:
+            自身.根.removeChild(自身.根.firstChild)
+        属主={
+            'window':窗口,
+            'node':节点,
+            'cwd':属性.get('cwd'),
+            'openFile':属性.get('openFile'),
+            'inspectCall':属性.get('inspectCall'),
+            'forkAt':属性.get('forkAt'),
+            'loadImage':属性.get('loadImage'),
+            'fileMentions':属性.get('fileMentions'),
+            'turnProcess':过程面,
+            't':属性.get('t'),
+            'renderSlot':属性.get('renderSlot'),
+            'renderFactorySlot':属性.get('renderFactorySlot'),
+            'useChat':属性.get('useChat'),
+            'useStore':属性.get('useStore'),
+            'actions':属性.get('actions'),
+            'usePresentation':策略,
+        }
+        if 组分 is not None:
+            属主['groupPart']=组分
+        钩上下文={'turnData':回合数据自(节点),'disclosureReset':自身.披露重置,'useGroupAction':组动作}
+
+        def 截断(总):
+            '截断脚'
+            译=属性.get('t')
+            if callable(译):
+                return 译('json.truncated',{'total':总})
+            return str(总)
+
+        回退=json块({
+            'window':窗口,
+            'label':属性['t']('message.unknownSurface',{'type':节点.get('kind')}) if callable(属性.get('t')) else str(节点.get('kind')),
+            'payload':节点.get('data'),
+            'truncatedLabel':截断,
+        })
+        槽=属性.get('renderSlot')
+        画出=None
+        if callable(槽):
+            画出=槽('conversation.chat.node',属主,{
+                'entryKey':节点.get('kind'),
+                'hookContext':钩上下文,
+                'fallback':回退,
+                'window':窗口,
+            })
+        if 画出 is None or 画出 is 回退:
+            画出=回退.渲染()
+        挂节点(自身.根,画出)
+        if 属性.get('parent') is not None and 自身.根.parentNode is None:
+            属性['parent'].appendChild(自身.根)
+        return 自身.根

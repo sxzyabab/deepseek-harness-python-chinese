@@ -1,279 +1,315 @@
-'带无损 Assistant 流子行的增量原始会话行'
+'按会话窗口增量投影原始行，助手流的子行不丢增量'
 
-from ......客户端.存储 import 创建快照存储
-from ......模型后端.llm.助手流 import 展开助手流
-from .流 import 助手日志流
-from .分组 import 会话日志分组
-
-__all__=['会话日志模型']
-
-def 事件于(条目):
-    '条目上的原始事件'
-    if isinstance(条目,dict):
-        return 条目.get('event')
-    return getattr(条目,'event',None)
-
-def 条目种类(条目):
-    'transient 或持久条目种类'
-    if isinstance(条目,dict):
-        return 条目.get('type')
-    return getattr(条目,'type',None)
-
-def 寻找(条目表,谓词):
-    '第一个满足谓词的条目'
-    for 项 in 条目表:
-        if 谓词(项):
-            return 项
-    return None
-
-def 寻找最后(条目表,谓词):
-    '最后一个满足谓词的条目'
-    下标=len(条目表)-1
-    while 下标>=0:
-        if 谓词(条目表[下标]):
-            return 条目表[下标]
-        下标-=1
-    return None
+from ......客户端.存储 import 创建快照存储#行和记录的可观察仓
+from ......模型后端.llm.助手流 import 展开助手流#耐久流拆回带时增量
+from .分组 import 会话日志分组#回合和步骤祖先
+from .流 import 助手日志流#一块助手流
 
 class 会话日志模型:
-    '会话拥有的日志投影；只有表格被观察时才订阅'
-    def __init__(自身,来源):
-        '来源是与 Chat、轨迹共用的会话窗口'
-        自身._来源=来源
-        自身._行=创建快照存储([])
-        自身._记录={}
-        自身._根=[]
-        自身._尝试={}
-        自身._分组=会话日志分组()
-        自身._已结算={}
-        自身._流={}
-        自身._修订=-1
-        自身._订阅数=0
-        自身._断开=None
-        自身._接受(来源.getSnapshot())
+    '会话自己的日志投影。只有表格在看的时候才订阅事件窗'
+    def __init__(自身,源):
+        '先收下当前窗口。订阅留到表格开始看'
+        自身.源=源#会话事件窗
+        自身.行仓=创建快照存储([])#表格顺序
+        自身.记录={}#行键到记录仓
+        自身.根列表=[]#每条根事件
+        自身.尝试={}#活动尝试
+        自身.分组=会话日志分组()#当前范围
+        自身.已结算根={}#序号到仍在窗口里的活动行键
+        自身.流缓存={}#耐久流身份到展开结果
+        自身.修订=-1#已收下的修订
+        自身.订阅数=0#正在看的人数
+        自身.断开=None#事件窗退订
+        自身.接受中=False#收下过程中不把每一条记录单独扇出去
+        自身.行监听=[]#表格监听
+        自身.记录停={}#记录仓到退订
+        自身.接受(源.getSnapshot())#构造时先有第一份
 
     def getSnapshot(自身):
-        '稳定的表格顺序；行内容有独立来源'
-        return 自身._行.getSnapshot()
+        '当前表格顺序。单元格内容在各自的记录仓里'
+        return 自身.行仓.getSnapshot()#行列表
 
     def 聊天锚(自身,键):
-        '恢复事件位置，不解释已格式化的单元格'
-        自身._接受(自身._来源.getSnapshot())
-        根=None
-        for 项 in 自身._根:
-            行键=项['row']['key']
-            if 行键==键 or (项['stream'] is not None and 键.startswith(f'{行键}/chunk:')):
-                根=项
-                break
-        if 根 is None:
-            return None
-        来源=自身._记录.get(键)
-        记录=None if 来源 is None else 来源.getSnapshot()
-        if 记录 is None:
-            return None
-        结果={'event':事件于(根['entry'])}
-        if 根['row']['key']!=键:
-            结果['chunk']=记录['value']
-        return 结果
+        '选中行对应的原始事件。子行再带上那一块增量'
+        自身.接受(自身.源.getSnapshot())#先对齐窗口
+        根=None#拥有这行的事件
+        for 候选 in 自身.根列表:#逐根
+            根键=候选['row']['key']#根行键
+            if 根键==键 or (候选['stream'] is not None and 键.startswith(根键+'/chunk:')):#根或它的增量
+                根=候选#找到
+                break#停
+        if 根 is None:#行已经不在
+            return None#没有锚
+        仓=自身.记录.get(键)#记录仓
+        if 仓 is None:#没有记录
+            return None#没有锚
+        记录=仓.getSnapshot()#当前记录
+        if 记录 is None:#已清空
+            return None#没有锚
+        锚={'event':根['entry']['event']}#原始事件
+        if 根['row']['key']!=键:#选的是增量行
+            锚['chunk']=记录['value']#这一块增量
+        return 锚#交给对话定位
 
     def 选取(自身,目标):
-        '在已加载日志里解析选中的 Chat 对象，不制造合成记录'
-        窗口=自身._来源.getSnapshot()
-        自身._接受(窗口)
-        条目表=窗口.entries
+        '在已加载日志里找被点中的对话对象，不造新记录'
+        窗=自身.源.getSnapshot()#当前窗口
+        自身.接受(窗)#对齐
+        条目列表=窗.entries#已加载条目
+
         def 同一步(条目):
-            '同一 Turn，步缺省时不限制步'
-            数据=事件于(条目).get('data') or {}
-            if 目标.get('turn') is None or 'turn' not in 数据 or 数据['turn']!=目标['turn']:
-                return False
-            if 目标.get('step') is None:
-                return True
-            return 'step' in 数据 and 数据['step']==目标['step']
-        调用=None
-        if 目标.get('callId') is not None:
-            def 是调用(条目):
-                'tool/call 且 callId 相同'
-                事件=事件于(条目)
-                return 事件.get('type')=='tool/call' and (事件.get('data') or {}).get('callId')==目标['callId']
-            调用=寻找(条目表,是调用)
-        锚=None
-        if 目标.get('anchorSeq') is not None:
-            锚=寻找(条目表,lambda 条目:事件于(条目).get('seq')==目标['anchorSeq'])
-        助手=None
-        if 目标.get('nodeKind')=='assistant-step':
-            def 是助手(条目):
-                '同一步上的助手消息、尝试或瞬态行'
-                种类=事件于(条目).get('type')
-                return 同一步(条目) and (种类 in ('assistant/message','assistant/attempt') or 条目种类(条目)=='transient')
-            助手=寻找最后(条目表,是助手)
-        步=None
-        if 目标.get('step') is not None:
-            步=寻找(条目表,lambda 条目:事件于(条目).get('type')=='step/start' and 同一步(条目))
-        回合=None
-        if 目标.get('turn') is not None:
-            def 是回合(条目):
-                'turn/start 且回合号相同'
-                事件=事件于(条目)
-                return 事件.get('type')=='turn/start' and (事件.get('data') or {}).get('turn')==目标['turn']
-            回合=寻找(条目表,是回合)
-        条目=调用 or 锚 or 助手 or 步 or 回合 or 寻找(条目表,同一步)
-        if 条目 is None:
-            return None
-        事件=事件于(条目)
-        if 条目种类(条目)=='transient':
-            键=f"attempt:{(事件.get('data') or {}).get('attemptId')}"
-        else:
-            键=自身._已结算.get(事件.get('seq'),f"event:{事件.get('seq')}")
-        if 目标.get('groupPart')=='reasoning':
-            for 行 in 自身._行.getSnapshot():
-                if 行.get('parent')!=键:
-                    continue
-                来源=自身._记录.get(行['key'])
-                快照=None if 来源 is None else 来源.getSnapshot()
-                值=None if 快照 is None else 快照.get('value')
-                if isinstance(值,dict) and 值.get('type')=='block-start' and 值.get('blockType')=='reasoning':
-                    return 行['key']
-        return 键
+            '回合必须相同。点了步骤时步骤也要相同'
+            数据=条目['event'].get('data') if isinstance(条目.get('event'),dict) else None#事件数据
+            if not isinstance(数据,dict) or 目标.get('turn') is None:#没有回合
+                return False#不是
+            if 数据.get('turn')!=目标.get('turn'):#回合不同
+                return False#不是
+            if 目标.get('step') is None:#只要求回合
+                return True#是
+            return 数据.get('step')==目标.get('step')#步骤也相同
+
+        调用=None#工具调用行
+        if 目标.get('callId') is not None:#点了调用
+            for 条目 in 条目列表:#找调用
+                事件=条目.get('event') or {}#事件
+                数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}#数据
+                if 事件.get('type')=='tool/call' and 数据.get('callId')==目标.get('callId'):#同一调用
+                    调用=条目#命中
+                    break#停
+        锚条目=None#序号相同的行
+        if 目标.get('anchorSeq') is not None:#有序号
+            for 条目 in 条目列表:#找序号
+                if (条目.get('event') or {}).get('seq')==目标.get('anchorSeq'):#同一序号
+                    锚条目=条目#命中
+                    break#停
+        助手=None#助手步骤
+        if 目标.get('nodeKind')=='assistant-step':#点的是助手
+            下标=len(条目列表)-1#从后往前
+            while 下标>=0:#最后一条优先
+                条目=条目列表[下标]#这一条
+                事件=条目.get('event') or {}#事件
+                if 同一步(条目) and (事件.get('type') in ('assistant/message','assistant/attempt') or 条目.get('type')=='transient'):#同一步的助手
+                    助手=条目#命中
+                    break#停
+                下标=下标-1#更早一条
+        步骤=None#步骤开始
+        if 目标.get('step') is not None:#有步骤
+            for 条目 in 条目列表:#找开始
+                事件=条目.get('event') or {}#事件
+                if 事件.get('type')=='step/start' and 同一步(条目):#同一步的开始
+                    步骤=条目#命中
+                    break#停
+        回合=None#回合开始
+        if 目标.get('turn') is not None:#有回合
+            for 条目 in 条目列表:#找开始
+                事件=条目.get('event') or {}#事件
+                数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}#数据
+                if 事件.get('type')=='turn/start' and 数据.get('turn')==目标.get('turn'):#这个回合
+                    回合=条目#命中
+                    break#停
+        兜底=None#同一步的任意行
+        for 条目 in 条目列表:#最后兜底
+            if 同一步(条目):#同一步
+                兜底=条目#第一份
+                break#停
+        条目=调用 or 锚条目 or 助手 or 步骤 or 回合 or 兜底#按优先级
+        if 条目 is None:#都没有
+            return None#没有行
+        if 条目.get('type')=='transient':#活动尝试
+            键='attempt:'+str(条目['event']['data']['attemptId'])#尝试行
+        else:#耐久事件
+            序号=条目['event']['seq']#序号
+            键=自身.已结算根.get(序号)#结算后仍用尝试键
+            if 键 is None:#普通事件
+                键='event:'+str(序号)#事件行
+        if 目标.get('groupPart')=='reasoning':#推理部位优先块开始子行
+            for 行 in 自身.行仓.getSnapshot():#在当前顺序里找
+                if 行.get('parent')!=键:#不是这个助手的子行
+                    continue#下一行
+                仓=自身.记录.get(行['key'])#子行记录
+                值=None if 仓 is None else (仓.getSnapshot() or {}).get('value')#增量
+                if isinstance(值,dict) and 值.get('type')=='block-start' and 值.get('blockType')=='reasoning':#推理块开始
+                    return 行['key']#用这一子行
+        return 键#根行
 
     def subscribe(自身,监听):
-        '结构失效回调，返回退订函数'
-        停止=自身._行.subscribe(监听)
-        if 自身._订阅数==0:
-            def 接到():
-                '窗口发布后接受快照'
-                自身._接受(自身._来源.getSnapshot())
-            订=getattr(自身._来源,'subscribe',None)
-            自身._断开=订(接到) if 订 is not None else 自身._来源.订阅(接到)
-            自身._接受(自身._来源.getSnapshot())
-        自身._订阅数+=1
+        '结构变化时通知。第一个订阅者才去订事件窗'
+        停行=自身.行仓.subscribe(监听)#结构变化
+        首次=自身.订阅数==0#从没有人看到有人
+        自身.订阅数=自身.订阅数+1#加上
+        if 首次:#开始看
+            def 源变了():
+                '事件窗变了就收下'
+                自身.接受(自身.源.getSnapshot())#对齐
+            自身.断开=自身.源.订阅(源变了)#事件源的方法是订阅
+            自身.接受(自身.源.getSnapshot())#再对齐一次
+        自身.行监听.append(监听)#记录变化也通知这一个
+        for 仓 in 自身.记录.values():#已有记录
+            自身.接记录(仓)#以后变化也扇出
         def 退订():
-            '最后一个订阅者离开时断开窗口'
-            停止()
-            自身._订阅数-=1
-            if 自身._订阅数==0 and 自身._断开 is not None:
-                自身._断开()
-                自身._断开=None
-        return 退订
+            '卸掉这一份，最后一个人离开时拆事件窗'
+            停行()#行仓
+            自身.订阅数=自身.订阅数-1#减一
+            if 监听 in 自身.行监听:#还在
+                自身.行监听.remove(监听)#卸掉
+            if 自身.订阅数==0:#没人看了
+                if 自身.断开 is not None:#有事件订阅
+                    自身.断开()#拆
+                自身.断开=None#清空
+                for 停 in 自身.记录停.values():#记录扇出
+                    停()#拆
+                自身.记录停.clear()#清空
+        return 退订#交给钩子
 
     def 行(自身,键):
-        '缓存的行来源；记录还没有时起初为空'
-        记录=自身._记录.get(键)
-        if 记录 is None:
-            记录=创建快照存储(None)
-            自身._记录[键]=记录
-        return 记录
+        '没有记录时先给一个空仓，之后再填'
+        仓=自身.记录.get(键)#已有
+        if 仓 is None:#第一次
+            仓=创建快照存储(None)#空记录
+            自身.记录[键]=仓#留下
+            自身.接记录(仓)#有人看就扇出
+        return 仓#可观察记录
 
-    def _放入(自身,键,记录):
-        '值引用变了才写入'
-        自身.行(键)
-        来源=自身._记录[键]
-        当前=来源.getSnapshot()
-        if 当前 is None or 当前.get('value') is not 记录['value']:
-            来源.set(记录)
+    def 放入(自身,键,记录):
+        '值的身份没变就不替换快照'
+        自身.行(键)#保证仓在
+        仓=自身.记录[键]#记录仓
+        当前=仓.getSnapshot()#上一份
+        if 当前 is None or 当前.get('value') is not 记录['value']:#值换了
+            仓.set(记录)#发布
 
-    def _接受(自身,窗口):
-        '追加复用游标；其余变更重建层级'
-        if 窗口.revision==自身._修订:
-            return
-        变更=窗口.change
-        if 变更.get('kind')=='settle-assistant' and 变更.get('entry') is not None:
-            父=f"attempt:{变更.get('attemptId')}"
-            if 父 in 自身._尝试:
-                自身._已结算[事件于(变更['entry']).get('seq')]=父
-        追加=窗口.revision==自身._修订+1 and 变更.get('kind')=='append'
-        if not 追加:
-            自身._根.clear()
-            自身._尝试.clear()
-            自身._分组=会话日志分组()
-        下一=list(自身._行.getSnapshot()) if 追加 else []
-        条目表=变更.get('entries') if 追加 else 窗口.entries
-        for 条目 in 条目表:
-            自身._添加(条目,下一)
-        自身._修订=窗口.revision
-        if not 追加:
-            自身._修剪(下一)
-        自身._行.set(下一)
+    def 接记录(自身,仓):
+        '记录自己变了也让表格重画。收下过程中由行仓统一通知'
+        if 自身.订阅数==0:#没人看
+            return#不订
+        标识=id(仓)#仓身份
+        if 标识 in 自身.记录停:#已经订过
+            return#不重复
+        def 转发():
+            '把这一条记录的变化告诉表格'
+            if 自身.接受中:#整窗还在收
+                return#等行仓一次通知
+            for 回调 in list(自身.行监听):#每个监听
+                回调()#重画
+        自身.记录停[标识]=仓.subscribe(转发)#记下退订
 
-    def _修剪(自身,行表):
-        '离开窗口的行释放记录和已结算身份'
-        保留={行['key'] for 行 in 行表}
-        for 序号,键 in list(自身._已结算.items()):
-            if 键 not in 保留:
-                del 自身._已结算[序号]
-        for 键,来源 in list(自身._记录.items()):
-            if 键 not in 保留:
-                来源.set(None)
-                del 自身._记录[键]
+    def 接受(自身,窗):
+        '修订没变就跳过。连续追加只加新条目，否则整窗重放'
+        if 窗.revision==自身.修订:#同一修订
+            return#不用重做
+        自身.接受中=True#先别逐条扇出
+        变更=窗.change#这次变更
+        if 变更.get('kind')=='settle-assistant' and 变更.get('entry') is not None:#活动行落成耐久
+            父='attempt:'+str(变更.get('attemptId'))#尝试键
+            if 父 in 自身.尝试:#这份尝试还在
+                自身.已结算根[变更['entry']['event']['seq']]=父#序号仍指向尝试行
+        追加=窗.revision==自身.修订+1 and 变更.get('kind')=='append'#紧挨着的追加
+        if not 追加:#不能增量
+            自身.根列表.clear()#根账清空
+            自身.尝试.clear()#尝试清空
+            自身.分组=会话日志分组()#范围重新走
+        if 追加:#沿用已有行
+            下一=list(自身.行仓.getSnapshot())#拷贝一份再改
+            条目列表=变更.get('entries') or []#只加新的
+        else:#整窗
+            下一=[]#从头
+            条目列表=窗.entries#全部
+        for 条目 in 条目列表:#按顺序加
+            自身.加条目(条目,下一)#一根或一组增量
+        自身.修订=窗.revision#记下
+        if not 追加:#整窗替换后丢掉窗口外的记录
+            自身.修剪(下一)#只留还在的行
+        自身.行仓.set(下一)#一次发布顺序
+        自身.接受中=False#结束
 
-    def _根行(自身,键,条目,行表,流=None):
-        '经分组游标放入一条根行'
-        行=自身._分组.追加({'key':键,'depth':0},事件于(条目))
-        根={'row':行,'entry':条目,'stream':流,'ordinal':len(自身._根),'offset':len(行表)}
-        自身._根.append(根)
-        行表.append(行)
-        return 根
+    def 修剪(自身,行列表):
+        '窗口里不再有的行清掉记录，结算映射也只留还在的根'
+        留下=set(行['key'] for 行 in 行列表)#还在的键
+        for 序号,键 in list(自身.已结算根.items()):#结算映射
+            if 键 not in 留下:#根已经不在
+                del 自身.已结算根[序号]#丢掉
+        for 键,仓 in list(自身.记录.items()):#记录仓
+            if 键 not in 留下:#行没了
+                仓.set(None)#先发布空
+                del 自身.记录[键]#再移走
+                停=自身.记录停.pop(id(仓),None)#扇出
+                if 停 is not None:#订过
+                    停()#拆
 
-    def _添加(自身,条目,行表):
-        '瞬态分片并入 attempt；持久助手展开自己的流'
-        if 条目种类(条目)=='transient':
-            事件=事件于(条目)
-            数据=事件.get('data') or {}
-            尝试标识=数据.get('attemptId')
-            回合=数据.get('turn')
-            步=数据.get('step')
-            分片=数据.get('chunk')
-            父=f'attempt:{尝试标识}'
-            尝试=自身._尝试.get(父)
-            if 尝试 is None:
-                尝试=自身._根行(父,条目,行表,助手日志流(父))
-                自身._尝试[父]=尝试
-            分片数=自身._加分片(尝试,行表,事件.get('time'),分片,f'{回合}/{步}')
-            自身._放入(父,{
-                'type':'assistant/live','identity':尝试标识,'location':f'{回合}/{步}',
-                'time':事件.get('time'),
-                'value':{'attemptId':尝试标识,'turn':回合,'step':步,'chunks':分片数},
-            })
-            return
-        事件=事件于(条目)
-        键=自身._已结算.get(事件.get('seq'),f"event:{事件.get('seq')}")
-        数据=事件.get('data') or {}
-        if 'turn' in 数据:
-            位置=f"{数据['turn']}"+(f"/{数据['step']}" if 'step' in 数据 else '')
-        else:
-            位置=''
-        自身._放入(键,{'type':事件.get('type'),'identity':str(事件.get('seq')),'time':事件.get('time'),'location':位置,'value':事件})
-        if 事件.get('type') in ('assistant/message','assistant/attempt'):
-            层级=助手日志流(键)
-            根=自身._根行(键,条目,行表,层级)
-            流=数据.get('stream')
-            编号=id(流)
-            分片表=自身._流.get(编号)
-            if 分片表 is None:
-                分片表=展开助手流(流)
-                自身._流[编号]=分片表
-            for 项 in 分片表:
-                自身._加分片(根,行表,项['time'],项['chunk'],位置)
-        else:
-            自身._根行(键,条目,行表)
+    def 加根(自身,键,条目,行列表,流=None):
+        '在分组里放一根，并记下它在行列表里的位置'
+        行=自身.分组.追加({'key':键,'depth':0},条目['event'])#补上回合或步骤祖先
+        根={'row':行,'entry':条目,'stream':流,'ordinal':len(自身.根列表),'offset':len(行列表)}#根账
+        自身.根列表.append(根)#记账
+        行列表.append(行)#放进行列表
+        return 根#给增量使用
 
-    def _加分片(自身,根,行表,时间,分片,位置):
-        '向对应 block 插入一行，并在闭合时替换表头'
-        流=根['stream']
-        加入=流.追加(分片)
-        行=加入['row']
-        行表.insert(根['offset']+1+加入['position'],{**行,'depth':行['depth']+根['row']['depth']})
-        if 'header' in 加入:
-            头=加入['header']
-            行表[根['offset']+1+头['position']]={**头['row'],'depth':头['row']['depth']+根['row']['depth']}
-        序号=根['ordinal']+1
-        while 序号<len(自身._根):
-            自身._根[序号]['offset']+=1
-            序号+=1
-        自身._放入(加入['key'],{'type':分片['type'],'identity':str(加入['index']),'time':时间,'location':位置,'value':分片})
-        if 'collapsed' in 加入:
-            折叠=加入['collapsed']
-            来源=自身._记录[折叠['key']]
-            先前=来源.getSnapshot()
-            if 先前.get('collapsedSummary')!=折叠['summary']:
-                来源.set({**先前,'collapsedSummary':折叠['summary']})
-        return 流.长度
+    def 加条目(自身,条目,行列表):
+        '活动尝试合成一行，耐久助手再展开子增量'
+        if 条目.get('type')=='transient':#活动增量
+            事件=条目['event']#事件
+            数据=事件['data']#尝试数据
+            父='attempt:'+str(数据['attemptId'])#尝试行键
+            尝试=自身.尝试.get(父)#已有尝试
+            if 尝试 is None:#第一次见到
+                尝试=自身.加根(父,条目,行列表,助手日志流(父))#建根和流
+                自身.尝试[父]=尝试#记住
+            块数=自身.加块(尝试,行列表,事件['time'],数据['chunk'],str(数据['turn'])+'/'+str(数据['step']))#插入增量
+            自身.放入(父,{#尝试行本身
+                'type':'assistant/live',#活动类型
+                'identity':数据['attemptId'],#尝试身份
+                'location':str(数据['turn'])+'/'+str(数据['step']),#回合/步骤
+                'time':事件['time'],#时间
+                'value':{'attemptId':数据['attemptId'],'turn':数据['turn'],'step':数据['step'],'chunks':块数},#当前块数
+            })#发布尝试行
+            return#活动行结束
+        事件=条目['event']#耐久事件
+        键=自身.已结算根.get(事件['seq'])#结算后的尝试键
+        if 键 is None:#普通事件
+            键='event:'+str(事件['seq'])#事件键
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}#数据
+        if 'turn' in 数据:#有回合
+            位置=str(数据['turn'])#回合
+            if 'step' in 数据:#还有步骤
+                位置=位置+'/'+str(数据['step'])#回合/步骤
+        else:#没有位置
+            位置=''#空
+        自身.放入(键,{'type':事件.get('type'),'identity':str(事件.get('seq')),'time':事件.get('time'),'location':位置,'value':事件})#根记录是事件本身
+        if 事件.get('type') in ('assistant/message','assistant/attempt'):#助手正文
+            层次=助手日志流(键)#这棵流
+            根=自身.加根(键,条目,行列表,层次)#根行
+            流=数据.get('stream')#紧凑流
+            增量=None if 流 is None else 自身.流缓存.get(id(流))#展开过没有
+            if 增量 is None:#第一次
+                增量=展开助手流(流 or [])#拆回带时块
+                if 流 is not None:#有原流才缓存
+                    自身.流缓存[id(流)]=增量#按身份
+            for 一项 in 增量:#逐块
+                自身.加块(根,行列表,一项['time'],一项['chunk'],位置)#插入
+        else:#普通事件
+            自身.加根(键,条目,行列表)#只有根
+
+    def 加块(自身,根,行列表,时间,块,位置):
+        '把一块插到助手根下面，并后移后面的根'
+        流=根['stream']#助手流
+        结果=流.追加(块)#层级决定插在哪
+        行=dict(结果['row'])#拷贝
+        行['depth']=行['depth']+根['row']['depth']#加上根的深度
+        行列表.insert(根['offset']+1+结果['position'],行)#插到根后面
+        if 'header' in 结果:#块头要换成合上
+            头行=dict(结果['header']['row'])#新头
+            头行['depth']=头行['depth']+根['row']['depth']#同样加深
+            行列表[根['offset']+1+结果['header']['position']]=头行#替换原头
+        序号=根['ordinal']+1#后面的根
+        while 序号<len(自身.根列表):#每个后续根
+            自身.根列表[序号]['offset']=自身.根列表[序号]['offset']+1#让出一个位置
+            序号=序号+1#下一个
+        自身.放入(结果['key'],{'type':块.get('type'),'identity':str(结果['index']),'time':时间,'location':位置,'value':块})#增量记录
+        if 'collapsed' in 结果:#推理折叠摘要
+            仓=自身.记录.get(结果['collapsed']['key'])#块头记录
+            先前=None if 仓 is None else 仓.getSnapshot()#上一份
+            if 仓 is not None and 先前 is not None and 先前.get('collapsedSummary')!=结果['collapsed']['summary']:#摘要变了
+                下一=dict(先前)#拷贝
+                下一['collapsedSummary']=结果['collapsed']['summary']#新摘要
+                仓.set(下一)#发布
+        return 流.长度#当前块数

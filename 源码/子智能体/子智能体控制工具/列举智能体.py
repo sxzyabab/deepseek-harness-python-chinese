@@ -61,9 +61,9 @@ def 投影(智能体服务,条目,位置=None):
         行={'kind':'diagnostic','id':条目['id'],'reason':条目['reason']}#诊断基行
         行.update(处)#并入位置
         return 行#诊断
-    if 条目['mode']!='continuable':#非可续跑
+    if 条目['mode']!='continuable':#非可续运行
         return None#省略一次性
-    行={#可续跑子体行
+    行={#可续运行子体行
         'kind':'child',#子体
         'id':条目['id'],#会话id
         'label':条目['label'],#标签
@@ -93,7 +93,7 @@ def 应用(上下文):
             正文='\n'.join(行列表)#换行拼接
         return [{'type':'text','text':正文}]#文本块
     def 执行列举(参数,执行元数据):
-        '按作用域列举可续跑子体或后代树，并投影为面向模型的条目。参数与执行为 dict；父为智能体对象'
+        '按作用域列举可续运行子体或后代树，并投影为面向模型的条目。参数与执行为 dict；父为智能体对象'
         if 'agent' not in 执行元数据 or 执行元数据['agent'] is None:#无智能体调用方
             raise 子智能体错误('list_agents requires a calling agent (exec.agent was undefined)','NO_AGENT')#拒绝
         父=执行元数据['agent']#调用方智能体

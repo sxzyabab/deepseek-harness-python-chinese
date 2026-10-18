@@ -1,67 +1,73 @@
-from .节点工厂 import 聊天节点#聊天节点工厂
-from .命令 import 压缩来源,压缩摘要,更新压缩状态#命令侧复用
+from .命令 import 压缩来源,压缩摘要,更新压缩状态
+from .节点工厂 import 聊天节点
 
-__all__=['压缩定义','登记压缩会话节点']#仅中文公开名
+__all__=['压缩定义']
 
-def 回放压缩(上下文):#从已加载匹配回退拼状态
-    '有则写入'
-    匹配列表=上下文['matches'] if 'matches' in 上下文 else []#匹配
-    摘要=None#摘要
-    检查点=None#检查点
-    for 候 in 匹配列表:#扫
-        候事件=候['event'] if 'event' in 候 else {}#事件
-        if 摘要 is None and 候事件['type']=='compaction/summary':#摘要
-            摘要=候
-        if 检查点 is None and 压缩来源(候事件) is not None:#检查点
-            检查点=候
-    态={}#空
+
+def 压缩匹配(事件):
+    '自动压缩。已经挂在命令上的检查点不认'
+    检查点=压缩来源(事件)
+    if isinstance(检查点,dict) and 检查点.get('sourceCommandId') is None:
+        return {'id':检查点['compactionId'],'role':'update'}
+    if 事件.get('type') in ('compaction/start','compaction/summary','compaction/end'):
+        数据=事件.get('data') if isinstance(事件.get('data'),dict) else {}
+        if 数据.get('sourceCommandId') is not None:
+            return None
+        标识=数据.get('compactionId')
+        if not isinstance(标识,str) or 标识=='':
+            return None
+        return {'id':标识,'role':'start' if 事件.get('type')=='compaction/start' else 'update'}
+    return None
+
+
+def 压缩开始(上下文=None,匹配项=None):
+    '自动压缩从空状态开始'
+    return {}
+
+
+def 压缩更新(上下文,匹配项):
+    '后续摘要和检查点并进同一状态'
+    状态=上下文.get('state') if isinstance(上下文,dict) else {}
+    return 更新压缩状态(状态 if isinstance(状态,dict) else {},匹配项)
+
+
+def 压缩回退(上下文):
+    '没有状态时从已加载匹配里找摘要和检查点'
+    匹配=上下文.get('matches') if isinstance(上下文.get('matches'),list) else []
+    摘要=None
+    检查点=None
+    for 项 in 匹配:
+        事件=项.get('event') if isinstance(项,dict) else None
+        if not isinstance(事件,dict):
+            continue
+        if 摘要 is None and 事件.get('type')=='compaction/summary':
+            摘要=项
+        if 检查点 is None and 压缩来源(事件) is not None:
+            检查点=项
+    状态={}
     if 摘要 is not None:
-        态['summary']=摘要#带上
+        状态['summary']=摘要
     if 检查点 is not None:
-        态['checkpoint']=检查点#带上
-    return 态#回退
+        状态['checkpoint']=检查点
+    return 状态
 
-def 压缩匹配(事件):#判定事件是否属于本节点
-    '无命令检查点 → 自动压缩；生命周期无源命令'
-    检查=压缩来源(事件)#检查点
-    if 检查 is not None and ('sourceCommandId' not in 检查 or 检查['sourceCommandId'] is None):#自动压缩检查点
-        return {'id':检查['compactionId'],'role':'update'}#关联
-    种=事件['type']#种
-    if 种 in ('compaction/start','compaction/summary','compaction/end'):#生命周期
-        数据=事件['data'] if 'data' in 事件 else {}#载荷
-        if 'sourceCommandId' in 数据 and 数据['sourceCommandId'] is not None:#有命令
-            return None#交给 command
-        压缩标识=数据['compactionId'] if 'compactionId' in 数据 else None#id
-        if not isinstance(压缩标识,str) or 压缩标识=='':#非法
-            return None#忽略
-        return {'id':压缩标识,'role':'start' if 种=='compaction/start' else 'update'}#开或更新
-    return None#其余
 
-def 压缩开始(_上下文=None,_匹配项=None):#开节点时空状态
-    '等后续证据'
-    return {}#空
+def 压缩建视图(上下文):
+    '检查点落地才画出压缩标记'
+    状态=上下文.get('state')
+    if not isinstance(状态,dict):
+        状态=压缩回退(上下文)
+    if 状态.get('checkpoint') is None:
+        return None
+    标记=压缩摘要(状态.get('summary'),状态['checkpoint'])
+    return 聊天节点(上下文,'compaction',标记.get('seq'),标记)
 
-def 压缩更新(上下文,匹配项):#把摘要或检查点折进状态
-    '委托更新压缩状态'
-    态=上下文['state'] if 'state' in 上下文 else {}#态
-    return 更新压缩状态(态 if 态 is not None else {},匹配项)#折
 
-def 压缩建视图(上下文):#组装可见 Chat 节点
-    '检查点未落地则不渲染'
-    态=上下文['state'] if 'state' in 上下文 else None#折叠
-    if 态 is None:#无
-        态=回放压缩(上下文)#回退
-    if 'checkpoint' not in 态 or 态['checkpoint'] is None:#无检查点
-        return None#不渲染
-    摘要匹配=态['summary'] if 'summary' in 态 else None#摘要
-    标记=压缩摘要(摘要匹配,态['checkpoint'])#可见标记
-    return 聊天节点(上下文,'compaction',标记['seq'],标记)#节点
-
-压缩定义={#自动压缩会话节点定义
-    'kind':'compaction','target':'chat',#kind/目标
-    'match':压缩匹配,'start':压缩开始,'update':压缩更新,'buildViewNode':压缩建视图,#生命周期
-}#结束
-
-def 登记压缩会话节点(上下文):#注册自动压缩业务贡献
-    '挂到 uiConversation.events'
-    上下文.uiConversation.events.register(压缩定义)#登记
+压缩定义={
+    'kind':'compaction',
+    'target':'chat',
+    'match':压缩匹配,
+    'start':压缩开始,
+    'update':压缩更新,
+    'buildViewNode':压缩建视图,
+}

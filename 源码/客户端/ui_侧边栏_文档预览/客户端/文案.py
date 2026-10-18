@@ -1,11 +1,16 @@
+'sidebarDocumentPreview 文案。页面显示走中文表'
 
-__all__=['中文','英文','侧栏文档预览文案键']
-中文={#简体中文词典与键集真源
-    'loading':'正在读取…',
+__all__=['中文','英文','套入']
+
+中文={
+    'loading':'文档渲染中...',
     'loadMore':'加载更多',
     'changed':'文件已更新，当前显示为旧内容',
     'reloadNow':'重新载入',
     'reload':'重新读取文件',
+    'autoRefresh':'自动刷新',
+    'autoRefresh.enable':'开启自动刷新',
+    'autoRefresh.disable':'关闭自动刷新',
     'wrap.enable':'自动换行',
     'wrap.disable':'取消换行',
     'wrap.aria':'自动换行',
@@ -20,16 +25,17 @@ __all__=['中文','英文','侧栏文档预览文案键']
     'error.notRegularFile':'该路径不是普通文件，没有可显示的内容',
     'error.unavailable':'读取失败：{message}',
     'retry':'重试',
-}#中文结束
+}
 
-侧栏文档预览文案键=tuple(中文.keys())#键联合
-
-英文={#英文词典，对照中文键集
-    'loading':'Reading…',
+英文={
+    'loading':'Rendering document...',
     'loadMore':'Load more',
     'changed':'The file has changed, showing the previous content.',
     'reloadNow':'Reload',
     'reload':'Read the file again',
+    'autoRefresh':'Auto refresh',
+    'autoRefresh.enable':'Enable auto refresh',
+    'autoRefresh.disable':'Disable auto refresh',
     'wrap.enable':'Turn on line wrap',
     'wrap.disable':'Turn off line wrap',
     'wrap.aria':'Line wrap',
@@ -44,4 +50,11 @@ __all__=['中文','英文','侧栏文档预览文案键']
     'error.notRegularFile':'Not a regular file, nothing to display.',
     'error.unavailable':'Read failed: {message}',
     'retry':'Retry',
-}#英文结束
+}
+
+def 套入(模板,替换):
+    '把 {键} 换成这次的值'
+    文=模板
+    for 键,值 in 替换.items():
+        文=文.replace('{'+键+'}',str(值))
+    return 文

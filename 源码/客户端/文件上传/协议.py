@@ -1,1 +1,4 @@
-文件上传路径='/api/session/uploadFileBinary'#原始上传路径
+'文件上传服务拥有的已认证原始字节路由'
+
+文件上传路径='/api/session/uploadFileBinary'#已认证原始字节路径
+文件上传路由=文件上传路径[1:]#去掉开头斜线，给文档相对地址用

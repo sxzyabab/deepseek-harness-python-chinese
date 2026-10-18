@@ -1,77 +1,94 @@
-__all__=['同回合导航项','回合导航项','提示预览上限','回复预览上限']#仅中文公开名
+from ..约定.聊天可见性 import 是可见聊天节点
 
-提示预览上限=50#提示词预览上限
-回复预览上限=120#回复预览上限
+__all__=['回合导航项相同','回合导航项']
 
-def 预览(片段列表,上限):#有界预览文本
-    '折叠空白；超限省略。展示宽度按码点，不是线协议字节预算'
-    文=''#累计
-    未读=False#未读
-    for 片 in 片段列表:#遍历
-        if len(文)>=上限*2:#够预算
-            未读=True#未读
+提示预览上限=50
+回答预览上限=120
+
+
+def 预览(片段表,上限):
+    '拼可见文本，压空白，超过上限就截断并加省略号'
+    文=''
+    未读完=False
+    for 片段 in 片段表:
+        if len(文)>=上限*2:
+            未读完=True
             break
-        截=len(片)>上限*2#过长
-        块=片[:上限*2] if 截 else 片#截
-        文=块 if 文=='' else 文+' '+块#拼
-        if 截:#截断
-            未读=True#未读
+        被截=len(片段)>上限*2
+        块=片段[:上限*2] if 被截 else 片段
+        文=块 if 文=='' else 文+' '+块
+        if 被截:
+            未读完=True
             break
-    规=' '.join(文.split()).strip()#折叠
-    if len(规)>上限-1:#超限
-        return 规[:上限-1].rstrip()+'…'#省略
-    return 规+'…' if 未读 else 规#未读省略
+    规范=' '.join(文.split())
+    if len(规范)>上限-1:
+        return 规范[:上限-1].rstrip()+'…'
+    if 未读完:
+        return 规范+'…'
+    return 规范
 
-def 提示文本(节点):#节点提示词预览
-    '仅 user'
-    if 节点['kind']!='user':#非
-        return ''#空
-    数据=节点['data'] if 'data' in 节点 else None#数据
-    内容=数据['content'] if 数据 is not None and 'content' in 数据 else []#内容
-    return 预览((块['text'] for 块 in 内容 if 'type' in 块 and 块['type']=='text' and 'text' in 块),提示预览上限)#预览
 
-def 回复文本(节点):#节点回复预览
-    '仅 assistant-step'
-    if 节点['kind']!='assistant-step':#非
-        return ''#空
-    数据=节点['data'] if 'data' in 节点 else None#数据
-    块列表=数据['blocks'] if 数据 is not None and 'blocks' in 数据 else []#块
-    return 预览((块['text'] for 块 in 块列表 if 'kind' in 块 and 块['kind']=='text' and 'text' in 块),回复预览上限)#预览
+def 提示文本(节点):
+    '用户消息里的文本预览'
+    if not isinstance(节点,dict) or 节点.get('kind')!='user':
+        return ''
+    数据=节点.get('data') if isinstance(节点.get('data'),dict) else {}
+    内容=数据.get('content') if isinstance(数据.get('content'),list) else []
+    片段=[]
+    for 块 in 内容:
+        if isinstance(块,dict) and 块.get('type')=='text' and isinstance(块.get('text'),str):
+            片段.append(块['text'])
+    return 预览(片段,提示预览上限)
 
-def 同回合导航项(左,右):#导航项相等
-    '双侧字段'
-    if 左 is None or 右 is None:#单侧
-        return 左 is 右#同缺席
-    return (#字段
-        左['turn']==右['turn']#轮次
-        and 左['anchorKey']==右['anchorKey']#锚
-        and 左['prompt']==右['prompt']#提示
-        and 左['response']==右['response']#回复
-    )#结束
 
-def 回合导航项(回合,位置索引,节点表):#投影导航项
-    '无可见节点则缺席。位置与仓为本包可变对象'
-    键列表=位置索引.getTurn(回合)#轮内键
-    已载=[]#可见
-    for 键 in 键列表:#扫
-        节=节点表.get(键)#节点
-        if 节 is not None and 节['visibility']=='visible':#可见
-            已载.append(节)#收
-    用户=None#开场用户
-    for 节 in 已载:#找
-        if 节['kind']=='user':#用户
-            用户=节
+def 回答文本(节点):
+    '助手步骤里的文本预览'
+    if not isinstance(节点,dict) or 节点.get('kind')!='assistant-step':
+        return ''
+    数据=节点.get('data') if isinstance(节点.get('data'),dict) else {}
+    块表=数据.get('blocks') if isinstance(数据.get('blocks'),list) else []
+    片段=[]
+    for 块 in 块表:
+        if isinstance(块,dict) and 块.get('kind')=='text' and isinstance(块.get('text'),str):
+            片段.append(块['text'])
+    return 预览(片段,回答预览上限)
+
+
+def 回合导航项相同(左,右):
+    '两边描述的是不是同一枚轨道标记'
+    if not isinstance(左,dict) or not isinstance(右,dict):
+        return 左 is 右
+    return (
+        左.get('turn')==右.get('turn')
+        and 左.get('anchorKey')==右.get('anchorKey')
+        and 左.get('prompt')==右.get('prompt')
+        and 左.get('response')==右.get('response')
+    )
+
+
+def 回合导航项(回合,位置索引,节点存储):
+    '一个已加载回合的轨道项。没有可见节点就没有'
+    已加载=[]
+    for 键 in 位置索引.getTurn(回合):
+        节点=节点存储.get(键)
+        if isinstance(节点,dict) and 是可见聊天节点(节点):
+            已加载.append(节点)
+    用户=None
+    for 节点 in 已加载:
+        if 节点.get('kind')=='user':
+            用户=节点
             break
-    锚=用户 if 用户 is not None else (已载[0] if len(已载)>0 else None)#锚点
-    if 锚 is None:#无
-        return None#缺席
-    回复=None#末条回复
-    for 节 in 已载:#从后找
-        if 回复文本(节)!='':#非空
-            回复=节
-    return {#导航项
-        'turn':回合,#轮次
-        'anchorKey':锚['key'],#锚键
-        'prompt':'' if 用户 is None else 提示文本(用户),#提示
-        'response':'' if 回复 is None else 回复文本(回复),#回复
-    }#结束
+    锚=用户 if 用户 is not None else (已加载[0] if len(已加载)>0 else None)
+    if 锚 is None:
+        return None
+    回答=None
+    for 节点 in reversed(已加载):
+        if 回答文本(节点)!='':
+            回答=节点
+            break
+    return {
+        'turn':回合,
+        'anchorKey':锚.get('key'),
+        'prompt':'' if 用户 is None else 提示文本(用户),
+        'response':'' if 回答 is None else 回答文本(回答),
+    }

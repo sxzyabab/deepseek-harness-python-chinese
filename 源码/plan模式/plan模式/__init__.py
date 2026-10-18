@@ -118,9 +118,9 @@ class 计划模式控制器(服务):#计划模式控制器服务
             已取消=信号 is not None and 信号.is_set()#取消信号
             if 判定['kind']=='reject' or 已取消 or 未决 is None:#拒绝、取消或无选择则原样
                 return 判定#原样
-            叙述=自身.叙述(智能体.session,未决['active'])#切换通知（若上次请求头是另一模式）
+            叙述=自身.构造切换通知(智能体.session,未决['active'])#切换通知（若上次请求头是另一模式）
             try:#追加 plan/mode；失败则仍待定
-                自身.在边界(智能体.session)#边界提交
+                自身.追加未决选择(智能体.session)#边界提交
             except Exception as 错误:#持久写入失败；会话追加形态未钉死
                 上下文.日志.警告('dsh-plan-mode: failed to append selected plan mode at step start: %o',错误)#留下待定以便重试
                 return 判定#不挡步骤
@@ -215,7 +215,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
                 if 消息=='off' and len(附件)>0:#off 不得带附件
                     return {'kind':'error','text':'Attachments cannot accompany /plan off.'}#拒绝
                 if 消息=='off':#离开
-                    结果=自身.设置(智能体,False)#选择未激活
+                    结果=自身.选择计划模式(智能体,False)#选择未激活
                     if 结果=='committed':#已立刻写入日志
                         return {'kind':'success','text':'Plan mode off.'}#已关闭
                     if 结果=='queued':#等下一被接受的 pre-step
@@ -225,7 +225,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
                     if 折叠计划模式(智能体.session.events):#日志仍是激活则还在排队离开
                         return {'kind':'success','text':'Leaving plan mode (applies from the next step).'}#仍等待提交
                     return {'kind':'success','text':'Plan mode is already inactive.'}#已经未激活
-                结局=自身.设置(智能体,True)#选择激活
+                结局=自身.选择计划模式(智能体,True)#选择激活
                 if 消息!='' or len(附件)>0:#有附言或附件
                     内容列表=[*附件]#附件块
                     if 消息!='':#有文本
@@ -347,7 +347,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
             'presentResult':呈现结果,#结果卡片
         }))#登记结束
 
-    def 获取(自身,智能体):#读已记录 + 未决
+    def 获取计划状态(自身,智能体):#读已记录 + 未决
         '读取已记录的计划状态，以及等待下一个被接受的回合内 pre-step 的所选状态'
         激活=折叠计划模式(智能体.session.events)#日志折叠
         未决=自身.未决意图.get(智能体.session)#内存未决
@@ -355,7 +355,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
             return {'active':激活}#仅已记录
         return {'active':激活,'pending':未决['active']}#带未决目标
 
-    def 设置(自身,智能体,激活):#选择目标模式
+    def 选择计划模式(自身,智能体,激活):#选择目标模式
         '选择计划模式是否应激活。回合之间立刻追加变更；打开回合期间选择保持待定，直到下一个被接受的回合内 pre-step。重复选择当前或已待定状态是空操作。返回 `committed`、`queued`、`cancelled` 或 `noop`'
         会话=智能体.session#本会话
         未决=自身.未决意图.get(会话)#现有未决
@@ -375,12 +375,12 @@ class 计划模式控制器(服务):#计划模式控制器服务
             return 'cancelled'#取消相反选择
         会话.追加('plan/mode',{'active':激活})#立刻写入日志
         自身.未决意图.pop(会话,None)#提交成功后清未决
-        叙述=自身.叙述(会话,激活)#若上次请求头是另一模式则通知
+        叙述=自身.构造切换通知(会话,激活)#若上次请求头是另一模式则通知
         if 叙述 is not None:#需要通知
             智能体.注入(叙述)#空闲时注入用户消息
         return 'committed'#已提交
 
-    def 在边界(自身,会话):#pre-step 边界提交
+    def 追加未决选择(自身,会话):#pre-step 边界提交
         '在下一次请求组装之前追加一条未决选择'
         未决=自身.未决意图.get(会话)#未决选择
         if 未决 is None:#没有则跳过
@@ -392,7 +392,7 @@ class 计划模式控制器(服务):#计划模式控制器服务
         会话.追加('plan/mode',{'active':目标})#写入日志
         自身.未决意图.pop(会话,None)#提交成功后清未决
 
-    def 叙述(自身,会话,目标):#是否需要告诉模型模式变了
+    def 构造切换通知(自身,会话,目标):#是否需要告诉模型模式变了
         '当最近一条已记录请求头描述的是另一模式时，构造用户切换通知'
         已告=上次请求头处计划模式(会话.events)#上次请求头处的模式
         if 已告 is None or 已告==目标:#尚无请求头，或已经告诉过目标

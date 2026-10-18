@@ -6,7 +6,7 @@ from ..附件 import 图像变体标识,若已中止则抛出#附件缝
 from ..附件.异常 import 附件错误#附件失败
 from .编码 import WEBP编码力度,图像编码质量阶梯,编码首个不超限,编码阶梯,是否耗尽编码#编码阶梯
 from .图像 import 探测图像,检测图像,编码alpha是否兼容#图像事实
-from .锐化 import 取锐化#惰性栅格入口
+from .锐化 import 获取锐化#惰性栅格入口
 __all__=['请求图像变换版本','请求图像变体标识','读取请求图像文件']#仅中文公开名
 
 请求图像变换版本='request-image-v6'#缓存与上传索引身份版本
@@ -46,7 +46,7 @@ def 请求图像变体标识(附件引用,目标):
 
 def _源管线(已存储):
     '从已验证字节构建 sRGB 源管线'
-    图像=取锐化().open(BytesIO(已存储['data']))#打开
+    图像=获取锐化().open(BytesIO(已存储['data']))#打开
     if 图像.mode not in ('RGB','RGBA'):#统一到 sRGB 族
         图像=图像.convert('RGBA' if 'A' in 图像.mode else 'RGB')#转换
     return 图像#源图像
@@ -54,7 +54,7 @@ def _源管线(已存储):
 def _管线(已存储,目标):
     '只按源长边缩放，让编码器按路由预测的短边推导'
     图像=_源管线(已存储)#源
-    重采样=取锐化().Resampling.LANCZOS#不放大滤波
+    重采样=获取锐化().Resampling.LANCZOS#不放大滤波
     if 已存储['ref']['width']>=已存储['ref']['height']:#长边是宽
         图像.thumbnail((目标['width'],已存储['ref']['height']),重采样)#按宽
     else:#长边是高
@@ -79,7 +79,7 @@ def _缓存路径(根,摘要):
     '请求图像缓存路径'
     return os.path.join(根,'request-images',摘要[:2],摘要)#分桶
 
-def _读缓存(路径,目标,期望alpha,信号=None):
+def _读取缓存(路径,目标,期望alpha,信号=None):
     '读取缓存文件并验证仍符合目标与 alpha 事实'
     try:#读盘
         文件=open(路径,'rb')#打开
@@ -109,7 +109,7 @@ def _验证请求图像(图像,期望alpha):
         raise 附件错误('Encoded model-request image does not match its verified 8-bit sRGB metadata.','ATTACHMENT_WRITE_FAILED')#拒绝
     return {**图像,'hasAlpha':已检测['hasAlpha']}#带 alpha 事实
 
-def _写缓存(路径,数据):
+def _写入缓存(路径,数据):
     '原子写请求图像缓存文件'
     os.makedirs(os.path.dirname(路径),mode=0o700,exist_ok=True)#父目录
     临时=路径+'.'+str(uuid.uuid4())+'.tmp'#随机临时
@@ -134,7 +134,7 @@ def 读取请求图像文件(根,已存储,目标,信号=None):
     变体标识=请求图像变体标识(已存储['ref'],目标)#变体身份
     摘要=str(变体标识)[len('sha256:'):]#十六进制
     路径=_缓存路径(根,摘要)#缓存路径
-    缓存=_读缓存(路径,目标,源['hasAlpha'],信号)#尝试缓存
+    缓存=_读取缓存(路径,目标,源['hasAlpha'],信号)#尝试缓存
     新建=_创建请求图像(已存储,目标,源['hasAlpha']) if 缓存 is None else None#未命中则创建
     if 缓存 is not None:#命中
         版本=缓存#用缓存
@@ -144,7 +144,7 @@ def 读取请求图像文件(根,已存储,目标,信号=None):
         版本=_验证请求图像(新建,源['hasAlpha'])#验证
     若已中止则抛出(信号)#变换后再检
     if 缓存 is None and 版本['data'] is not 已存储['data']:#需写缓存
-        _写缓存(路径,版本['data'])#落盘
+        _写入缓存(路径,版本['data'])#落盘
     return {#请求附件
         'variantId':变体标识,
         'attachment':已存储['ref'],

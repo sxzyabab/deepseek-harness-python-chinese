@@ -6,7 +6,7 @@ from ...依赖.schemastery import 字典字段,字符串字段#配置
 
 __all__=['名称','依赖','配置','应用']#公开面
 
-class 进程内孵化提供方:
+class 进程内启动提供方:
     '新鲜子体；不继承父对话'
     def __init__(自身,名):
         '记下提供方名与能力'
@@ -14,14 +14,14 @@ class 进程内孵化提供方:
         自身.能力={'agentOptions':True,'outputSchema':True,'depthLimit':True,'toolFilter':True,'persona':True}#能力
         自身.继承父上下文=False#契约
 
-    def 准备可续跑(自身,请求=None):
-        '准备可续跑规格。请求为 dict'
-        return {}#无可续跑种子
+    def 准备可续运行(自身,请求=None):
+        '准备可续运行规格。请求为 dict'
+        return {}#无可续运行种子
 
 def 应用(上下文,配置值):
     '加载 spawn 提供方。配置为 dict'
     名=配置值['providerName'] if 'providerName' in 配置值 else 'spawn'#提供方名
-    上下文.subagents.登记提供方(进程内孵化提供方(名))#登记
+    上下文.subagents.登记提供方(进程内启动提供方(名))#登记
 
 name=名称#框架槽
 inject=依赖#框架槽

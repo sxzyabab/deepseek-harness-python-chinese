@@ -4,7 +4,7 @@ from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 from ...依赖.schemastery import 枚举字段,自然数字段#配置字段
 from ..作用域 import 匿名条目,具名条目,作用域层集,获取作用域,作用域目标#导入作用域层与载体
-from ...模型后端.llm.异常 import 装备错误 as 框架错误#导入框架错误
+from ...模型后端.llm.异常 import harness错误 as 框架错误#导入框架错误
 from ...模型后端.llm import 断言永不,深冻结#穷尽检查与深冻结
 from ..会话 import 快照json值#导入无损 JSON 快照
 from .json模式 import 断言受支持json模式,断言对象json模式,校验json模式值#导入统一 JSON Schema 校验

@@ -1,23 +1,16 @@
-from .异常 import 网页错误#本包异常
+from ...依赖 import cordis as Cordis#平台种子里的 cordis
+from .. import 存储 as 客户端存储#平台种子里的存储
+from .. import ui_槽位 as 界面槽位#平台种子里的槽位
+from .. import ui_基础界面组件 as 界面基础#平台种子里的基础界面
+from .. import ui_停靠套件 as 停靠套件#平台种子里的停靠套件
 
-__all__=['平台说明符','静态模块表','绑定静态模块']#仅中文公开名
-
-平台说明符=(#平台说明符
-    'react','react/jsx-runtime','react-dom','react-dom/client',
-    '@deepseek-ai/cordis','@deepseek-ai/dsh-client-store',
-    '@deepseek-ai/dsh-client-ui-slots','@deepseek-ai/dsh-client-ui-primitives',
-    '@deepseek-ai/dsh-client-ui-dockkit',
-)#说明符结束
-
-静态实体=None#说明符 → 导出实体；启动前由宿主写入
-
-def 绑定静态模块(实体表):
-    '写入启动时交给模块加载器的静态表。实体表键须覆盖平台说明符'
-    global 静态实体#写
-    静态实体=实体表
 
 def 静态模块表():
-    '构建启动时交给模块加载器的静态表'
-    if 静态实体 is None:#未绑定
-        raise 网页错误('web boot: static modules are not bound')#失败
-    return 静态实体#表
+    '构建启动时交给模块加载器的静态表。键是平台说明符'
+    return {#已有 Python 包的那几条。react、zod、react-virtual 没有对应包
+        '@deepseek-ai/cordis':Cordis,#cordis
+        '@deepseek-ai/dsh-client-store':客户端存储,#存储
+        '@deepseek-ai/dsh-client-ui-slots':界面槽位,#槽位
+        '@deepseek-ai/dsh-client-ui-primitives':界面基础,#基础界面
+        '@deepseek-ai/dsh-client-ui-dockkit':停靠套件,#停靠套件
+    }#表结束

@@ -1,4 +1,4 @@
-'尚未完成,请勿使用'
+'web 子命令用 pywebbridge 打开 dsh 页面；其他入口仍未完成'
 import argparse,inspect,sys,json
 from dataclasses import dataclass
 版本='0.0.0.dev0'
@@ -85,11 +85,32 @@ def web启动(*,host:str,#绑定地址，拒绝0.0.0.0
     port:int,#端口，须为数字；0表示系统分配
     trusted_host:str=None,#信任的authority；官方可重复，这里只能收一个
     ):
-    '在调用本函数的进程里打开网页。打开页面直接执行 ui.run，不再另起子进程。'
-    from .源码.客户端.ui_布局.应用帧 import 打开页面
+    '在本进程里起 pywebbridge，握手后的窗口直接交给 dsh 页面。'
+    from pywebbridge.服务.服务器 import 服务器
+    from .源码.客户端.web.启动 import 网页应用入口
     if host=='0.0.0.0':
         报错('错误：网页只监听本机')
-    打开页面(主机=host, 端口=port)
+    if trusted_host is not None and trusted_host=='':
+        报错('错误：--trusted-host 需要一个名字')
+    应用=服务器(主机=host,端口=port)
+    已挂=[]
+    @应用.route('/')
+    def 首页(窗口):
+        try:
+            文档=窗口.document
+            根=文档.getElementById('root')
+            if 根 is None:
+                根=文档.createElement('div')
+                根.id='root'
+                文档.body.appendChild(根)
+            入口=网页应用入口(根)
+            入口.运行()
+            已挂.append(入口)
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            raise
+    应用.启动(调试=True)
 
 def 无头启动(*task:str):#任务词，空格拼接；全空白是用法错误
     ...#应用插件解析，不是启动器

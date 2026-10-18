@@ -27,7 +27,7 @@ def 裸包名(说明符):#解析 bare package 名
         return 段[0]+'/'+段[1]#@scope/name
     return 段[0]#普通包名
 
-def 从manifest读身份(路径):#读 package.json 身份
+def 从manifest读取身份(路径):#读 package.json 身份
     '名字空白则没有身份；版本只在非空白字符串时带上。清单为 dict'
     文本=open(路径,'r',encoding='utf-8').read()#读文件
     try:#解析
@@ -122,7 +122,7 @@ class 包身份解析器:#带进程内缓存的解析器
         elif not 说明符.startswith('cordis:'):
             模块路径=说明符 if os.path.isabs(说明符) else os.path.normpath(os.path.join(锚列表[0] if len(锚列表)>0 else '.',说明符))
             manifest=最近manifest(模块路径)
-        身份=None if manifest is None else 从manifest读身份(manifest)
+        身份=None if manifest is None else 从manifest读取身份(manifest)
         自身.缓存[键]=身份
         return 身份
 

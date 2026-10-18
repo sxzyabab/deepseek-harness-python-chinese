@@ -37,7 +37,7 @@ def 路径通配(模式表,选项=None):
 工作区已排除=路径通配(list(排除)+list(工作区排除),{'dot':True})#工作区排除匹配器
 是页面资源=路径通配(list(页面资源),{'dot':True})#页面资源匹配器
 
-def 读json(文件):#读取并解析JSON
+def 读取json(文件):#读取并解析JSON
     '读取并解析 JSON 为记录'
     return json.loads(open(文件,'r',encoding='utf-8').read())#解析为记录
 
@@ -276,7 +276,7 @@ def 物化(名册,选项):#将每个名册包的依赖闭包物化进镜像
             相对=os.path.relpath(来自,选项['resolveFrom']) or '.'#相对来源
             缺失.append(名+' (from '+相对+')')#记入缺失
             continue#下一队列项
-        清单=读json(os.path.join(目录,'package.json'))#读取包清单
+        清单=读取json(os.path.join(目录,'package.json'))#读取包清单
         前缀='node_modules/'+名#镜像前缀
         之前=len(文件表)#收集前条目数
         if 名 in 选项['workspaces']:#工作区包

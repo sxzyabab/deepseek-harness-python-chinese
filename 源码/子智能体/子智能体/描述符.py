@@ -5,7 +5,7 @@ from .异常 import 子智能体描述符错误#本包异常
 子智能体描述符版本=2#当前描述符版本
 描述符公共键=('version','mode','provider','label')#描述符公共键
 一次性描述符键=set(描述符公共键)#一次性允许键
-可续跑描述符键=set(list(描述符公共键)+['agentProvider','agentModel','agentReasoningEffort','persona','toolFilter'])#可续跑允许键
+可续运行描述符键=set(list(描述符公共键)+['agentProvider','agentModel','agentReasoningEffort','persona','toolFilter'])#可续运行允许键
 工具过滤键=set(['allow','deny'])#工具过滤允许键
 
 class 一次性子智能体描述符(TypedDict):#其跑结束后不能冷恢复的有会话子智能体
@@ -14,9 +14,9 @@ class 一次性子智能体描述符(TypedDict):#其跑结束后不能冷恢复�
     provider:str#建立该子体的 ctx.subagents 提供方名
     label:NotRequired[str]#可选创建标签
 
-class 可续跑子智能体描述符数据(TypedDict):#已声明组合支持冷恢复的有会话子智能体
+class 可续运行子智能体描述符数据(TypedDict):#已声明组合支持冷恢复的有会话子智能体
     version:int#描述符格式版本
-    mode:Literal['continuable']#固定为可续跑
+    mode:Literal['continuable']#固定为可续运行
     provider:str#建立该子体的 ctx.subagents 提供方名
     label:str#创建标签
     agentProvider:NotRequired[str]#已解析的子 agentOptions.provider
@@ -25,15 +25,15 @@ class 可续跑子智能体描述符数据(TypedDict):#已声明组合支持冷�
     persona:NotRequired[str]#恢复时遮蔽部署人设的每子体人设
     toolFilter:NotRequired[object]#恢复时再应用的子工具作用域
 
-子智能体描述符数据=一次性子智能体描述符|可续跑子智能体描述符数据#受支持的耐久子智能体身份与可选续跑组合
+子智能体描述符数据=一次性子智能体描述符|可续运行子智能体描述符数据#受支持的耐久子智能体身份与可选续跑组合
 
 class 一次性子智能体描述符输入(TypedDict):#一次性子体耐久身份的输入
     mode:Literal['one-shot']#固定为一次性
     provider:str#将建立该子体的提供方名
     label:NotRequired[str]#可选创建标签
 
-class 可续跑子智能体描述符输入(TypedDict):#可续跑子体耐久身份与可恢复组合的输入
-    mode:Literal['continuable']#固定为可续跑
+class 可续运行子智能体描述符输入(TypedDict):#可续运行子体耐久身份与可恢复组合的输入
+    mode:Literal['continuable']#固定为可续运行
     provider:str#将建立该子体的提供方名
     label:str#创建标签
     agentProvider:NotRequired[str]#请求的子 agentOptions.provider
@@ -42,7 +42,7 @@ class 可续跑子智能体描述符输入(TypedDict):#可续跑子体耐久身�
     persona:NotRequired[str]#请求的每子体人设
     toolFilter:NotRequired[object]#请求的子工具作用域
 
-子智能体描述符输入=一次性子智能体描述符输入|可续跑子智能体描述符输入#snapshot 校验并分离的输入
+子智能体描述符输入=一次性子智能体描述符输入|可续运行子智能体描述符输入#snapshot 校验并分离的输入
 
 def 是否记录(值):#对象记录守卫
     '持久化 JSON 值是否为对象记录'
@@ -103,7 +103,7 @@ def 解析子智能体描述符(值):#解析描述符
     模式=值['mode'] if 'mode' in 值 else None#模式字段
     if 模式!='one-shot' and 模式!='continuable':#必须是已知模式
         raise 子智能体描述符错误('persisted subagent descriptor mode must be "one-shot" or "continuable"')#拒绝
-    断言已知键(值,一次性描述符键 if 模式=='one-shot' else 可续跑描述符键,'payload')#按模式校验键
+    断言已知键(值,一次性描述符键 if 模式=='one-shot' else 可续运行描述符键,'payload')#按模式校验键
     提供方=值['provider'] if 'provider' in 值 else None#提供方字段
     if not isinstance(提供方,str):#必须是字符串
         raise 子智能体描述符错误('persisted subagent descriptor provider must be a string')#拒绝
@@ -113,7 +113,7 @@ def 解析子智能体描述符(值):#解析描述符
         if 标签 is not None:#有标签
             结果['label']=标签#展开
         return 结果#一次性
-    标签=值['label'] if 'label' in 值 else None#可续跑标签必填
+    标签=值['label'] if 'label' in 值 else None#可续运行标签必填
     if not isinstance(标签,str):#必须是字符串
         raise 子智能体描述符错误('persisted subagent descriptor label must be a string')#拒绝
     智能体提供方=可选字符串(值,'agentProvider')#可选子提供方
@@ -121,7 +121,7 @@ def 解析子智能体描述符(值):#解析描述符
     推理力度=可选字符串(值,'agentReasoningEffort')#可选推理力度
     人设=可选字符串(值,'persona')#可选人设
     工具过滤=解析工具过滤(值['toolFilter']) if 'toolFilter' in 值 else None#是否带工具过滤
-    结果={'version':子智能体描述符版本,'mode':模式,'provider':提供方,'label':标签}#可续跑描述符
+    结果={'version':子智能体描述符版本,'mode':模式,'provider':提供方,'label':标签}#可续运行描述符
     if 智能体提供方 is not None:#有子提供方
         结果['agentProvider']=智能体提供方#展开
     if 智能体模型 is not None:#有子模型
@@ -132,7 +132,7 @@ def 解析子智能体描述符(值):#解析描述符
         结果['persona']=人设#展开
     if 工具过滤 is not None:#有过滤
         结果['toolFilter']=工具过滤#展开
-    return 结果#可续跑
+    return 结果#可续运行
 
 def 快照子智能体描述符(输入):
     '在任何 Task 或提供方工作开始之前，把描述符输入校验并分离成耐久载荷——与会话日志自身强制的同一分离无损 JSON 边界。输入为 dict'
@@ -142,9 +142,9 @@ def 快照子智能体描述符(输入):
         候选={'version':子智能体描述符版本,'mode':模式,'provider':提供方}#一次性候选
         if 'label' in 输入 and 输入['label'] is not None:#有标签
             候选['label']=输入['label']#展开
-    else:#可续跑候选
+    else:#可续运行候选
         标签=输入['label']#标签
-        候选={'version':子智能体描述符版本,'mode':模式,'provider':提供方,'label':标签}#可续跑候选
+        候选={'version':子智能体描述符版本,'mode':模式,'provider':提供方,'label':标签}#可续运行候选
         for 键 in ('agentProvider','agentModel','agentReasoningEffort','persona','toolFilter'):#可选组合字段
             if 键 in 输入 and 输入[键] is not None:#有值
                 候选[键]=输入[键]#展开

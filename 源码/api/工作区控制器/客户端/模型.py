@@ -1,445 +1,401 @@
-'Client 侧 Workspace 状态模型，由 Remote 传输与 UI 投影共享'
-import re#写死 ISO
-import threading#通知调度
-from datetime import datetime as 日期时间,timedelta as 时间差,timezone as 固定偏移
-from zoneinfo import ZoneInfo as 时区
-from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
-from ....基础设施.通用工具 import 观察者集合
+'客户端工作区投影。一元结果和跟随帧都按同步返回值合并'
+from datetime import datetime as 日期时间#比较 updatedAt
+from ....基础设施.通用工具 import 最大安全整数#没有排名的行排到最后
+from ....类型化远程调用.协议 import 取远程错误#流失败是否是线路失败
+from ....客户端.存储 import 通知订阅者#订阅者扇出
 
-__all__=[#仅中文公开名
-    '工作区列表阶段','工作区快照','工作区跟随接收端','客户端工作区模型',
-]#公开面结束
+__all__=['客户端工作区模型']
 
-工作区列表阶段=('pending','ready')#列表阶段联合
-_时刻轮廓=re.compile(#ISO-8601：Z 或 ±HH:MM
-    r'^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]+))?(Z|([+-])([0-9]{2}):([0-9]{2}))\Z',
-    re.ASCII,
-)#写死轮廓
 
-def _解析时刻(值):
-    'ISO-8601 → 可比较时间戳；失败为 0'
-    if 值 is None:#空
-        return 0#最旧
-    文=str(值)#字符串
-    匹配=_时刻轮廓.match(文)#按轮廓
-    if 匹配 is None:#形态不对
-        return 0#最旧
-    try:#按捕获组构造
-        年,月,日=int(匹配.group(1)),int(匹配.group(2)),int(匹配.group(3))#日历
-        时,分,秒=int(匹配.group(4)),int(匹配.group(5)),int(匹配.group(6))#墙钟
-        小数=匹配.group(7) if 匹配.group(7) is not None else ''#小数秒
-        微秒=int((小数+'000000')[:6]) if 小数!='' else 0#微秒
-        if 匹配.group(8)=='Z':#UTC
-            区=时区('UTC')
-        else:#数字偏移
-            偏移=时间差(hours=int(匹配.group(10)),minutes=int(匹配.group(11)))
-            if 匹配.group(9)=='-':#西向
-                偏移=-偏移#取负
-            区=固定偏移(偏移)
-        return 日期时间(年,月,日,时,分,秒,微秒,tzinfo=区).timestamp()
-    except (TypeError,ValueError):#非法
-        return 0#最旧
+def 解析时刻(文本):
+    '把 ISO-8601 收成秒。解析不了则返回空，对应 Date.parse 的 NaN'
+    if not isinstance(文本,str) or 文本=='':#没有文本
+        return None#无法比较
+    标准=文本[:-1]+'+00:00' if 文本.endswith('Z') else 文本#fromisoformat 不吃 Z
+    try:#形态不对就当无法比较
+        return 日期时间.fromisoformat(标准).timestamp()#秒
+    except ValueError as 错误:#不是这种时刻，对应 Date.parse 的 NaN
+        return None#不抛出，调用方把空当成无法比较
 
-def _是否远程失败(错误):
-    '值是否像 RemoteFailure（有 code/message）'
-    if 错误 is None:#空
-        return False#否
-    if isinstance(错误,dict):#字典信封
-        return 'code' in 错误 and 'message' in 错误#键齐
-    return hasattr(错误,'code') and hasattr(错误,'message')#对象面
-
-def _插标识到锚前(标识列,标识,锚点=None):
-    '本地乐观重排：把标识插到锚点前；省略锚点则追加'
-    if 标识 not in 标识列 or (锚点 is not None and 锚点 not in 标识列) or 锚点==标识:#非法
-        return list(标识列)#原样复制
-    去掉=[项 for 项 in 标识列 if 项!=标识]#先移除
-    位=len(去掉) if 锚点 is None else 去掉.index(锚点)#插入点
-    return 去掉[:位]+[标识]+去掉[位:]#插入
 
 class 客户端工作区模型:
-    '拥有 Client Workspace 投影、变更回声，以及流／一元竞态解析'
+    '拥有客户端工作区投影、本地回声，以及流和一元调用谁后到谁生效'
 
     def __init__(自身,远程):
-        '远程为生成的 workspace 命名空间面'
-        自身._远程=远程#远程面
-        自身._行=()#当前行
-        自身._归档会话标识=()#当前归档
-        自身._钉住会话标识=()#当前钉住
-        自身._归档请求序=0#归档请求序
-        自身._钉住请求序=0#钉住请求序
-        自身._状态='loading'#初始加载中
-        自身._阶段='pending'#尚未就绪
-        自身._错误=None#无错误
-        自身._顺序请求代=0#重排请求代
-        自身._顺序帧代=0#流顺序代
-        自身._已提交顺序=[]#已提交顺序
-        自身._已移除=set()#已移除 id
-        自身._监听者=观察者集合()#订阅者
-        自身._快照脏=False#快照是否脏
-        自身._待通知=False#是否有待通知
-        自身._已调度通知=False#是否已调度
-        自身._通知代=0#通知代
-        自身._快照缓存=自身._构造快照()#初始快照
+        '远程是生成的 workspace 命名空间'
+        自身.远程=远程#命名空间
+        自身.行=[]#工作区行
+        自身.归档会话标识=[]#归档集
+        自身.钉住会话标识=[]#钉住集
+        自身.状态='loading'#idle、loading 或 error
+        自身.阶段='pending'#pending 或 ready
+        自身.错误=None#终端流失败
+        自身.顺序请求代=0#只有最新的本地重排回声能写顺序
+        自身.顺序帧代=0#后到的流顺序压过更早的一元回声
+        自身.已提交顺序=[]#基线、增量或当前一元回声接受过的完整顺序
+        自身.归档请求序号=0#后到的归档请求或推送压过旧回声
+        自身.钉住请求序号=0#后到的钉住请求或推送压过旧回声
+        自身.已移除=set()#宿主工作区 id 不复用，迟到数据不能复活已删行
+        自身.监听者=set()#失效回调
+        自身.快照脏=False#缓存是否过期
+        自身.待通知=False#有还没扇出的失效
+        自身.已调度通知=False#这一轮已经排了冲刷
+        自身.通知代=0#立即冲刷会使已排的那次作废
+        自身.通知深度=0#大于 0 时把同一段里的失效收成一次
+        自身.快照缓存=自身.构造快照()#当前快照
 
     def create(自身,输入):
-        '创建或解析 Workspace，并立即合并一元结果。输入含 path。返回期约，解决值是远程结果'
-        落定=期约()#本次调用的结算点
-        def 已返回(结果):
-            '远程返回：成功则合并，再交出结果'
-            try:
-                if 结果.get('ok'):#成功
-                    自身._合并(结果['value']['workspace'])#合并
-            except BaseException as 错误:#合并失败交给调用方
-                落定.拒绝(错误)
-                return
-            落定.解决(结果)#结果
-        自身._远程.create(输入).然后(已返回,落定.拒绝)#发远程
-        return 落定
-
-    def rename(自身,工作区标识,标题):
-        '重命名 Workspace，并立即合并一元结果。返回期约，解决值是远程结果'
-        落定=期约()#本次调用的结算点
-        def 已返回(结果):
-            '远程返回：成功则合并，再交出结果'
-            try:
-                if 结果.get('ok'):#成功
-                    自身._合并(结果['value']['workspace'])#合并
-            except BaseException as 错误:#合并失败交给调用方
-                落定.拒绝(错误)
-                return
-            落定.解决(结果)#结果
-        自身._远程.rename({'workspaceId':工作区标识,'title':标题}).然后(已返回,落定.拒绝)#发远程
-        return 落定
+        '创建或解析工作区，成功则立刻合并那一行。输入含 path。返回远程结果'
+        结果=自身.远程.create(输入)#同步远程结果
+        if 结果['ok']:#成功
+            自身.合并(结果['value']['workspace'])#立刻合并
+        return 结果#远程结果
 
     def initializeDefault(自身,信号=None):
-        '初始化默认工作区并合并权威行。不在本地另造会话。'
-        落定=期约()#本次调用的结算点
-        def 已返回(结果):
-            '远程返回：有工作区则合并'
-            try:
-                if isinstance(结果,dict) and 结果.get('ok') and 结果.get('value') is not None:
-                    值=结果['value']
-                    if isinstance(值,dict) and 'workspace' in 值:
-                        自身._合并(值['workspace'])
-            except BaseException as 错误:
-                落定.拒绝(错误)
-                return
-            落定.解决(结果)
-        if 信号 is not None:
-            产出=自身._远程.initializeDefault(信号)
-        else:
-            产出=自身._远程.initializeDefault()
-        if hasattr(产出,'然后'):
-            产出.然后(已返回,落定.拒绝)
-        else:
-            已返回(产出)
-        return 落定
+        '准备默认工作区。有行则立刻合并。返回远程结果'
+        结果=自身.远程.initializeDefault(信号)#同步远程结果
+        if 结果['ok'] and 结果['value'] is not None:#有工作区
+            自身.合并(结果['value']['workspace'])#立刻合并
+        return 结果#远程结果
 
-    def delete(自身,工作区标识):
-        '删除 Workspace，并立即从本地投影移除。返回期约，解决值是远程结果'
-        落定=期约()#本次调用的结算点
-        def 已返回(结果):
-            '远程返回：成功则立即移除，再交出结果'
-            try:
-                if 结果.get('ok'):#成功
-                    自身._移除(工作区标识,True)#立即移除
-            except BaseException as 错误:#移除失败交给调用方
-                落定.拒绝(错误)
-                return
-            落定.解决(结果)#结果
-        自身._远程.delete({'workspaceId':工作区标识}).然后(已返回,落定.拒绝)#发远程
-        return 落定
+    def rename(自身,工作区号,标题):
+        '重命名并立刻合并返回行。返回远程结果'
+        结果=自身.远程.rename({'workspaceId':工作区号,'title':标题})#同步远程结果
+        if 结果['ok']:#成功
+            自身.合并(结果['value']['workspace'])#立刻合并
+        return 结果#远程结果
 
-    def insertBefore(自身,工作区标识,锚点=None):
-        '乐观移动 Workspace，并与返回的完整顺序对账'
-        自身._顺序请求代+=1#本请求代
-        请求代=自身._顺序请求代#捕获
-        帧代=自身._顺序帧代#捕获流代
-        本地顺序=[项['workspaceId'] for 项 in 自身._行]#当前本地顺序
-        自身._安装顺序(_插标识到锚前(本地顺序,工作区标识,锚点))#乐观安装
-        载荷={'workspaceId':工作区标识}#请求
-        if 锚点 is not None:#有锚
-            载荷['beforeWorkspaceId']=锚点#锚点
-        落定=期约()#本次调用的结算点，解决值是远程结果
-        def 已返回(结果):
-            '远程返回：仍最新则与返回的完整顺序对账，再交出结果'
-            try:
-                if 请求代==自身._顺序请求代 and 帧代==自身._顺序帧代:#仍最新
-                    自身._安装顺序(
-                        结果['value']['workspaceIds'] if 结果.get('ok') else 自身._已提交顺序,
-                        结果.get('ok'),
-                    )#对账
-            except BaseException as 错误:#对账失败交给调用方
-                落定.拒绝(错误)
-                return
-            落定.解决(结果)#结果
-        自身._远程.insertBefore(载荷).然后(已返回,落定.拒绝)#发远程
-        return 落定
+    def delete(自身,工作区号):
+        '删除并立刻从本地投影拿掉。返回远程结果'
+        结果=自身.远程.delete({'workspaceId':工作区号})#同步远程结果
+        if 结果['ok']:#成功
+            自身.移除(工作区号,True)#立刻拿掉并通知
+        return 结果#远程结果
 
-    def insertSessionBefore(自身,工作区标识,会话标识,锚点=None):
-        '在所属 Workspace 内移动会话，并合并返回行'
-        载荷={'workspaceId':工作区标识,'sessionId':会话标识}#请求
-        if 锚点 is not None:#有锚
-            载荷['beforeSessionId']=锚点#锚点
-        落定=期约()#本次调用的结算点，解决值是远程结果
-        def 已返回(结果):
-            '远程返回：成功则合并，再交出结果'
-            try:
-                if 结果.get('ok'):#成功
-                    自身._合并(结果['value']['workspace'])#合并
-            except BaseException as 错误:#合并失败交给调用方
-                落定.拒绝(错误)
-                return
-            落定.解决(结果)#结果
-        自身._远程.insertSessionBefore(载荷).然后(已返回,落定.拒绝)#发远程
-        return 落定
+    def insertBefore(自身,工作区号,锚=None):
+        '先按本地顺序乐观移动，再按返回的完整顺序收口。返回远程结果'
+        自身.顺序请求代+=1#这一次请求
+        请求代=自身.顺序请求代#记下
+        帧代=自身.顺序帧代#记下当时的流顺序代
+        标识列=[项['workspaceId'] for 项 in 自身.行]#当前顺序
+        if (工作区号 not in 标识列) or (锚 is not None and 锚 not in 标识列) or 锚==工作区号:#移不动
+            本地=list(标识列)#原顺序
+        else:#插到锚前，省略锚则追加
+            去掉=[候选 for 候选 in 标识列 if 候选!=工作区号]#先拿掉
+            位置=len(去掉) if 锚 is None else 去掉.index(锚)#插入点
+            本地=去掉[:位置]+[工作区号]+去掉[位置:]#新顺序
+        自身.安装顺序(本地)#乐观顺序。这里会先通知，再发远程
+        载荷={'workspaceId':工作区号}#移动的工作区
+        if 锚 is not None:#有锚
+            载荷['beforeWorkspaceId']=锚#锚
+        结果=自身.远程.insertBefore(载荷)#同步远程结果
+        if 请求代==自身.顺序请求代 and 帧代==自身.顺序帧代:#没有更新的请求或流顺序
+            if 结果['ok']:#用宿主顺序
+                自身.安装顺序(结果['value']['workspaceIds'],True)#提交
+            else:#退回已提交顺序
+                自身.安装顺序(自身.已提交顺序)#退回
+        return 结果#远程结果
 
-    def archiveSession(自身,会话标识,选项=None):
-        '归档一个会话，并安装返回的完整归档集合'
-        if 选项 is None:
-            选项={}
-        自身._归档请求序+=1
-        请求序=自身._归档请求序
-        载荷={'sessionId':会话标识}
-        if 选项.get('stopActivity') is True:
-            载荷['stopActivity']=True
-        落定=期约()
-        def 已返回(结果):
-            '远程返回：仍最新则安装归档集合，并摘掉同一会话的钉'
-            try:
-                if isinstance(结果,dict) and 结果.get('ok') and 请求序==自身._归档请求序:
-                    自身._安装归档(结果['value']['archivedSessionIds'])
-                    自身._安装钉住([标识 for 标识 in 自身._钉住会话标识 if 标识!=会话标识])
-            except BaseException as 错误:
-                落定.拒绝(错误)
-                return
-            落定.解决(结果)
-        自身._远程.archiveSession(载荷).然后(已返回,落定.拒绝)
-        return 落定
+    def insertSessionBefore(自身,工作区号,会话号,锚=None):
+        '移动会话并合并返回行。返回远程结果'
+        载荷={'workspaceId':工作区号,'sessionId':会话号}#工作区与会话
+        if 锚 is not None:#有锚
+            载荷['beforeSessionId']=锚#锚
+        结果=自身.远程.insertSessionBefore(载荷)#同步远程结果
+        if 结果['ok']:#成功
+            自身.合并(结果['value']['workspace'])#合并行
+        return 结果#远程结果
 
-    def unarchiveSession(自身,会话标识):
-        '解除归档，并安装返回的完整归档集合'
-        自身._归档请求序+=1
-        请求序=自身._归档请求序
-        落定=期约()
-        def 已返回(结果):
-            '远程返回：仍最新则安装归档集合'
-            try:
-                if isinstance(结果,dict) and 结果.get('ok') and 请求序==自身._归档请求序:
-                    自身._安装归档(结果['value']['archivedSessionIds'])
-            except BaseException as 错误:
-                落定.拒绝(错误)
-                return
-            落定.解决(结果)
-        自身._远程.unarchiveSession({'sessionId':会话标识}).然后(已返回,落定.拒绝)
-        return 落定
+    def archiveSession(自身,会话号,选项=None):
+        '归档并安装返回的完整归档集。被后到的请求或推送压过则不安装。返回远程结果'
+        if 选项 is None:#没给选项
+            选项={}#空
+        自身.归档请求序号+=1#这一次
+        请求序号=自身.归档请求序号#记下
+        载荷={'sessionId':会话号}#会话
+        if 选项.get('stopActivity') is True:#先停运行中的工作
+            载荷['stopActivity']=True#带上
+        结果=自身.远程.archiveSession(载荷)#同步远程结果
+        if 结果['ok'] and 请求序号==自身.归档请求序号:#仍是最新请求
+            自身.推迟通知()#归档和摘钉收成一次
+            try:#无论是否变化都放出
+                自身.安装归档(结果['value']['archivedSessionIds'])#完整归档集
+                留下=[]#归档的会话不再保持钉住
+                for 标识 in 自身.钉住会话标识:#当前钉
+                    if 标识!=会话号:#不是刚归档的
+                        留下.append(标识)#留下
+                自身.安装钉住(留下)#本地摘钉
+            finally:#一次通知
+                自身.放出通知()#扇出
+        return 结果#远程结果
 
-    def pinSession(自身,会话标识):
-        '钉住一个会话，并安装返回的完整钉住集合'
-        自身._钉住请求序+=1
-        请求序=自身._钉住请求序
-        落定=期约()
-        def 已返回(结果):
-            '远程返回：仍最新则安装钉住集合'
-            try:
-                if isinstance(结果,dict) and 结果.get('ok') and 请求序==自身._钉住请求序:
-                    自身._安装钉住(结果['value']['pinnedSessionIds'])
-            except BaseException as 错误:
-                落定.拒绝(错误)
-                return
-            落定.解决(结果)
-        自身._远程.pinSession({'sessionId':会话标识}).然后(已返回,落定.拒绝)
-        return 落定
+    def unarchiveSession(自身,会话号):
+        '取消归档并安装返回的完整归档集。被压过则不安装。返回远程结果'
+        自身.归档请求序号+=1#这一次
+        请求序号=自身.归档请求序号#记下
+        结果=自身.远程.unarchiveSession({'sessionId':会话号})#同步远程结果
+        if 结果['ok'] and 请求序号==自身.归档请求序号:#仍是最新
+            自身.安装归档(结果['value']['archivedSessionIds'])#完整归档集
+        return 结果#远程结果
 
-    def unpinSession(自身,会话标识):
-        '去掉钉住，并安装返回的完整钉住集合'
-        自身._钉住请求序+=1
-        请求序=自身._钉住请求序
-        落定=期约()
-        def 已返回(结果):
-            '远程返回：仍最新则安装钉住集合'
-            try:
-                if isinstance(结果,dict) and 结果.get('ok') and 请求序==自身._钉住请求序:
-                    自身._安装钉住(结果['value']['pinnedSessionIds'])
-            except BaseException as 错误:
-                落定.拒绝(错误)
-                return
-            落定.解决(结果)
-        自身._远程.unpinSession({'sessionId':会话标识}).然后(已返回,落定.拒绝)
-        return 落定
+    def pinSession(自身,会话号):
+        '钉住并安装返回的完整钉住集。被压过则不安装。返回远程结果'
+        自身.钉住请求序号+=1#这一次
+        请求序号=自身.钉住请求序号#记下
+        结果=自身.远程.pinSession({'sessionId':会话号})#同步远程结果
+        if 结果['ok'] and 请求序号==自身.钉住请求序号:#仍是最新
+            自身.安装钉住(结果['value']['pinnedSessionIds'])#完整钉住集
+        return 结果#远程结果
+
+    def unpinSession(自身,会话号):
+        '去掉钉并安装返回的完整钉住集。被压过则不安装。返回远程结果'
+        自身.钉住请求序号+=1#这一次
+        请求序号=自身.钉住请求序号#记下
+        结果=自身.远程.unpinSession({'sessionId':会话号})#同步远程结果
+        if 结果['ok'] and 请求序号==自身.钉住请求序号:#仍是最新
+            自身.安装钉住(结果['value']['pinnedSessionIds'])#完整钉住集
+        return 结果#远程结果
 
     def replaceBaseline(自身,基线):
-        '用一份完整流代际基线替换投影。基线为 dict'
-        自身._顺序帧代+=1#流顺序代递增
-        自身._归档请求序+=1
-        自身._钉住请求序+=1
-        自身._安装全部行(基线.get('items') or ())#安装全部行
-        自身._安装归档(基线.get('archivedSessionIds') or ())#安装归档
-        自身._安装钉住(基线.get('pinnedSessionIds') or ())#安装钉住
-        自身._状态='idle'#就绪空闲
-        自身._阶段='ready'#列表就绪
-        自身._错误=None#清除错误
-        自身._失效()#通知订阅者
+        '用一代的完整基线替换投影。基线含 items、archivedSessionIds、pinnedSessionIds'
+        自身.顺序帧代+=1#流顺序更新
+        自身.归档请求序号+=1#压过在途归档回声
+        自身.钉住请求序号+=1#压过在途钉住回声
+        自身.推迟通知()#这一段只通知一次
+        try:#状态写完再扇出
+            自身.安装全部行(基线['items'])#行与已提交顺序
+            自身.安装归档(基线['archivedSessionIds'])#归档
+            自身.安装钉住(基线['pinnedSessionIds'])#钉住
+            自身.状态='idle'#安静
+            自身.阶段='ready'#基线已到
+            自身.错误=None#清掉失败
+            自身.失效()#标记
+        finally:#一次通知
+            自身.放出通知()#扇出
 
     def upsertView(自身,工作区):
-        '合并当前 follow 代际解码出的一次 Workspace upsert'
-        自身._合并(工作区)#委托
+        '合并当前代解码出的一行工作区'
+        自身.合并(工作区)#合并
 
-    def removeView(自身,工作区标识):
-        '应用当前 follow 代际解码出的一次 Workspace 移除'
-        自身._移除(工作区标识)#委托
+    def removeView(自身,工作区号):
+        '去掉当前代解码出的一行工作区'
+        自身.移除(工作区号)#去掉
 
     def replaceOrder(自身,工作区标识列):
-        '用当前 follow 代际替换 Host 确认的顺序'
-        自身._顺序帧代+=1#流顺序代递增
-        自身._安装顺序(工作区标识列,True)#作为已提交安装
+        '用当前代的宿主顺序替换本地顺序'
+        自身.顺序帧代+=1#流顺序更新
+        自身.安装顺序(工作区标识列,True)#提交
 
     def replaceArchived(自身,归档会话标识列):
-        '用当前 follow 代际替换已归档会话集合'
-        自身._归档请求序+=1
-        自身._安装归档(归档会话标识列)#安装归档
+        '用当前代的归档集替换本地归档集'
+        自身.归档请求序号+=1#压过在途回声
+        自身.安装归档(归档会话标识列)#安装
 
     def replacePinned(自身,钉住会话标识列):
-        '用当前 follow 代际替换已钉住会话集合'
-        自身._钉住请求序+=1
-        自身._安装钉住(钉住会话标识列)
+        '用当前代的钉住集替换本地钉住集'
+        自身.钉住请求序号+=1#压过在途回声
+        自身.安装钉住(钉住会话标识列)#安装
 
     def handleCarrierFailure(自身):
-        '丢失载体重连时保持最近完整投影可见'
-        自身._状态='loading'#显示加载中
-        自身._错误=None#可重试，清错误
-        自身._失效()#通知
+        '载体丢失、准备重连时保持最近一份完整投影可见'
+        自身.状态='loading'#正在重连
+        自身.错误=None#不是终端失败
+        自身.失效()#通知
 
     def handleStreamFailure(自身,错误):
-        '发布不可重试的流或协议失败'
-        if not _是否远程失败(错误):#非远程失败
-            raise 错误#上抛
-        自身._状态='error'#进入错误态
-        自身._错误=错误#保存失败
-        自身._失效()#通知
+        '发布不可重试的流或协议失败。不是线路失败则继续抛出'
+        if 取远程错误(错误) is None:#本地故障
+            raise 错误#让它崩
+        自身.状态='error'#终端失败
+        自身.错误=错误#记下
+        自身.失效()#通知
 
     def subscribe(自身,监听):
-        '订阅 Workspace 状态失效；返回取消订阅函数'
-        return 自身._监听者.订阅(监听)#取消
+        '订阅失效。返回退订函数'
+        自身.监听者.add(监听)#登记
+
+        def 退订():
+            '卸下这一次订阅'
+            自身.监听者.discard(监听)#拿掉
+
+        return 退订#退订
 
     def getSnapshot(自身):
-        '读取缓存状态，必要时先重建'
-        自身._刷新快照()#按需重建
-        return 自身._快照缓存#缓存
+        '读缓存。脏了就先重建'
+        自身.刷新快照()#按需
+        return 自身.快照缓存#当前快照
 
-    def _构造快照(自身):
-        '构造不可变快照 dict'
-        return {#快照
-            'items':自身._行,#行
-            'archivedSessionIds':自身._归档会话标识,#归档
-            'pinnedSessionIds':自身._钉住会话标识,#钉住
-            'state':自身._状态,#连接态
-            'phase':自身._阶段,#列表阶段
-            'error':自身._错误,#错误
-        }#结束
+    def 构造快照(自身):
+        '拼当前快照。键保持上游原文'
+        return {
+            'items':自身.行,#工作区
+            'archivedSessionIds':自身.归档会话标识,#归档
+            'pinnedSessionIds':自身.钉住会话标识,#钉住
+            'state':自身.状态,#idle、loading、error
+            'phase':自身.阶段,#pending、ready
+            'error':自身.错误,#失败或空
+        }#快照
 
-    def _安装归档(自身,归档会话标识列):
-        '安装归档集'
-        列=tuple(归档会话标识列)#固化
-        if len(列)==len(自身._归档会话标识) and all(列[i]==自身._归档会话标识[i] for i in range(len(列))):#无变化
-            return#跳过
-        自身._归档会话标识=列#安装
-        自身._失效()#通知
+    def 安装归档(自身,归档会话标识列):
+        '归档集没变则不通知'
+        if len(归档会话标识列)==len(自身.归档会话标识):#长度相同才可能相同
+            相同=True#先假设相同
+            下标=0#游标
+            while 下标<len(归档会话标识列):#逐项
+                if 归档会话标识列[下标]!=自身.归档会话标识[下标]:#不同
+                    相同=False#变了
+                    break#停
+                下标+=1#下一项
+            if 相同:#没变
+                return#不通知
+        自身.归档会话标识=list(归档会话标识列)#换上
+        自身.失效()#通知
 
-    def _安装钉住(自身,钉住会话标识列):
-        '安装钉住集'
-        列=tuple(钉住会话标识列)#固化
-        if len(列)==len(自身._钉住会话标识) and all(列[i]==自身._钉住会话标识[i] for i in range(len(列))):
-            return
-        自身._钉住会话标识=列
-        自身._失效()
+    def 安装钉住(自身,钉住会话标识列):
+        '钉住集没变则不通知'
+        if len(钉住会话标识列)==len(自身.钉住会话标识):#长度相同才可能相同
+            相同=True#先假设相同
+            下标=0#游标
+            while 下标<len(钉住会话标识列):#逐项
+                if 钉住会话标识列[下标]!=自身.钉住会话标识[下标]:#不同
+                    相同=False#变了
+                    break#停
+                下标+=1#下一项
+            if 相同:#没变
+                return#不通知
+        自身.钉住会话标识=list(钉住会话标识列)#换上
+        自身.失效()#通知
 
-    def _安装顺序(自身,工作区标识列,已提交=False):
-        '按排名安装顺序'
-        if 已提交:#提交则缓存
-            自身._已提交顺序=list(工作区标识列)#缓存
-        排名={标识:序 for 序,标识 in enumerate(工作区标识列)}#排名表
-        行=tuple(sorted(
-            自身._行,
-            key=lambda 项:排名.get(项['workspaceId'],10**18),
-        ))#按排名排序
-        if all(行[i] is 自身._行[i] for i in range(len(行))) and len(行)==len(自身._行):#未变
-            return#跳过
-        自身._行=行#安装
-        自身._失效()#通知
+    def 安装顺序(自身,工作区标识列,已提交=False):
+        '按排名重排已有行。已提交为真时记下这份完整顺序'
+        if 已提交:#这是接受过的顺序
+            自身.已提交顺序=list(工作区标识列)#副本
+        排名={}#id 到位置
+        下标=0#位置
+        for 标识 in 工作区标识列:#按给出的顺序
+            排名[标识]=下标#记下
+            下标+=1#下一位
 
-    def _合并(自身,视图):
-        '合并一行 Workspace。视图为 dict'
-        标识=视图['workspaceId']#id
-        if 标识 in 自身._已移除:#已移除则拒绝复活
-            return#跳过
-        下标=next((i for i,项 in enumerate(自身._行) if 项['workspaceId']==标识),-1)#定位
-        已有=自身._行[下标] if 下标>=0 else None#已有行
-        if 已有 is not None and _解析时刻(视图.get('updatedAt'))<_解析时刻(已有.get('updatedAt')):#更旧
-            return#丢
-        if 标识 not in 自身._已提交顺序:#未知 id
-            自身._已提交顺序=[标识]+自身._已提交顺序#插到顺序头
-        if 下标==-1:#新建
-            自身._行=(视图,)+自身._行#插头
-        else:#替换
-            自身._行=tuple(视图 if i==下标 else 项 for i,项 in enumerate(自身._行))#替换
-        自身._失效()#通知
+        def 排序键(项):
+            '没有出现在排名里的行放到最后'
+            if 项['workspaceId'] in 排名:#有排名
+                return 排名[项['workspaceId']]#位置
+            return 最大安全整数#最后
 
-    def _移除(自身,工作区标识,立即=False):
-        '移除一行'
-        自身._已移除.add(工作区标识)#记入已移除
-        自身._已提交顺序=[标识 for 标识 in 自身._已提交顺序 if 标识!=工作区标识]#从顺序去掉
-        行=tuple(项 for 项 in 自身._行 if 项['workspaceId']!=工作区标识)#过滤
-        if len(行)==len(自身._行):#无变化
-            if 立即:#立即通知
-                自身._失效(True)#通知
-            return
-        自身._行=行#安装
-        自身._失效(立即)#通知
+        行=sorted(自身.行,key=排序键)#稳定排序
+        if len(行)==len(自身.行):#长度相同才比身份
+            相同=True#先假设同一引用序列
+            下标=0#游标
+            while 下标<len(行):#逐项
+                if 行[下标] is not 自身.行[下标]:#引用变了
+                    相同=False#变了
+                    break#停
+                下标+=1#下一项
+            if 相同:#顺序没变
+                return#不通知
+        自身.行=行#换上
+        自身.失效()#通知
 
-    def _安装全部行(自身,视图列):
-        '安装全部行并记顺序'
-        已装={}#按 id 去重
-        for 视图 in 视图列:#逐行
-            标识=视图['workspaceId']#id
-            if 标识 not in 自身._已移除:#跳过已移除
-                已装[标识]=视图#写入
-        自身._行=tuple(已装.values())#安装行
-        自身._已提交顺序=[视图['workspaceId'] for 视图 in 视图列]#安装顺序
+    def 合并(自身,视图):
+        '合并一行。已删除的 id 不再复活。更旧的 updatedAt 丢掉'
+        if 视图['workspaceId'] in 自身.已移除:#已经删过
+            return#不复活
+        命中=-1#现有下标
+        下标=0#游标
+        while 下标<len(自身.行):#找同一 id
+            if 自身.行[下标]['workspaceId']==视图['workspaceId']:#命中
+                命中=下标#记下
+                break#停
+            下标+=1#下一个
+        if 命中!=-1:#已有行
+            新时刻=解析时刻(视图['updatedAt'])#新行
+            旧时刻=解析时刻(自身.行[命中]['updatedAt'])#旧行
+            if 新时刻 is not None and 旧时刻 is not None and 新时刻<旧时刻:#新行更旧
+                return#丢掉
+        if 视图['workspaceId'] not in 自身.已提交顺序:#顺序里还没有
+            自身.已提交顺序=[视图['workspaceId'],*自身.已提交顺序]#放到最前
+        if 命中==-1:#新行
+            自身.行=[视图,*自身.行]#前插
+        else:#替换那一格
+            下一=[]#新列表
+            位置=0#游标
+            for 项 in 自身.行:#逐行
+                if 位置==命中:#这一格
+                    下一.append(视图)#换上
+                else:#其余
+                    下一.append(项)#原样
+                位置+=1#下一位
+            自身.行=下一#换上
+        自身.失效()#通知
 
-    def _失效(自身,立即=False):
-        '标记失效并调度通知'
-        自身._快照脏=True#脏
-        自身._待通知=True#待通知
-        if 立即:#立即
-            自身._通知代+=1#作废已调度
-            自身._已调度通知=False#清调度
-            自身._冲刷()#立即派发
-            return
-        if 自身._已调度通知:#已调度则合并
-            return#跳过
-        自身._已调度通知=True#标记
-        自身._通知代+=1#本代
-        代=自身._通知代#捕获
-        def 后台通知():
-            '微任务派发'
-            if 代!=自身._通知代:#已作废
-                return#跳过
-            自身._已调度通知=False#清调度
-            自身._冲刷()#派发
-        threading.Thread(target=后台通知,daemon=True,name='workspace-controller-notify').start()#调度
+    def 移除(自身,工作区号,立即=False):
+        '去掉一行。一元回声即使行已经不在，也立刻通知'
+        自身.已移除.add(工作区号)#以后不复活
+        自身.已提交顺序=[标识 for 标识 in 自身.已提交顺序 if 标识!=工作区号]#从顺序拿掉
+        行=[项 for 项 in 自身.行 if 项['workspaceId']!=工作区号]#过滤
+        if len(行)==len(自身.行):#本来就不在
+            if 立即:#一元回声仍要发布
+                自身.失效(True)#立刻
+            return#停
+        自身.行=行#换上
+        自身.失效(立即)#通知
 
-    def _冲刷(自身):
-        '派发通知'
-        if not 自身._待通知 or len(自身._监听者)==0:#无待办或无订阅者
-            return#跳过
-        自身._待通知=False#清除
-        自身._刷新快照()#重建
-        自身._监听者.通知()#通知
+    def 安装全部行(自身,视图列):
+        '按基线安装行。已删除的 id 跳过。已提交顺序按基线原文'
+        已装={}#id 到行
+        for 视图 in 视图列:#基线顺序
+            if 视图['workspaceId'] not in 自身.已移除:#没删过
+                已装[视图['workspaceId']]=视图#后到的同 id 只更新值
+        自身.行=list(已装.values())#按首次出现的顺序
+        自身.已提交顺序=[视图['workspaceId'] for 视图 in 视图列]#含已删 id 的基线顺序
 
-    def _刷新快照(自身):
-        '按需重建快照'
-        if not 自身._快照脏:#不脏
-            return#跳过
-        自身._快照脏=False#清脏
-        自身._快照缓存=自身._构造快照()#重建
+    def 失效(自身,立即=False):
+        '标记快照过期。立即则马上扇出，否则在通知深度为 0 时扇出'
+        自身.快照脏=True#要重建
+        自身.待通知=True#要扇出
+        if 立即:#不等待
+            自身.通知代+=1#使已排的那次作废
+            自身.已调度通知=False#没有挂起的排程
+            自身.冲刷()#马上
+            return#停
+        if 自身.已调度通知:#这一轮已经排过
+            return#等它
+        自身.已调度通知=True#排上
+        自身.通知代+=1#这一次
+        if 自身.通知深度==0:#没有人在收口
+            自身.冲刷待通知()#现在扇出
+
+    def 冲刷待通知(自身):
+        '跑掉已排的那一次。代际变了就放弃'
+        if not 自身.已调度通知:#没排
+            return#停
+        代=自身.通知代#这一次
+        自身.已调度通知=False#先摘掉，扇出里可以再排
+        if 代!=自身.通知代:#已经被立即冲刷盖过
+            return#放弃
+        自身.冲刷()#扇出
+
+    def 推迟通知(自身):
+        '开始一段只在结束时扇出一次的变更'
+        自身.通知深度+=1#加深
+
+    def 放出通知(自身):
+        '结束一段变更。回到最外层时扇出'
+        自身.通知深度-=1#减深
+        if 自身.通知深度==0:#最外层
+            自身.冲刷待通知()#扇出
+
+    def 冲刷(自身):
+        '没有待通知或没有订阅者则什么都不做'
+        if (not 自身.待通知) or len(自身.监听者)==0:#不用扇出
+            return#停
+        自身.待通知=False#已消费
+        自身.刷新快照()#先重建
+        通知订阅者(自身.监听者,'[workspace-controller]')#扇出
+
+    def 刷新快照(自身):
+        '脏了才重建缓存'
+        if not 自身.快照脏:#还新
+            return#停
+        自身.快照脏=False#已重建
+        自身.快照缓存=自身.构造快照()#换缓存

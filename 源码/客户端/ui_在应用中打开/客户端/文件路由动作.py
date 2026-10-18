@@ -1,127 +1,109 @@
-'把已授权投递与变更文件路由接到共享打开控件'
-from ....基础设施.js特性 import 请求#上游 fetch
-from ....基础设施.js特性 import PromiseEX as 期约#中文别名的期约
-from .文件应用 import 使用文件应用#联想查询
-from ..异常 import 页面失败文案
-from .打开目标按钮 import 打开目标按钮#共享分体按钮
+'投递和变更文件走所属会话的授权地址，再接到共用打开按钮。'
+from .文件应用 import 接上文件应用
+from .打开目标按钮 import 打开目标按钮
 
-__all__=['查询路由','文件路由动作']#仅中文公开名
+__all__=['查询路由','文件路由动作']
 
-def 接上(产出,成功,失败):#期约或上游 then
-    '本层期约走 然后，上游 fetch 期约走 then；已是值则直接成功'
-    if hasattr(产出,'然后'):#本层期约
-        产出.然后(成功,失败)#接上
-        return
-    if hasattr(产出,'then'):#上游 fetch 期约
-        产出.then(成功,失败)#接上
-        return
-    成功(产出)#已是值
 
 def 查询路由(网址,信号):
-    '经授权路由拉文件关联；不可用或畸形则解决 None，回落揭示。返回期约'
-    结算=期约()#本次查询
-    def 失败(错误):
-        '不可用则回落；有原因时拒绝去掉路径的失败句'
-        if 错误 is None:
-            结算.解决(None)
-            return
-        结算.拒绝(页面失败文案(错误))
-    def 体已到(体):
-        '列表或包装里的 applications'
-        if isinstance(体,list):#已是应用表
-            结算.解决(体)#原样
-            return
-        if isinstance(体,dict) and 'applications' in 体:#包装
-            结算.解决(体['applications'])#表
-            return
-        结算.解决(None)#畸形
-    def 已响应(应答):
-        '非 OK 则空；否则读 json'
-        if hasattr(应答,'ok') and not 应答.ok:#非 OK
-            结算.解决(None)#无
-            return
-        if isinstance(应答,dict) and 'applications' in 应答:#已是包装
-            体已到(应答)#直接
-            return
-        if isinstance(应答,list):#已是表
-            体已到(应答)#直接
-            return
-        体=应答.json() if hasattr(应答,'json') else 应答#体
-        接上(体,体已到,失败)#json 期约
-    try:#请求
-        接上(请求(网址,{'signal':信号}),已响应,失败)#请求
-    except Exception as 错误:
-        失败(错误)
-    return 结算#期约
+    '这个网页引擎不再通过浏览器请求宿主。没有应用，回落到显示位置'
+    return None
 
-def 路由键齐(属性):#投递动作能否画
-    '授权路由、手势和文案都在才画'
-    if not isinstance(属性,dict):#不是映射
-        return False#缺
-    if not isinstance(属性.get('actionUrl'),str) or 属性.get('actionUrl')=='':#没有路由
-        return False#缺
-    if not callable(属性.get('onAction')):#没有手势
-        return False#缺
-    if not callable(属性.get('t')):#没有文案
-        return False#缺
-    return True#齐
 
-class 文件路由动作:#投递文件动作席
-    """不绕开所属会话的授权路由渲染文件动作。
-    无桌面或不可用时 None。不拥有文件树。
-    """
-
-    def __init__(自身,属性):
-        '记下 props。槽位只调用构造，键齐才画。按钮构造时不画。'
-        自身.属性=属性 if isinstance(属性,dict) else {}#props
-        自身._按钮=None#子控件
-        if 路由键齐(自身.属性):#键齐
-            自身.渲染()#末尾画一次
+class 文件路由动作:
+    '不绕开所属会话的授权地址。没有桌面时不画'
+    def __init__(自身,属性=None):
+        '记下 props。有窗口就画'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+        自身.按钮=None
+        自身.根=None
+        自身.绘制中=False
+        自身.待重画=False
+        自身.联想键=None
+        自身.状态仓=None
+        自身.刷新函数=None
+        自身.退订联想=None
+        if 'window' in 自身.属性:
+            自身.渲染()
 
     def 更新(自身,属性):
-        '刷新 props'
-        自身.属性=属性 if 属性 is not None else {}#最新
-        自身._按钮=None#重建
+        '换上新的 props'
+        自身.属性=属性 if isinstance(属性,dict) else {}
+
+    def 重画(自身):
+        '文件关联变了'
+        if 自身.绘制中:
+            自身.待重画=True
+            return
+        自身.渲染()
+
+    def 卸根(自身):
+        '没有桌面时拆掉旧按钮'
+        if 自身.根 is not None:
+            自身.根.remove()
+        自身.根=None
+        自身.按钮=None
 
     def 渲染(自身):
-        '紧凑共享控件，或不可用时 None。不另画替代控件。'
-        属性=自身.属性#props
-        if not 路由键齐(属性):#键未齐
-            return None#空槽留给主人
-        if not 属性.get('available'):#不可用
-            return None#不渲染
-        网址=属性['actionUrl']#授权路由
-        联想=使用文件应用(网址,查询路由,True)#联想
-        默认标识=None#默认
-        for 应用 in 联想['apps']:#找默认
-            if 应用.get('default') is True:#默认
-                默认标识=应用['id']#记下
-                break#止
-        def 执行(操作):
-            '转 onAction'
-            动作='reveal' if 操作['kind']=='reveal' else 'open'#动作
-            应用=操作['id'] if 操作['kind']=='application' else None#应用
-            return 属性['onAction'](动作,应用)#跑
-        面={#按钮 props
-            'kind':'file',#文件
-            'applications':[{'id':应用['id'],'name':应用['name'] if 'name' in 应用 else 应用['id'],'icon':应用['icon'] if 'icon' in 应用 else None} for 应用 in 联想['apps']],#应用
-            'defaultId':默认标识,#默认
-            'failed':联想['failed'],#失败
-            'detail':联想['detail'] if 'detail' in 联想 and isinstance(联想['detail'],str) else '',
-            'loading':联想['loading'],#加载
-            'busy':属性['pending'] if 'pending' in 属性 else False,#在飞
-            'refresh':联想['refresh'],#刷新
-            't':属性['t'],#文案
-            'execute':执行,#执行
-        }#面结束
-        if 自身._按钮 is None:#初建
-            自身._按钮=打开目标按钮(面)#建
-        else:#刷新
-            自身._按钮.更新(面)#更
-        return 自身._按钮.渲染()#渲染
+        '桌面可用才画紧凑的文件按钮'
+        if 自身.绘制中:
+            自身.待重画=True
+            return 自身.根
+        自身.绘制中=True
+        try:
+            属性=自身.属性
+            网址=属性.get('actionUrl')
+            启用=bool(属性.get('available'))
+            if 启用 is not True:
+                接上文件应用(自身,网址,查询路由,False,自身.重画)
+                自身.卸根()
+            else:
+                联想=接上文件应用(自身,网址,查询路由,True,自身.重画)
+                应用=联想['apps']
+                默认=None
+                for 项 in 应用:
+                    if 项.get('default') is True:
+                        默认=项['id']
+                        break
+
+                def 执行(操作,属性=属性):
+                    '打开或显示位置交给所属会话'
+                    if 操作['kind']=='reveal':
+                        动作='reveal'
+                    else:
+                        动作='open'
+                    应用标识=操作['id'] if 操作['kind']=='application' else None
+                    return 属性['onAction'](动作,应用标识)
+
+                面={
+                    'window':属性['window'],
+                    'kind':'file',
+                    'applications':应用,
+                    'defaultId':默认,
+                    'failed':联想['failed'],
+                    'loading':联想['loading'],
+                    'busy':属性.get('pending') is True,
+                    'refresh':联想['refresh'],
+                    'execute':执行,
+                    'absolutePath':网址,
+                }
+                if 'parent' in 属性:
+                    面['parent']=属性['parent']
+                if 自身.按钮 is None:
+                    自身.按钮=打开目标按钮(面)
+                else:
+                    自身.按钮.更新(面)
+                    自身.按钮.渲染()
+                自身.根=自身.按钮.根
+        finally:
+            自身.绘制中=False
+        if 自身.待重画:
+            自身.待重画=False
+            return 自身.渲染()
+        return 自身.根
 
     def __call__(自身,属性=None):
-        '刷新后渲染'
-        if 属性 is not None:#有新
-            自身.更新(属性)#刷新
-        return 自身.渲染()#渲染
+        '再次交给槽位时刷新'
+        if 属性 is not None:
+            自身.更新(属性)
+        return 自身.渲染()

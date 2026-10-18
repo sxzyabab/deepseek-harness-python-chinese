@@ -1,42 +1,71 @@
-__all__=['呈现策略于','派生呈现策略','呈现源']
+from ..聊天设置 import 折叠时机表
 
-策略表={#工作详情模式 → 呈现能力；渲染器只读字段不比较模式枚举
+__all__=['折叠时机表','导出呈现策略']
+
+策略底={
     'compact':{
-        'mode':'compact','foldCompletedTurns':True,'stepGrouping':'collapsed',
-        'liveProcessDetail':False,'settledReasoningPreview':False,
+        'mode':'compact',
+        'foldCompletedTurns':True,
+        'stepGrouping':'collapsed',
+        'liveProcessDetail':False,
+        'settledReasoningPreview':False,
     },
     'standard':{
-        'mode':'standard','foldCompletedTurns':True,'stepGrouping':'collapsed',
-        'liveProcessDetail':True,'settledReasoningPreview':True,
+        'mode':'standard',
+        'foldCompletedTurns':True,
+        'stepGrouping':'collapsed',
+        'liveProcessDetail':True,
+        'settledReasoningPreview':True,
     },
     'detailed':{
-        'mode':'detailed','foldCompletedTurns':True,'stepGrouping':'history',
-        'liveProcessDetail':True,'settledReasoningPreview':True,
+        'mode':'detailed',
+        'foldCompletedTurns':True,
+        'stepGrouping':'history',
+        'liveProcessDetail':True,
+        'settledReasoningPreview':True,
     },
     'verbose':{
-        'mode':'verbose','foldCompletedTurns':False,'stepGrouping':'none',
-        'liveProcessDetail':False,'settledReasoningPreview':True,
+        'mode':'verbose',
+        'foldCompletedTurns':False,
+        'stepGrouping':'none',
+        'liveProcessDetail':False,
+        'settledReasoningPreview':True,
     },
 }
 
-def 呈现策略于(模式):
-    '同一模式恒返回同一对象，选择器看到稳定身份'
-    return 策略表[模式]
 
-class 呈现源:
-    '由表查找派生的策略源，变更通知复用模式源'
-    def __init__(自身,模式源):
-        '记下模式源'
-        自身.模式源=模式源#模式
+def 带时机(折叠时机):
+    '四档都带上同一份收起时机。同一对选择始终是同一份对象'
+    结果={}
+    for 模式,策略 in 策略底.items():
+        副本=dict(策略)
+        副本['collapseTiming']=折叠时机
+        结果[模式]=副本
+    return 结果
 
-    def getSnapshot(自身):
-        '当前模式对应策略'
-        return 策略表[自身.模式源.getSnapshot()]#策略
 
-    def subscribe(自身,监听):
-        '转发模式源订阅'
-        return 自身.模式源.subscribe(监听)#订
+时机策略={
+    'completion':带时机('completion'),
+    'next-input':带时机('next-input'),
+}
 
-def 派生呈现策略(模式源):
-    '由表查找派生策略可观察源，变更通知复用模式源'
-    return 呈现源(模式源)#源
+
+def 导出呈现策略(模式,折叠时机):
+    '不自己订阅。快照跟着两份宿主偏好走'
+    def 取快照():
+        '按当前模式和收起时机取稳定策略'
+        return 时机策略[折叠时机.getSnapshot()][模式.getSnapshot()]
+
+    def 订阅(监听):
+        '两份偏好任一变化都通知'
+        退模式=模式.subscribe(监听)
+        退时机=折叠时机.subscribe(监听)
+
+        def 退订():
+            '同时拆掉两份订阅'
+            退模式()
+            退时机()
+
+        return 退订
+
+    return {'getSnapshot':取快照,'subscribe':订阅}

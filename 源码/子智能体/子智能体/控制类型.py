@@ -2,11 +2,11 @@
 from typing import Literal,NotRequired,TypedDict
 
 __all__=[
-    '子智能体目录行','子智能体列举条目','子智能体地址',
+    '子智能体名录行','子智能体列举条目','子智能体地址',
     '子智能体提示请求','子智能体提示回执','子智能体打断回执',
 ]
 
-class 子智能体目录行(TypedDict):
+class 子智能体名录行(TypedDict):
     '完整后代列举共用的子体字段'
     id:str
     activity:Literal['running','inactive']
@@ -37,7 +37,7 @@ class 子智能体地址(TypedDict):
     mode:Literal['one-shot','continuable','unknown']
 
 class 子智能体提示请求(TypedDict):
-    '发给可续跑直接子体的一条人类消息'
+    '发给可续运行直接子体的一条人类消息'
     requestId:str
     parentSessionId:str
     childSessionId:str

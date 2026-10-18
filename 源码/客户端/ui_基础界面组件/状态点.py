@@ -1,6 +1,4 @@
-from nicegui import ui as 界面
-
-__all__=['状态点','状态表','矩阵格','样式表']#仅中文公开名
+__all__=['状态点','处理状态点','状态表','矩阵格','样式表']#仅中文公开名
 
 状态表=('done','warning','ongoing','error')#四态
 矩阵格=((0,0),(4,0),(8,0),(8,4),(8,8),(4,8),(0,8),(0,4))#顺时针外圈
@@ -25,45 +23,52 @@ __all__=['状态点','状态表','矩阵格','样式表']#仅中文公开名
 .状态点.步[data-state=warning]{border-color:var(--dsw-alias-state-warn-primary)}
 '''
 
-样式已登记=False
-
-def 登记样式():
-    '同一段样式整个进程只登记一次'
-    global 样式已登记
-    if 样式已登记 is True:
-        return
-    界面.add_css(样式表)
-    样式已登记=True
+def 处理状态点(window,属性):
+    '画出实心点或追逐矩阵。有 parent 就挂上去'
+    文档=window.document
+    if 文档.getElementById('状态点样式') is None:
+        样式=文档.createElement('style')
+        样式.id='状态点样式'
+        样式.textContent=样式表
+        文档.head.appendChild(样式)
+    态=属性['state'] if 'state' in 属性 else 'done'#态
+    if 态 not in 状态表:#非法
+        态='done'#回退
+    外观=属性['appearance'] if 'appearance' in 属性 else 'dot'#点或步
+    尺寸=属性['size'] if 'size' in 属性 else (14 if 态=='ongoing' else 10)#边长
+    类名=属性['className'] if 'className' in 属性 else None#类
+    if 态=='ongoing':#转圈
+        标记=文档.createElement('span')
+        标记.innerHTML='<svg class="状态点 转" data-state="ongoing" width="'+str(尺寸)+'" height="'+str(尺寸)+'" viewBox="0 0 24 24" aria-hidden="true"><g class="转运动"><circle class="转轨" cx="12" cy="12" r="9.5"></circle><circle class="转弧" cx="12" cy="12" r="9.5"></circle></g></svg>'
+    else:#实心
+        步=' 步' if 外观=='step' else ' 点'
+        标记=文档.createElement('span')
+        标记.innerHTML='<span aria-hidden="true" class="状态点'+步+'" data-state="'+态+'" style="width:'+str(尺寸)+'px;height:'+str(尺寸)+'px"></span>'
+    标记.className='状态点 '+态
+    if isinstance(类名,str) and 类名!='':#附加类
+        标记.className=标记.className+' '+类名
+    if 'parent' in 属性:
+        属性['parent'].appendChild(标记)
+    return 标记
 
 class 状态点:#状态指示
     'aria-hidden；旁配文案'
     def __init__(自身,属性=None,**关键字参数):
-        '合并 props'
+        '合并 props。构造不画'
         自身.属性=dict(属性 if 属性 is not None else {})#基础
         自身.属性.update(关键字参数)#覆盖
+        自身.根=None
 
     def 更新(自身,属性):
         '刷新'
         自身.属性=dict(属性)#最新
 
     def 渲染(自身):
-        '画出实心点或追逐矩阵'
-        登记样式()
-        属性=自身.属性#props
-        态=属性['state'] if 'state' in 属性 else 'done'#态
-        if 态 not in 状态表:#非法
-            态='done'#回退
-        外观=属性['appearance'] if 'appearance' in 属性 else 'dot'#点或步
-        尺寸=属性['size'] if 'size' in 属性 else (14 if 态=='ongoing' else 10)#边长
-        类名=属性['className'] if 'className' in 属性 else None#类
-        if 态=='ongoing':#转圈
-            标记=界面.html('<svg class="状态点 转" data-state="ongoing" width="'+str(尺寸)+'" height="'+str(尺寸)+'" viewBox="0 0 24 24" aria-hidden="true"><g class="转运动"><circle class="转轨" cx="12" cy="12" r="9.5"></circle><circle class="转弧" cx="12" cy="12" r="9.5"></circle></g></svg>',sanitize=False)#转
-        else:#实心
-            步=' 步' if 外观=='step' else ' 点'
-            标记=界面.html('<span aria-hidden="true" class="状态点'+步+'" data-state="'+态+'" style="width:'+str(尺寸)+'px;height:'+str(尺寸)+'px"></span>',sanitize=False)#点
-        标记.classes('状态点 '+态)#类
-        if isinstance(类名,str) and 类名!='':#附加类
-            标记.classes(类名)#附
+        '拆掉旧点，再画一次'
+        if 自身.根 is not None:
+            自身.根.remove()
+        自身.根=处理状态点(自身.属性['window'],自身.属性)
+        return 自身.根
 
     def __call__(自身,属性=None,**关键字参数):
         '对齐 React'

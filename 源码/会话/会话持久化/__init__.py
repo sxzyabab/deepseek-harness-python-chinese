@@ -109,7 +109,7 @@ class 会话持久化(服务):#会话持久化服务
         '此后端是否每会话暴露一份原样子产物'
         raise NotImplementedError('SessionPersistence.supportsRawArtifacts')#子类必须实现
 
-    def 读原始(自身,标识,信号=None):#默认拒绝原样子产物
+    def 读取原始产物(自身,标识,信号=None):#默认拒绝原样子产物
         '原样读取一个会话的后端拥有产物文本'
         若已中止则抛出(信号)#已取消则失败
         raise 持久化错误('此后端不暴露原样子产物')#不支持原样子产物
@@ -130,7 +130,7 @@ class 会话持久化(服务):#会话持久化服务
         '检查不可变逻辑会话，不提交恢复也不发布它'
         raise NotImplementedError('SessionPersistence.inspect')#子类必须实现
 
-    def 从序号读(自身,标识,起始序号,信号=None):#按seq读后缀
+    def 从序号读取已存储事件(自身,标识,起始序号,信号=None):#按seq读后缀
         '读取从起始序号起的已存储事件'
         raise NotImplementedError('SessionPersistence.readFrom')#子类必须实现
 
