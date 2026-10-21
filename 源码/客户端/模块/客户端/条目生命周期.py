@@ -1,5 +1,4 @@
-from pywebbridge.基础 import undefined as 未定义#页面上的 undefined
-
+from pywebbridge import undefined as 未定义#页面上的 undefined
 
 __all__=['拆除条目纤程','移除包拥有样式','收成节点']#仅中文公开名
 

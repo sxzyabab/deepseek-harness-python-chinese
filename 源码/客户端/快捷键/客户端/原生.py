@@ -4,7 +4,7 @@ from ...ui_基础界面组件.模态层 import 模态选择器#对话框与菜�
 
 __all__=['安装原生键盘']
 
-未定义=pywebbridge.基础.undefined#属性缺失
+未定义=pywebbridge.undefined#属性缺失
 可编辑选择='input, textarea, select, [contenteditable="true"], [contenteditable=""]'#可编辑
 侧栏网页视图='webview[data-sidebar-browser-frame]'#侧栏 webview
 侧栏框架='iframe[data-sidebar-browser-frame], iframe[data-html-preview]'#侧栏 iframe

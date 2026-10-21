@@ -1,5 +1,5 @@
 import os
-from ...异常 import 注入模块样式文件,标样式模块,挂上
+from ...异常 import 注入模块样式文件,标样式模块,挂上,接上
 from ..约定.快照 import 会话阶段
 from ..视图选中项 import 解析活动视图
 
@@ -48,15 +48,10 @@ class 默认会话视图:
             会话=属性['useSession'](lambda 快照:快照)
             对话=属性['useConversation'](lambda 快照:快照)
             请求=属性['useStore'](lambda 快照:快照['viewRequest'] if 快照.get('viewRequest') is not None else None)
-            父=None
-            if 自身.根 is not None:
-                父=自身.根.parentNode
-                自身.根.remove()
-                自身.根=None
-            elif 'parent' in 属性:
-                父=属性['parent']
+            旧=自身.根
+            父=旧.parentNode if 旧 is not None else (属性['parent'] if 'parent' in 属性 else None)
             if 会话.get('blank') and 会话阶段(会话,对话)=='blank':
-                自身.根=None
+                自身.根=接上(旧,None,父)
             else:
                 视图标识=属性['view'] if 属性.get('view') is not None else (None if 活动 is None else 活动['id'])
                 区=文档.createElement('div')
@@ -70,9 +65,7 @@ class 默认会话视图:
                         'completeViewRequest':属性['actions']['completeViewRequest'],
                         'window':窗口,
                     },{'only':视图标识}))
-                自身.根=区
-                if 父 is not None:
-                    父.appendChild(自身.根)
+                自身.根=接上(旧,区,父)
             if not 自身.已订:
                 def 变更():
                     '视图或会话变了就重画'

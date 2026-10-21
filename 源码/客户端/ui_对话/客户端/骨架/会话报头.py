@@ -1,5 +1,5 @@
 import os
-from ...异常 import 注入模块样式文件,标样式模块,挂上
+from ...异常 import 注入模块样式文件,标样式模块,挂上,接上
 from ..约定.快照 import 会话阶段
 
 __all__=['会话报头']
@@ -43,12 +43,8 @@ class 会话报头:
                 类名=类名+' headerBlank'
             if 会话标识 is None:
                 类名=类名+' headerSessionless'
-            父=None
-            if 自身.根 is not None:
-                父=自身.根.parentNode
-                自身.根.remove()
-            elif 'parent' in 属性:
-                父=属性['parent']
+            旧=自身.根
+            父=旧.parentNode if 旧 is not None else (属性['parent'] if 'parent' in 属性 else None)
             头=文档.createElement('header')
             头.className=类名
             标样式模块(头,样式模块)
@@ -69,9 +65,7 @@ class 会话报头:
                     'hideChrome':空白,
                     'window':窗口,
                 }))
-            自身.根=头
-            if 父 is not None:
-                父.appendChild(自身.根)
+            自身.根=接上(旧,头,父)
             if not 自身.已订:
                 def 变更():
                     '会话或对话快照变了就重画页眉'

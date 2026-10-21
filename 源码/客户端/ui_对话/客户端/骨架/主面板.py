@@ -1,5 +1,5 @@
 import os
-from ...异常 import 注入模块样式文件,标样式模块,挂上
+from ...异常 import 注入模块样式文件,标样式模块,挂上,接上
 from ..约定.快照 import 会话阶段
 from .宽度控件 import 会话宽度控件
 
@@ -66,12 +66,8 @@ class 主面板:
                 阶段='hero'
             else:
                 阶段='active'
-            父=None
-            if 自身.根 is not None:
-                父=自身.根.parentNode
-                自身.根.remove()
-            elif 'parent' in 属性:
-                父=属性['parent']
+            旧=自身.根
+            父=旧.parentNode if 旧 is not None else (属性['parent'] if 'parent' in 属性 else None)
             根=文档.createElement('div')
             根.className='root'
             标样式模块(根,样式模块)
@@ -85,9 +81,7 @@ class 主面板:
             },{
                 'slots':{'widthControls':会话宽度控件},
             }))
-            自身.根=根
-            if 父 is not None:
-                父.appendChild(自身.根)
+            自身.根=接上(旧,根,父)
             if not 自身.已订:
                 def 变更():
                     '阶段变了就重画主面板'

@@ -116,5 +116,10 @@
     "2026-10-08-session-reader-compatibility-review":"2026-10-08-会话读取器兼容审阅",
     "2026-10-11-build-artifacts-check-split":"2026-10-11-构建产物与检查拆分",
     "2026-10-11-lossless-build-speedups":"2026-10-11-无损构建提速",
-    "2026-10-12-local-gate-speedups":"2026-10-12-本地门禁提速"
+    "2026-10-12-local-gate-speedups":"2026-10-12-本地门禁提速",
+    "2026-10-14-experimental-dependency-policy":"2026-10-14-实验包依赖策略",
+    "2026-10-14-no-top-level-await-in-packages":"2026-10-14-包内禁止顶层await",
+    "2026-10-15-node-24-runtime-floor":"2026-10-15-node24运行时下限",
+    "2026-10-18-source-first-metadata-builds":"2026-10-18-源码优先元数据构建",
+    "2026-10-20-weighted-approval-status-gate-with-check-run-label":"2026-10-20-加权审批保留状态门禁"
 }

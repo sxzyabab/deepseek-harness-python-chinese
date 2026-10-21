@@ -138,5 +138,8 @@
     "2026-09-29-reused-blank-runs-requested-preset":"2026-09-29-复用空白会话运行请求preset",
     "2026-09-30-job-session-lifecycle":"2026-09-30-任务会话生命周期",
     "2026-10-10-background-shell-command-display":"2026-10-10-后台shell命令展示",
-    "2026-10-11-process-specific-prompt-values-in-runtime-context":"2026-10-11-进程相关提示值走运行时上下文"
+    "2026-10-11-process-specific-prompt-values-in-runtime-context":"2026-10-11-进程相关提示值走运行时上下文",
+    "2026-09-17-multiline-display-dollar-math":"2026-09-17-多行展示美元数学",
+    "2026-10-21-subagent-end-turn-guidance":"2026-10-21-子智能体结束本轮指导",
+    "2026-10-22-series-start-unchanged-prompt-prefix":"2026-10-22-未变序列保留系统节点"
 }

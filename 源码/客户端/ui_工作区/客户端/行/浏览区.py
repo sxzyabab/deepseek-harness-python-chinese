@@ -1,5 +1,6 @@
 '侧栏里的工作区浏览区：标题、搜索、分组或扁平列表，以及工作区对话框'
 from ....模块.客户端.通告 import 取握手窗口
+import pywebbridge
 import json
 import os
 import time
@@ -630,7 +631,7 @@ class 工作区浏览区:
             return#停
         自身.揭示号=None#搜索时不揭示
         自身.远端={'query':查询,'status':'loading','items':[],'hasMore':False}#加载
-        控制器=窗口.AbortController()#中止
+        控制器=pywebbridge.new(窗口.AbortController)#中止
         自身.搜索中止=控制器#记下
         def 到时():
             '发出搜索'
@@ -892,7 +893,9 @@ class 工作区浏览区:
             if 组.get('expanded'):#展开才画孩子和会话
                 for 子 in 子映射.get(组['key']) or []:#子工作区
                     节.appendChild(画组(子,深度+1))#递归
-                现在=窗口.Date.now() if hasattr(窗口,'Date') else __import__('time').time()*1000#现在
+                日期=getattr(窗口,'Date',None)#页面上的 Date
+                取现在=None if 日期 is None or 日期 is pywebbridge.undefined else getattr(日期,'now',None)#Date.now
+                现在=取现在() if 取现在 is not None and 取现在 is not pywebbridge.undefined else time.time()*1000#现在
                 for 会话 in 可见['rows']:#会话
                     键列.append('session:'+会话['id'])#键
                     行节点=会话行({

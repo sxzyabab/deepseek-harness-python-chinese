@@ -1,5 +1,5 @@
 import re,threading#分块名、修订查询与在飞加载
-from pywebbridge.基础 import undefined as 未定义#页面上的 undefined
+from pywebbridge import undefined as 未定义#页面上的 undefined
 from urllib.parse import quote as 百分号编码#修订进 URL
 from ....基础设施.通用工具 import 紧凑json编码#诊断 JSON
 from ..异常 import 客户端模块错误#本包异常

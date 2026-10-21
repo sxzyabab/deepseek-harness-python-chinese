@@ -119,6 +119,17 @@ def 挂上(父,结果):
             父.appendChild(实现根)
     return 结果
 
+def 接上(旧,新,父=None):
+    '新节点画完后再换到旧位置。旧节点留到这一次替换，不先拆空'
+    if 新 is not None and 旧 is not None and getattr(旧,'parentNode',None) is not None:
+        旧.parentNode.replaceChild(新,旧)
+        return 新
+    if 旧 is not None and 旧 is not 新 and getattr(旧,'parentNode',None) is not None:
+        旧.remove()
+    if 新 is not None and 父 is not None and getattr(新,'parentNode',None) is None:
+        父.appendChild(新)
+    return 新
+
 def 换根(自身,处理,属性=None):
     '只换这个组件自己的根。先画好再替换，不拆整页'
     自身.画面失败=None

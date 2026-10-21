@@ -1,5 +1,6 @@
 from ...模块.客户端.通告 import 取握手窗口
 import re
+import pywebbridge
 from ..语言设置 import (
     语言标识模式,
     语言标识表,
@@ -17,6 +18,7 @@ __all__=[
     '回退语言','公共命名空间','设置命名空间',
 ]
 
+未定义=pywebbridge.undefined#页面上没有该属性时读到的值
 回退语言='en'#浏览器未点名已登记语言时打开这里，缺键也落到这里
 公共命名空间='common'#跨功能公共词表
 设置命名空间='settings.locale'#语言行自己的文案命名空间
@@ -373,7 +375,7 @@ def 应用(上下文,配置=None):
             #页面上没有桥时跳过
             候选=None
             del 没有页面
-        if 候选 is not None and 候选 is not ...:
+        if 候选 is not None and 候选 is not ... and 候选 is not 未定义:
             桥=候选
     引导=None
     if 桥 is not None:

@@ -1,4 +1,5 @@
 '一个会话的输入壳：草稿、提交机、通知和持久化'
+from types import SimpleNamespace as 简易命名空间
 from ....存储 import 创建快照存储
 from ..草稿 import 快照草稿,解析草稿输入
 from .输入机 import 提交机
@@ -27,6 +28,17 @@ class 会话输入壳:
         自身.写出=None
         自身.编辑器=None
         自身.状态仓=创建快照存储(自身.投影())
+        def 提交动作():
+            '对应 JavaScript actions.submit()，按排队提交'
+            自身.submit('queue',None)
+        自身.动作面=简易命名空间(
+            setDraft=自身.setDraft,
+            persistDraft=自身.persistDraft,
+            addAttachments=自身.addAttachments,
+            removeAttachment=自身.removeAttachment,
+            pruneAttachments=自身.pruneAttachments,
+            submit=提交动作,
+        )
 
     def 投影(自身):
         '发布给界面的输入状态'
@@ -75,11 +87,8 @@ class 会话输入壳:
 
     @property
     def actions(自身):
-        '界面可调用的输入动作'
-        return {
-            'persistDraft':自身.persistDraft,
-            'pruneAttachments':自身.pruneAttachments,
-        }
+        '界面可调用的输入动作。和 JavaScript 一样用点号调用'
+        return 自身.动作面
 
     @property
     def editor(自身):

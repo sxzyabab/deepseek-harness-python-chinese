@@ -1,5 +1,5 @@
 import os
-from ...异常 import 注入模块样式文件,标样式模块,挂上
+from ...异常 import 注入模块样式文件,标样式模块,挂上,接上
 from ..视图选中项 import 解析活动视图
 from .默认视图 import 默认会话视图
 
@@ -85,13 +85,8 @@ class 会话页眉:
             祖先=属性['useSessions'](选择祖先,面包屑相同)
             藏铬=属性.get('hideChrome') is True
             显示页签=(not 藏铬) and len(页签列)>1
-            父=None
-            if 自身.根 is not None:
-                父=自身.根.parentNode
-                自身.根.remove()
-                自身.根=None
-            elif 'parent' in 属性:
-                父=属性['parent']
+            旧=自身.根
+            父=旧.parentNode if 旧 is not None else (属性['parent'] if 'parent' in 属性 else None)
             壳=文档.createElement('div')
             壳.style.display='contents'
             标题行=标(文档.createElement('div'),'titleRow')
@@ -184,9 +179,7 @@ class 会话页眉:
                     钮.addEventListener('click',选页)
                     页.appendChild(钮)
                 壳.appendChild(页)
-            自身.根=壳
-            if 父 is not None:
-                父.appendChild(自身.根)
+            自身.根=接上(旧,壳,父)
             if not 自身.已订:
                 def 变更():
                     '会话列表、视图或选中项变了就重画'

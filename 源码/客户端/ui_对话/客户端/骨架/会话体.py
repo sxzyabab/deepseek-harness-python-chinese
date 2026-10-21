@@ -1,4 +1,4 @@
-from ...异常 import 标样式模块,挂上,是页面节点
+from ...异常 import 标样式模块,挂上,是页面节点,接上
 from .空主视觉 import 工作区标签,工作区芯片,英雄壳
 
 __all__=['会话体','无宽度控件']
@@ -117,12 +117,8 @@ class 会话体:
                 芯片标题=存下标题
             惰性=会话标识 is None or (属性.get('hero') is True and 芯片标题 is None)
             被挡=(not 惰性) and 阻断 is not None
-            父=None
-            if 自身.根 is not None:
-                父=自身.根.parentNode
-                自身.根.remove()
-            elif 'parent' in 属性:
-                父=属性['parent']
+            旧=自身.根
+            父=旧.parentNode if 旧 is not None else (属性['parent'] if 'parent' in 属性 else None)
             if 自身.座位观察 is not None:
                 自身.座位观察.disconnect()
                 自身.座位观察=None
@@ -240,9 +236,7 @@ class 会话体:
                 宽度根=None
             if 是页面节点(宽度根):
                 体.appendChild(宽度根)
-            自身.根=体
-            if 父 is not None:
-                父.appendChild(自身.根)
+            自身.根=接上(旧,体,父)
             if not 自身.已订:
                 def 变更():
                     '会话、工作区或输入变了就重画'

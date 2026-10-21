@@ -1,13 +1,19 @@
+from pywebbridge import undefined as 未定义
+
 __all__=['绑定快照选择器']#仅中文公开名
+
+def 是函数(值):
+    'undefined 虽然有 __call__，但不是 JavaScript 函数'
+    return 值 is not 未定义 and callable(值)
 
 def 读钩(源,名):
     '对象走方法，字典走同名键'
     方法=getattr(源,名,None)#对象
-    if callable(方法):#有方法
+    if 是函数(方法):#有方法
         return 方法#用
     if isinstance(源,dict):#字典源
         函数=源.get(名)#键
-        if callable(函数):#有函数
+        if 是函数(函数):#有函数
             return 函数#用
     raise TypeError('快照源缺少 '+名)#不能当钩子
 

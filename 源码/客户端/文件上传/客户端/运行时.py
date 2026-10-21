@@ -3,7 +3,7 @@ from ...模块.客户端.通告 import 取握手窗口
 import json#解析上传结果
 import threading#等 Worker 回传
 from urllib.parse import urlencode as 编码查询#与 URLSearchParams 相同的查询编码
-from pywebbridge.基础 import JavaScript对象,undefined as 未定义
+from pywebbridge import JavaScript对象,undefined as 未定义
 from pywebbridge.异常 import DOM异常
 from ....依赖.cordis.服务 import 服务#服务基类
 from ....工具.加密 import 字节转base64#精确字节的远程兜底

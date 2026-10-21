@@ -1,7 +1,7 @@
 from ....客户端.模块.客户端.通告 import 取握手窗口
 import json#重定向表进页面
 import threading#等页面里的异步函数体
-from pywebbridge.基础 import undefined as 未定义#process 与 Buffer
+from pywebbridge import undefined as 未定义#process 与 Buffer
 from ..异常 import 错误#求值失败
 
 

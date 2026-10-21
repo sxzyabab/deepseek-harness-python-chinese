@@ -259,5 +259,16 @@
     "2026-09-24-session-inspector":"2026-09-24-会话检查器",
     "2026-09-13-explicit-worktree-creation":"2026-09-13-显式工作树创建",
     "2026-09-20-spawn-agent-preset-selection":"2026-09-20-spawn智能体预设选择",
-    "2026-10-14-built-in-plugin-feature-previews":"2026-10-14-内置插件功能配图"
+    "2026-10-14-built-in-plugin-feature-previews":"2026-10-14-内置插件功能配图",
+    "2026-08-26-web-rich-text-quotes":"2026-08-26-web富文本引用",
+    "2026-10-13-web-install-icons-and-launch-display":"2026-10-13-web安装图标与启动显示",
+    "2026-10-15-plugin-detail-documents":"2026-10-15-插件详情文档",
+    "2026-10-18-headless-auto-review":"2026-10-18-无头自动审查",
+    "2026-10-19-sdk-native-user-questions":"2026-10-19-sdk原生用户提问",
+    "2026-10-21-composer-image-upload-on-add":"2026-10-21-输入框加入时上传图片",
+    "2026-10-02-plugin-market-discover":"2026-10-02-插件市场发现",
+    "2026-10-02-plugin-market-index-format":"2026-10-02-插件市场索引格式",
+    "2026-10-14-host-release-change-refresh-prompt":"2026-10-14-宿主版本变化刷新提示",
+    "2026-10-15-chat-keep-assistant-replies":"2026-10-15-对话保留助手回复",
+    "2026-10-15-deepseek-search-fetch-api":"2026-10-15-deepseek搜索抓取api"
 }

@@ -5,7 +5,7 @@ from ..协议 import 快捷键持久化#事务协调器
 
 __all__=['快捷键存储键','Web快捷键存储','桌面快捷键存储']
 
-未定义=pywebbridge.基础.undefined#属性缺失
+未定义=pywebbridge.undefined#属性缺失
 快捷键存储键='dsh.keybindings.v1'#浏览器配置文件与同源本地偏好键
 
 def Web快捷键存储(窗口,平台,发布):

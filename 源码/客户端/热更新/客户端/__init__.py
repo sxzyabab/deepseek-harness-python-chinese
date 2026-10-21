@@ -1,7 +1,7 @@
 '浏览器侧：有页面传输就读那条事件流，否则用 EventSource。帧交给条目控制器'
 from ...模块.客户端.通告 import 取握手窗口
 import json,threading#解析帧与读流
-from pywebbridge.基础 import undefined as 未定义#页面上的 undefined
+from pywebbridge import undefined as 未定义#页面上的 undefined
 from ....基础设施.通用工具 import sse解码器#把字节流收成 data 字段
 from ..事件 import 事件路由,解析插件事件帧#文档相对路径和帧外壳
 

@@ -2,7 +2,7 @@ import os
 from .....工具.工作区路径 import 工作区标题自
 from ....ui_基础界面组件.icons import 图标下chevron14,图标关文件夹16,图标开文件夹16
 from ....ui_基础界面组件.鱼标 import 鱼路径
-from ...异常 import 注入模块样式文件,标样式模块,挂上
+from ...异常 import 注入模块样式文件,标样式模块,挂上,接上
 
 __all__=['工作区标签','工作区芯片','英雄壳']
 
@@ -131,12 +131,8 @@ class 英雄壳:
         窗口=属性['window']
         文档=窗口.document
         确保样式(文档)
-        父=None
-        if 自身.根 is not None:
-            父=自身.根.parentNode
-            自身.根.remove()
-        elif 'parent' in 属性:
-            父=属性['parent']
+        旧=自身.根
+        父=旧.parentNode if 旧 is not None else (属性['parent'] if 'parent' in 属性 else None)
         根=标(文档.createElement('div'),'root')
         栈=标(文档.createElement('div'),'stack')
         标题行=标(文档.createElement('div'),'headline')
@@ -173,7 +169,5 @@ class 英雄壳:
         根.appendChild(栈)
         if 属性.get('children') is not None:
             挂上(根,属性['children'])
-        自身.根=根
-        if 父 is not None:
-            父.appendChild(自身.根)
-        return 根
+        自身.根=接上(旧,根,父)
+        return 自身.根

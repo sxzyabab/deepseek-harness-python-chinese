@@ -1,7 +1,7 @@
 '浏览器、桌面和已认证 Node 连接选用的物理套接字'
 from ...模块.客户端.通告 import 取握手窗口
 import urllib.parse#把逻辑路径接到基址上
-from pywebbridge.基础 import undefined as 未定义#页面上没有该值
+from pywebbridge import undefined as 未定义#页面上没有该值
 from ..异常 import 连接错误#文档外没有基址
 
 

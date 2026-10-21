@@ -1,5 +1,5 @@
 from ....客户端.模块.客户端.通告 import 取握手窗口
-from pywebbridge.基础 import undefined as 未定义#页面上的未定义
+from pywebbridge import undefined as 未定义#页面上的未定义
 from ..异常 import 错误#加载失败
 from .求值器 import 动态样式,求值客户端半,客户端重定向#求值与样式
 from .门面规则 import 动态上下文门面#插件看到的上下文

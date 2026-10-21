@@ -31,5 +31,9 @@
     "2026-09-30-job-session-lifecycle":"2026-09-30-任务会话生命周期",
     "2026-09-30-job-session-lifecycle.schema":"2026-09-30-任务会话生命周期.schema",
     "2026-10-13-user-rpc-principal":"2026-10-13-用户rpc主体",
-    "2026-10-13-user-rpc-principal.schema":"2026-10-13-用户rpc主体.schema"
+    "2026-10-13-user-rpc-principal.schema":"2026-10-13-用户rpc主体.schema",
+    "2026-10-13-deepseek-search-thinking":"2026-10-13-deepseek搜索思考",
+    "2026-10-13-deepseek-search-thinking.schema":"2026-10-13-deepseek搜索思考.schema",
+    "2026-10-22-action-card-status":"2026-10-22-操作卡片状态",
+    "2026-10-22-action-card-status.schema":"2026-10-22-操作卡片状态.schema"
 }

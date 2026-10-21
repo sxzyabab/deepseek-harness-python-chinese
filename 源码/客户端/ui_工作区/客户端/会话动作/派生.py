@@ -66,16 +66,13 @@ def 画图标(窗口,名,尺寸=None):
     return 图标(名,属性)#svg 或空
 
 def 换上(组件,新根):
-    '拆掉旧节点，新节点放回原来的位置'
+    '新节点先画好。旧节点留到同一次替换完成，中间不先拆空'
     旧=组件.根#上一份
-    父=None if 旧 is None else 旧.parentNode#父
-    下一=None if 旧 is None else 旧.nextSibling#下一个
-    if 旧 is not None:#有旧的
+    if 旧 is 新根:#还是这一份
+        return 新根#节点
+    if 新根 is not None and 旧 is not None and 旧.parentNode is not None:#还挂在页面上
+        旧.parentNode.replaceChild(新根,旧)#一次换完
+    elif 旧 is not None:#没有位置可换
         旧.remove()#拆掉
     组件.根=新根#记下
-    if 父 is not None and 新根 is not None and 新根.parentNode is not 父:#还没挂上
-        if 下一 is not None:#插回原位
-            父.insertBefore(新根,下一)#插
-        else:#末尾
-            父.appendChild(新根)#挂上
     return 新根#节点

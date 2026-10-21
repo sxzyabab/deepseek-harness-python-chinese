@@ -10,5 +10,8 @@
     "2026-09-19-retire-app-bin-boot-helpers":"2026-09-19-退役应用二进制启动辅助",
     "2026-09-19-retire-prompt-registry-change-event":"2026-09-19-退役提示词注册表变更事件",
     "2026-09-19-shell-env-key-declarations":"2026-09-19-shell环境键声明",
-    "2026-09-19-trim-session-query-convenience-api":"2026-09-19-精简会话查询便利api"
+    "2026-09-19-trim-session-query-convenience-api":"2026-09-19-精简会话查询便利api",
+    "2026-10-18-borrow-auto-review-inputs":"2026-10-18-借用自动审查输入",
+    "2026-10-18-parse-ssh-policy-once":"2026-10-18-只解析一次ssh策略",
+    "2026-10-18-single-workspace-canonicalization":"2026-10-18-工作区只规范化一次"
 }

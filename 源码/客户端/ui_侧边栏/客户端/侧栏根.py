@@ -219,7 +219,7 @@ class 侧栏根:
         宽=状态['宽']
         收起=状态['收起']
         段=['root']
-        if 宽 is not True:
+        if 收起 is True or 宽 is not True:
             段.append('collapsed')
             if 状态['曾宽'] is True:
                 段.append('railIn')
@@ -227,11 +227,15 @@ class 侧栏根:
             段.append('fading')
         if 状态['指针在内'] is not True:
             段.append('quietBars')
-        根.className=' '.join(段)
+        类名=' '.join(段)
+        if 根.className!=类名:
+            根.className=类名
         if 宽 is True:
             像素=状态['上次宽'] if 收起 is True else 状态['宽度']
-            根.style.width=str(像素)+'px'
-        else:
+            宽度文=str(像素)+'px'
+            if 根.style.width!=宽度文:
+                根.style.width=宽度文
+        elif 根.style.width not in ('',None):
             根.style.removeProperty('width')
 
     def 取消滞留(自身):
@@ -291,6 +295,22 @@ class 侧栏根:
 
     def 渲染(自身):
         '画出或刷新这一列。根节点保持同一个'
+        属性=自身.属性
+        状态=自身.状态
+        if 状态.get('绘制中') is True:
+            状态['待重画']=True
+            return 状态.get('根')
+        状态['绘制中']=True
+        try:
+            return 自身.画出()
+        finally:
+            状态['绘制中']=False
+            if 状态.get('待重画') is True:
+                状态['待重画']=False
+                自身.渲染()
+
+    def 画出(自身):
+        '按当前份额画列。同一轮里的重复通知合成一次'
         属性=自身.属性
         状态=自身.状态
         窗口=属性['window']
@@ -389,16 +409,18 @@ class 侧栏根:
             状态['根']=根
         自身.根=根
         自身.刷新外观()
+        宽未变=状态['内容戳'] is not None and 状态['内容戳'][0]==宽 and 状态.get('工作区') is not None
+        if 状态['内容戳']!=戳 and 宽未变:
+            状态['内容戳']=戳
         if 状态['内容戳']!=戳:
             for 收提示 in list(状态['提示拆除']):
                 收提示()
             状态['提示拆除'].clear()
-            for 子 in list(状态.get('子') or []):
-                子.remove()
             状态['子']=[]
+            片段=文档.createDocumentFragment()
             def 装上(节点):
-                '挂上并留住引用，避免下次重画时子节点已经丢了'
-                根.appendChild(节点)
+                '先放进片段。整列画完再一次换上，避免先拆空'
+                片段.appendChild(节点)
                 状态['子'].append(节点)
             提示侧='bottom' if 窗标题 is True else 'right'
             切换文='打开侧边栏' if 收起 is True else '收起侧边栏'
@@ -418,12 +440,11 @@ class 侧栏根:
             if 切换无障碍 is not None:
                 切换钮.setAttribute('aria-keyshortcuts',切换无障碍)
             切换钮.addEventListener('click',点切换)
-            if 宽 is not True and 窗标题 is not True:
-                轨标=模块节点(文档,'span',样式模块,'railMark')
-                轨标.setAttribute('aria-hidden','true')
-                轨鱼=处理鱼标(窗口,{'size':24})
-                挂上(轨标,属性['renderSlot']('sidebar.brand.mark',{'size':24,'window':窗口},{'fallback':轨鱼}))
-                切换钮.appendChild(轨标)
+            轨标=模块节点(文档,'span',样式模块,'railMark')
+            轨标.setAttribute('aria-hidden','true')
+            轨鱼=处理鱼标(窗口,{'size':24})
+            挂上(轨标,属性['renderSlot']('sidebar.brand.mark',{'size':24,'window':窗口},{'fallback':轨鱼}))
+            切换钮.appendChild(轨标)
             图标边=16 if 宽 is True or 窗标题 is True else 18
             切换钮.appendChild(画描边图标(文档,左栏路径,图标边,1,'panelIcon',样式模块))
             if 宽 is not True:
@@ -531,6 +552,7 @@ class 侧栏根:
                 'expandSidebar':展开侧栏,
                 'window':窗口,
             }))
+            状态['工作区']=区
             装上(区)
             脚=模块节点(文档,'div',样式模块,'footArea')
             动作=模块节点(文档,'div',样式模块,'footerActions')
@@ -540,6 +562,7 @@ class 侧栏根:
             脚.appendChild(动作)
             脚.appendChild(设置)
             装上(脚)
+            根.replaceChildren(片段)
             状态['内容戳']=戳
         elif '切换钮' in 状态 and 状态['切换钮'] is not None:
             切换文='打开侧边栏' if 收起 is True else '收起侧边栏'

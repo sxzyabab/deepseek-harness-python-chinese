@@ -2,7 +2,7 @@ import os
 from ....ui_基础界面组件.icons import 图标加号16,图标警告16
 from ....ui_基础界面组件.提示泡 import 处理提示泡
 from ....ui_基础界面组件.吐司 import 处理吐司
-from ...异常 import 注入模块样式文件,标样式模块,挂上
+from ...异常 import 注入模块样式文件,标样式模块,挂上,接上
 from ..文案 import 中文,填入
 from ..图像标签 import 图像大小文本,附件错误文本
 from ..服务 import 是图片媒体类型
@@ -142,12 +142,8 @@ class 输入栏:
             占位='描述你的任务以生成计划'
         else:
             占位='发消息或创建任务, / 调用指令, @ 文件或对话'
-        父=None
-        if 自身.根 is not None:
-            父=自身.根.parentNode
-            自身.根.remove()
-        elif 'parent' in 属性:
-            父=属性['parent']
+        旧=自身.根
+        父=旧.parentNode if 旧 is not None else (属性['parent'] if 'parent' in 属性 else None)
         if 自身.拆行 is not None:
             自身.拆行()
             自身.拆行=None
@@ -361,9 +357,7 @@ class 输入栏:
             if 表.根 is not None:
                 坞.appendChild(表.根)
         根.appendChild(坞)
-        自身.根=根
-        if 父 is not None:
-            父.appendChild(自身.根)
+        自身.根=接上(旧,根,父)
         自身.拆行=观察控件行(行)
         if not 自身.已订:
             def 变更():

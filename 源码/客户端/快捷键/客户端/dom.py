@@ -6,7 +6,7 @@ from ...ui_基础界面组件.键盘合成 import 观察合成#输入法组合�
 
 __all__=['探测环境','安装键盘']
 
-未定义=pywebbridge.基础.undefined#属性缺失
+未定义=pywebbridge.undefined#属性缺失
 
 def 探测环境(文档,导航):
     '检测访问设备，而不是服务器操作系统'
@@ -41,8 +41,8 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
         '节点自身或子孙是否模态'
         if 节点 is None or 节点 is 未定义:#空
             return False#否
-        匹配=getattr(节点,'matches',None)#元素才有
-        if not callable(匹配):#文本节点
+        匹配=getattr(节点,'matches',None)#元素才有。没有时是 undefined
+        if 匹配 is 未定义 or not callable(匹配):#文本节点
             return False#否
         if 匹配(模态选择器):#自身
             return True#是
@@ -64,9 +64,13 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
     def 模态变更(记录表):
         '有记录就丢掉模态缓存。碰到模态增删或角色变化就重置固定序列'
         nonlocal 对话框表#写缓存
-        if len(记录表)>0:#有变更
+        数量=记录表.length#页面数组不能用 len，越界下标是 undefined
+        if 数量>0:#有变更
             对话框表=未定义#下次重查
-        for 记录 in 记录表:#逐条
+        下标=0#下标
+        while 下标<数量:#逐条
+            记录=记录表[下标]#这一条
+            下标+=1#下一个
             if 记录.type=='attributes':#属性
                 if 记录.oldValue=='dialog' or 记录.oldValue=='true' or 含模态(记录.target):#相关
                     重置()#重置
@@ -75,7 +79,7 @@ def 安装键盘(窗口,快捷键,固定=None,原生=False):
                 重置()#重置
                 return#一条就够
 
-    观察者=窗口.MutationObserver(模态变更)#模态缓存与固定序列
+    观察者=pywebbridge.new(窗口.MutationObserver,模态变更)#模态缓存与固定序列
     观察者.observe(文档.documentElement,{
         'childList':True,
         'subtree':True,

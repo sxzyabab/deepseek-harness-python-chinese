@@ -1,6 +1,6 @@
 '浏览器连线：远程传输和连接代际'
 from ...模块.客户端.通告 import 取握手窗口
-from pywebbridge.基础 import undefined as 未定义#页面上没有该值
+from pywebbridge import undefined as 未定义#页面上没有该值
 from ..回环主机名 import 是否回环主机名#页面权威是不是回环
 from ..恢复流程配置 import 解析连接配置#页面注入的恢复时序
 from ..异常 import 连接错误#重复登记或重复启动

@@ -26,7 +26,13 @@ dependencies=[
 pydsh="pydsh.__main__:main"
 
 [tool.setuptools]
-include-package-data=true
+include-package-data=false
 
 [tool.setuptools.package-dir]
 pydsh="."
+
+[tool.setuptools.package-data]
+pydsh=["**/*.css","**/*.html","**/*.svg"]
+
+[tool.setuptools.exclude-package-data]
+pydsh=["build/**",".git/**","*.egg-info/**"]

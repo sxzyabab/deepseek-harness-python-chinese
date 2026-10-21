@@ -27,7 +27,7 @@ __all__=[#同目录模块，以及本文件的服务
     '依赖','快捷键服务','类型','注册表','存储','dom','原生',
 ]
 
-未定义=pywebbridge.基础.undefined#页面上没有该属性
+未定义=pywebbridge.undefined#页面上没有该属性
 依赖=['locale']#硬依赖本地化
 
 class 快捷键服务(服务):

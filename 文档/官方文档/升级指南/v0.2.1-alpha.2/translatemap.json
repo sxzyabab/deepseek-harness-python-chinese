@@ -8,5 +8,7 @@
     "pi-ai-model-discovery":"pi-ai模型发现",
     "plugin-install-over-installed":"覆盖已安装插件",
     "sdk-minimal-image-compaction":"sdk最小图片压缩",
-    "stored-credentials-precedence":"已存凭据优先"
+    "stored-credentials-precedence":"已存凭据优先",
+    "cordis-timer-wrappers":"cordis定时器包装",
+    "plugin-manager-view-fields":"插件管理器视图字段"
 }

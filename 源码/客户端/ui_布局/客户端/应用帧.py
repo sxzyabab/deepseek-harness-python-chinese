@@ -1,4 +1,5 @@
 import os
+import pywebbridge
 from ...ui_对话.异常 import 叫槽,挂上,清空子,注入模块样式文件,模块节点
 from .列宽 import (
     中栏下限,
@@ -354,6 +355,8 @@ class 应用帧:
             if 元素 is None:
                 return
             宽=元素.getBoundingClientRect()['width']
+            if isinstance(宽,(int,float)):#亚像素来回取整会再触发观察
+                宽=int(宽+0.5)
             if 宽>0:
                 自身.属性['actions']['setViewportWidth'](宽)
 
@@ -371,7 +374,7 @@ class 应用帧:
             状态['观察帧']=窗口.requestAnimationFrame(冲刷)
 
         测量()
-        观察者=窗口.ResizeObserver(排队)
+        观察者=pywebbridge.new(窗口.ResizeObserver,排队)
         观察者.observe(元素)
         状态['观察者']=观察者
 
@@ -413,13 +416,15 @@ class 应用帧:
         try:
             属性=自身.属性
             窗口=自身.取窗口()
-            属性['actions']['setViewportWidth'](窗口.innerWidth)
             文档=窗口.document
             注入模块样式文件(文档,'应用帧样式',样式路径,样式模块)
             def 取布局信息(快照):
                 '只要列几何'
                 return 快照['layoutInfo']
             布局信息=属性['useStore'](取布局信息)
+            if 布局信息['viewportWidth']<=0:#还没有量过，先用窗口宽度画第一帧
+                属性['actions']['setViewportWidth'](窗口.innerWidth)
+                布局信息=属性['useStore'](取布局信息)
             视口=布局信息['viewportWidth']
             窄=视口<侧栏自动折叠
             if 窄 is True:
@@ -579,13 +584,13 @@ class 应用帧:
             else:
                 状态['标题'].属性['productTitle']=产品
                 状态['标题'].渲染()
-            自身.装观察()
             if 状态['已订'] is not True:
                 def 重画():
                     '列几何变了就重画这一帧'
                     自身.渲染()
                 属性['useStore']._subscribe(重画)
                 状态['已订']=True
+            自身.装观察()
             父=属性['parent'] if 'parent' in 属性 else None
             if 父 is not None and 根.parentNode is not 父:
                 父.appendChild(根)

@@ -213,6 +213,8 @@ def 处理菜单(window,属性):
                 列.style.top=str(顶)+'px'
                 列.style.visibility='visible'
             放置()
+            if (列.offsetWidth or 0)==0 or (列.offsetHeight or 0)==0:
+                window.requestAnimationFrame(放置)
             window.addEventListener('scroll',放置,True)
             window.addEventListener('resize',放置)
             菜单.拆锚=lambda: (

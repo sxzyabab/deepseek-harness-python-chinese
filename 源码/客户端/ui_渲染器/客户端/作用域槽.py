@@ -237,8 +237,15 @@ def 呈现(出口,标识,组件,属性):
             画()#重画
         补画未处理(取根(已))#补上新包裹
         return 已#原实例
-    if 已 is not None:#函数结果换新
-        拆除对象(已)#卸下旧结果
+    if 已 is not None and isinstance(组件,type) is False:#函数再画。还是同一个节点就别先拆
+        实例=组件(属性)#调用
+        if 实例 is 已:
+            补画未处理(取根(实例))
+            return 实例
+        拆除对象(已)#换成新结果
+        出口.实例表[标识]=实例
+        补画未处理(取根(实例))
+        return 实例
     if isinstance(组件,type):#类
         实例=组件(属性)#构造
     else:#函数
@@ -342,7 +349,7 @@ def 缓存槽注入(面):
     工厂表=None#延迟工厂
     if isinstance(定义,dict):#有定义
         for 名称,定义项 in 定义.items():#逐钩子
-            if callable(定义项):#延迟工厂
+            if 定义项 is not pywebbridge.undefined and callable(定义项):#延迟工厂
                 if 工厂表 is None:#先建表
                     工厂表={}#表
                 工厂表[名称]=定义项#工厂
