@@ -1,12 +1,12 @@
 '后台浏览器上传。Blob 和字节流留在页面里传，精确字节读出来再走远程'
 from ...模块.客户端.通告 import 取握手窗口
+import base64#规范 base64
 import json#解析上传结果
 import threading#等 Worker 回传
 from urllib.parse import urlencode as 编码查询#与 URLSearchParams 相同的查询编码
 from pywebbridge import JavaScript对象,undefined as 未定义
 from pywebbridge.异常 import DOM异常
 from ....依赖.cordis.服务 import 服务#服务基类
-from ....工具.加密 import 字节转base64#精确字节的远程兜底
 from ....类型化远程调用.协议 import 远程错误#失败回执
 from ..协议 import 文件上传路由#文档相对上传路径
 
@@ -337,7 +337,7 @@ class 文件上传运行时(服务):
                 片段.append(数据[索引])#一个字节
                 索引=索引+1#前进
             原始=bytes(片段)#拼成字节
-        请求体={'data':字节转base64(原始)}#规范 base64
+        请求体={'data':base64.b64encode(原始).decode('ascii')}#规范 base64
         if 名 is not None:#有显示名
             请求体['name']=名#写入
         return 等落定(自身.ctx.remote.fileUploads.upload(会话标识,请求体,信号))#远程兜底

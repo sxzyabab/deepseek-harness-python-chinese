@@ -44,5 +44,17 @@
     "webhook-github":"web钩子_github",
     "worktree":"工作树",
     "cua":"计算机操作",
-    "cua-macos":"计算机操作_macos"
+    "cua-macos":"计算机操作_macos",
+    "plugin-market-bundle":"插件市场组合包",
+    "plugin-recommendations":"插件推荐",
+    "client-ui-action-cards":"客户端ui_操作卡片",
+    "personalized-recommendations":"个性化推荐",
+    "tool-subagent-oar":"工具_子智能体_oar",
+    "liveshare-protocol":"liveshare协议",
+    "cua-bundle":"计算机操作组合包",
+    "subagent-oar":"子智能体_oar",
+    "creation-recommendations":"创建推荐",
+    "client-ui-plugin-recommendations":"客户端ui_插件推荐",
+    "client-ui-creation-recommendations":"客户端ui_创建推荐",
+    "action-cards":"操作卡片"
 }

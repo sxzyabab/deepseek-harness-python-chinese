@@ -1,6 +1,6 @@
 from ....异常 import 运行时错误
 import hashlib
-from ......工具.加密 import 随机uuid as 铸造uuid
+from uuid import uuid4
 from buffer import Buffer
 
 __all__=[
@@ -74,8 +74,8 @@ def 随机字节(大小):
 
 def 随机uuid():
     """随机 v4 UUID。
-    委托给仓库自有铸造"""
-    return 铸造uuid()
+    标准库 uuid4 的字符串"""
+    return str(uuid4())
 
 def 获取随机值(目标):
     '用随机字节填充类型化数组'

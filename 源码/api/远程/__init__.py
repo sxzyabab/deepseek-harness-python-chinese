@@ -1,6 +1,6 @@
 '远程贡献组装的宿主入口：把选定的 Cordis 事件交给网关转发'
 import os,json,threading
-from ...工具.双端队列 import 双端队列#事件帧缓冲
+from collections import deque#事件帧缓冲
 from ...内核.作用域 import 获取载体键#瀑布 this 上的智能体
 from ...类型化远程调用.协议 import 是否远程json值#emit 参数必须是无损 JSON
 from ...基础设施.js特性 import PromiseEX as 期约#瀑布结算
@@ -32,7 +32,7 @@ class 远程事件队列:
     '把同步 Cordis 监听接到可拉取迭代'
     def __init__(自身):
         '构造空队列'
-        自身.缓冲=双端队列()#尚未被拉取的帧
+        自身.缓冲=deque()#尚未被拉取的帧
         自身.等待事件=threading.Event()#有帧或结束时放开
         自身.已结束=False#结束后不再接收
 
@@ -40,7 +40,7 @@ class 远程事件队列:
         '入队一帧。已经结束则拒绝，返回是否收下'
         if 自身.已结束:#源已关
             return False#没收下
-        自身.缓冲.尾推(帧)#放进缓冲
+        自身.缓冲.append(帧)#放进缓冲
         自身.等待事件.set()#叫醒拉取
         return True#已收下
 
@@ -49,8 +49,8 @@ class 远程事件队列:
         if 自身.已结束:#已经结束
             return#停
         自身.已结束=True#不再接收
-        while 自身.缓冲.大小>0:#还没被拉取的帧
-            派发=自身.缓冲.头弹()#取出
+        while len(自身.缓冲)>0:#还没被拉取的帧
+            派发=自身.缓冲.popleft()#取出
             if isinstance(派发,dict) and 'context' in 派发:#挂起的瀑布
                 派发['reject'](原因)#拒绝
         自身.等待事件.set()#叫醒拉取，让迭代退出
@@ -65,12 +65,12 @@ class 远程事件队列:
             while True:#没有自然结束，载体来关
                 if 自身.已结束 or 已中止(信号):#已经停
                     return#结束生成
-                while 自身.缓冲.大小>0:#先交已有的帧
-                    yield 自身.缓冲.头弹()#一帧
+                while len(自身.缓冲)>0:#先交已有的帧
+                    yield 自身.缓冲.popleft()#一帧
                 if 自身.已结束 or 已中止(信号):#交完时已经停
                     return#结束生成
                 自身.等待事件.clear()#准备等下一帧
-                while not 自身.已结束 and not 已中止(信号) and 自身.缓冲.大小==0:#还没有帧
+                while not 自身.已结束 and not 已中止(信号) and len(自身.缓冲)==0:#还没有帧
                     自身.等待事件.wait(0.05)#短等，取消也能退出
         finally:#生成结束
             信号.removeEventListener('abort',中止)#摘掉

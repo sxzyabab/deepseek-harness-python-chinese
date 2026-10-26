@@ -2,7 +2,7 @@
 import re
 import time
 from ....客户端.存储 import 创建快照存储
-from ....工具.加密 import 随机uuid
+from uuid import uuid4
 from ....启动.插件装载.注册表 import (
     官方npm注册表,
     npmmirror注册表,
@@ -821,7 +821,7 @@ class 插件装载控制:
 
     def 开始安装(自身,主体,已允许=None):
         '把已检查的规格交给 Host'
-        请求标识=随机uuid()
+        请求标识=str(uuid4())
         请求={'requestId':请求标识,'acknowledged':False,'replyLost':False,'recovering':False}
         自身.请求=请求
         自身.补丁安装({

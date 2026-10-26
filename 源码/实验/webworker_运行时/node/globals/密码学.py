@@ -1,6 +1,10 @@
-from .....工具.加密 import 随机uuid
+from uuid import uuid4
 
 __all__=['安装密码学全局']
+
+def 随机uuid():
+    '随机 v4 UUID 字符串'
+    return str(uuid4())
 
 def 安装密码学全局():
     '在上下文不提供时安装 `crypto.randomUUID`'

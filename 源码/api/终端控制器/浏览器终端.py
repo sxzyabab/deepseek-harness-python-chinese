@@ -3,7 +3,7 @@ import codecs#流式 UTF-8
 from threading import Event as 事件#排空与屏幕写完
 from threading import Condition as 条件变量#输出块
 from threading import RLock as 可重入锁#屏幕与输入串行
-from ...工具.双端队列 import 双端队列#输出块
+from collections import deque#输出块
 from ...工具.惰性导入 import 创建惰性导入#无头终端
 from ...基础设施.通用工具 import 启动守护线程,utf8字节数#消费输出与输入字节
 from ...基础设施.通用工具.数值判定 import 最大安全整数#序号与尺寸
@@ -232,7 +232,7 @@ class 浏览器终端:
     def _消费输出(自身):
         '按投递顺序解码。进程结束后再发布退出或失败'
         解码器=codecs.getincrementaldecoder('utf-8-sig')('replace')#忽略 BOM，坏字节替换
-        队列=双端队列()#尚未解码的块
+        队列=deque()#尚未解码的块
         条件=条件变量()#数据或结束
         结束了={'值':False}#输出流结束
         结局={'完成':事件(),'值':None,'错误':None,'好':False}#done 的结果
@@ -256,7 +256,7 @@ class 浏览器终端:
             if isinstance(块,str):#文本
                 块=块.encode('utf-8')#按字节解码
             with 条件:#入队
-                队列.尾推(块)#顺序
+                队列.append(块)#顺序
                 条件.notify()#唤醒
 
         def 在结束(*位置参数):
@@ -270,11 +270,11 @@ class 浏览器终端:
         try:#解码、收尾、等退出事实
             while True:#直到输出结束
                 with 条件:#取一块
-                    while 队列.大小==0 and not 结束了['值']:#还没有
+                    while len(队列)==0 and not 结束了['值']:#还没有
                         条件.wait()#等数据或结束
-                    if 队列.大小==0 and 结束了['值']:#已结束
+                    if len(队列)==0 and 结束了['值']:#已结束
                         break#去刷尾
-                    块=队列.头弹()#一块
+                    块=队列.popleft()#一块
                 自身._写出屏幕(解码器.decode(块))#流式解码
             自身._写出屏幕(解码器.decode(b'',True))#刷出尾部
             结局['完成'].wait()#等 done

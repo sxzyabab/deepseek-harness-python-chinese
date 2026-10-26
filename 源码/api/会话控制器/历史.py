@@ -1,6 +1,6 @@
 '冷会话历史分页与 live 事件源'
 import threading#follow 等待
-from ...工具.双端队列 import 双端队列#缓冲
+from collections import deque#缓冲
 from ...内核.会话.表面 import 是否追加表面事件#消息对齐分页
 from .远程错误与并发 import 已中止#中止
 from .异常 import 远程错误#本包异常
@@ -97,7 +97,7 @@ class 会话历史控制器:
             return#空
         地址=请求['address']#地址
         目标=地址标识(地址)#目标 id
-        缓冲=双端队列()#缓冲
+        缓冲=deque()#缓冲
         快照游标=None#快照游标
         助手流序数=0#助手流序数
         唤醒=threading.Event()#等待
@@ -111,7 +111,7 @@ class 会话历史控制器:
             '缓冲匹配会话事件'
             if 会话.id!=目标:#非目标
                 return#忽略
-            缓冲.尾推({'type':'event','event':事件})#缓冲
+            缓冲.append({'type':'event','event':事件})#缓冲
             唤醒.set()#唤醒
         def 会话创建(会话):
             '构造期种子后缀'
@@ -120,7 +120,7 @@ class 会话历史控制器:
             起点=会话.firstLiveSeq if 快照游标 is None else 快照游标+1#后缀起点
             后缀=list(会话.snapshotEvents(起点))#后缀
             for 下标 in range(len(后缀)-1,-1,-1):#逆序头推
-                缓冲.头推({'type':'event','event':后缀[下标]})#头推
+                缓冲.appendleft({'type':'event','event':后缀[下标]})#插到已有条目之前
             唤醒.set()#唤醒
         def 助手流(*参数):
             '缓冲助手流帧；作用域派发为 (载体, 载荷)'
@@ -133,7 +133,7 @@ class 会话历史控制器:
             if 智能体 is None or 帧 is None or 智能体.session.id!=目标:#非目标
                 return#忽略
             助手流序数+=1#序数
-            缓冲.尾推({
+            缓冲.append({
                 'type':'assistant-stream',
                 'frame':线上助手流帧(帧,下一序号前游标(智能体.session.seq)),
                 'ordinal':助手流序数,
@@ -186,10 +186,10 @@ class 会话历史控制器:
                         raise#抛
                 下一偏移=游标+1#下一期望
                 while (not 关注者['closed']) and (not 已中止(信号)):#活跃
-                    项=缓冲.头弹()#取
+                    项=缓冲.popleft() if 缓冲 else None#取
                     if 项 is None:#空
                         唤醒.clear()#清
-                        if 缓冲.大小>0 or 关注者['closed'] or 已中止(信号):#竞态
+                        if len(缓冲)>0 or 关注者['closed'] or 已中止(信号):#竞态
                             continue#重试
                         唤醒.wait(0.05)#短等
                         continue#再取

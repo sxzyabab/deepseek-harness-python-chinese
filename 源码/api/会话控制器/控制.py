@@ -1,6 +1,6 @@
 '实时会话投影控制流'
 import threading#流等待
-from ...工具.双端队列 import 双端队列#缓冲
+from collections import deque#缓冲
 from .远程错误与并发 import 已中止#中止查询
 
 __all__=['会话控制控制器']#仅中文公开名
@@ -9,7 +9,7 @@ class _控制队列:
     '缓冲控制帧'
     def __init__(自身):
         '建立空缓冲'
-        自身._缓冲=双端队列()#帧
+        自身._缓冲=deque()#帧
         自身._事件=threading.Event()#等待
         自身._已结束=False
 
@@ -17,7 +17,7 @@ class _控制队列:
         '入队并唤醒'
         if 自身._已结束:#已结束
             return#忽略
-        自身._缓冲.尾推(帧)#入队
+        自身._缓冲.append(帧)#入队
         自身._事件.set()#唤醒
 
     def 结束队列(自身):
@@ -28,16 +28,16 @@ class _控制队列:
     def 迭代(自身,信号):
         '直到取消或结束'
         while (not 自身._已结束) and (not 已中止(信号)):#活跃
-            帧=自身._缓冲.头弹()#取帧
+            帧=自身._缓冲.popleft() if 自身._缓冲 else None#取帧
             if 帧 is not None:#有帧
                 yield 帧#产出
                 continue#继续
             自身._事件.clear()#清事件
-            if 自身._缓冲.大小>0 or 自身._已结束 or 已中止(信号):#竞态
+            if len(自身._缓冲)>0 or 自身._已结束 or 已中止(信号):#竞态
                 continue#重试
             自身._事件.wait(0.05)#短等
-        while 自身._缓冲.大小>0 and (not 已中止(信号)):#排空
-            帧=自身._缓冲.头弹()#取
+        while len(自身._缓冲)>0 and (not 已中止(信号)):#排空
+            帧=自身._缓冲.popleft()#取
             if 帧 is not None:#有
                 yield 帧#产出
 

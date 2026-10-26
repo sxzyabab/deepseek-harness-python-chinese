@@ -1,7 +1,7 @@
 '一条远程流代际的有界输出队列'
 from threading import Condition as 条件变量#队列与唤醒
 from threading import RLock as 可重入锁#推入时可以再关掉
-from ...工具.双端队列 import 双端队列#有界帧队列
+from collections import deque#有界帧队列
 from ...基础设施.通用工具 import 启动守护线程,紧凑json编码,utf8字节数#守护线程与帧字节
 from ..网关.流协议 import 已中止#取消
 from ...客户端.连接.rpc import 中止信号,中止控制器#取消
@@ -14,7 +14,7 @@ class 终端跟随:
     def __init__(自身,最大字节):
         '记下这一路跟随者的排队上限'
         自身._最大字节=最大字节#上限
-        自身._队列=双端队列()#有序帧
+        自身._队列=deque()#有序帧
         自身._条件=条件变量(可重入锁())#等待与互斥
         自身._字节=0#已排队字节
         自身._已关=False#已停止
@@ -37,7 +37,7 @@ class 终端跟随:
             if 自身._字节+字节>自身._最大字节:#超限
                 自身.失败(RuntimeError('Terminal output consumer exceeded its buffer; reconnect to recover the current screen'))#明确失败
                 return#不再排队
-            自身._队列.尾推({'frame':帧,'bytes':字节})#入队
+            自身._队列.append({'frame':帧,'bytes':字节})#入队
             自身._字节+=字节#累加
             自身._条件.notify_all()#唤醒读者
 
@@ -48,7 +48,7 @@ class 终端跟随:
                 return#忽略
             自身._失败=错误#留给读者
             自身._已关=True#停止
-            自身._队列.清空()#丢掉未读
+            自身._队列.clear()#丢掉未读
             自身._字节=0#清零
             自身._条件.notify_all()#唤醒读者
 
@@ -62,7 +62,7 @@ class 终端跟随:
         '停掉这一路跟随，不停终端'
         with 自身._条件:#与读者互斥
             自身._已关=True#停止
-            自身._队列.清空()#丢掉未读
+            自身._队列.clear()#丢掉未读
             自身._字节=0#清零
             自身._条件.notify_all()#唤醒读者
 
@@ -83,13 +83,13 @@ class 终端跟随:
         try:#读到关或失败
             while not 自身._已关:#还开着
                 with 自身._条件:#等下一帧
-                    while 自身._队列.大小==0 and not 自身._已关 and not 自身._已结束:#队列空且未结束
+                    while len(自身._队列)==0 and not 自身._已关 and not 自身._已结束:#队列空且未结束
                         自身._条件.wait()#等推入、结束或关闭
                     if 自身._已关:#被关掉
                         break#停止
-                    if 自身._队列.大小==0 and 自身._已结束:#已交完
+                    if len(自身._队列)==0 and 自身._已结束:#已交完
                         break#停止
-                    下一项=自身._队列.头弹()#取出
+                    下一项=自身._队列.popleft()#取出
                     自身._字节-=下一项['bytes']#减掉字节
                 yield 下一项['frame']#交给附着
             if 自身._失败 is not None:#有失败

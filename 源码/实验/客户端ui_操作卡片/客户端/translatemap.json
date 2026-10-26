@@ -1,0 +1,10 @@
+{
+    "index": "__init__",
+    "mount": "挂载",
+    "registry": "注册表",
+    "locales": "文案",
+    "Card": "卡片",
+    "Card.module": "卡片.module",
+    "ProposeRow": "提议行",
+    "ProposeRow.module": "提议行.module"
+}

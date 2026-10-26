@@ -1,7 +1,7 @@
 '客户端终端模型。视图键和宿主终端身份彼此独立'
 from threading import Thread as 线程类#先建线程再启动，避免清理表还没记下它就结束
 from ....依赖.cordis import 服务#服务基类
-from ....工具.加密 import 随机uuid#新终端身份
+from uuid import uuid4#新终端身份
 from ....客户端.存储 import 创建快照存储#关闭失败通知
 from ....基础设施.通用工具 import 启动守护线程#后台清理与释放
 from ....类型化远程调用.协议 import 取远程错误#会话已不存在
@@ -92,7 +92,7 @@ class 客户端终端(服务):
         视图=会话表.get(键)#这一次出现
         if 视图 is None:#新建
             已存=终端标识 if 终端标识 is not None else 自身._绑定.获取(会话标识,内容标识)#恢复用的身份
-            标识=已存 if 已存 is not None else 随机uuid()#没有就新造
+            标识=已存 if 已存 is not None else str(uuid4())#没有就新造
             自身._绑定.设置(会话标识,内容标识,标识)#分配前先记住
 
             def 保持就绪(信号):

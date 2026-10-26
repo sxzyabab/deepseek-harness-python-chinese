@@ -1,7 +1,7 @@
 '按目标监视文件系统，并把 fs/observed 收成 changes 帧'
 import threading#队列唤醒与关闭等待
 from ...基础设施.通用工具 import 启动守护线程#中止与关闭失败的后台等待
-from ...工具.双端队列 import 双端队列#观察队列
+from collections import deque#观察队列
 from ..网关.流协议 import 已中止,若中止则抛 as 若已中止则抛出#信号是否已中止，已中止则抛出
 from ...客户端.连接.rpc import 中止信号,中止控制器#融合两路中止，这一代自己的中止
 from .异常 import 远程错误#监视失败
@@ -16,7 +16,7 @@ class 变更跟随者:
         自身._释放=释放#摘掉跟随者
         自身.控制器=中止控制器()#本代中止
         自身.错误=None#监视回调报来的失败
-        自身._队列=双端队列()#观察元组
+        自身._队列=deque()#观察元组
         自身._条件=threading.Condition()#队列与关闭
         自身._已关闭=False#不再接收观察
         自身._初始化锁=threading.Lock()#只记下第一次拆除函数
@@ -35,7 +35,7 @@ class 变更跟随者:
         with 自身._条件:#与读取互斥
             if 自身._已关闭:#已停
                 return#丢掉
-            自身._队列.尾推(观察)#入队
+            自身._队列.append(观察)#入队
             自身._条件.notify()#唤醒
 
     def 解决初始化(自身,拆除监视):
@@ -94,7 +94,7 @@ class 变更跟随者:
             with 自身._条件:#取一条
                 if 自身._已关闭:#已关
                     break#剩下的丢掉
-                观察=自身._队列.头弹()#取头
+                观察=自身._队列.popleft() if 自身._队列 else None#取头
                 if 观察 is None:#空
                     自身._条件.wait()#等推入或关闭
                     continue#再看

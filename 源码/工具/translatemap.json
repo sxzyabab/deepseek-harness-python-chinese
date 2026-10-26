@@ -2,8 +2,6 @@
     "atomic-write":"原子写入",
     "brand":"标识构造",
     "chunked-list":"分块列表",
-    "crypto":"加密",
-    "deque":"双端队列",
     "home-paths":"主目录路径",
     "http-proxy":"http代理",
     "launch-environment":"启动环境",
@@ -15,5 +13,9 @@
     "timeout":"超时",
     "values":"值",
     "workspace-path":"工作区路径",
-    "code-language":"代码语言"
+    "code-language":"代码语言",
+    "official-bundles":"官方组合包",
+    "plugin-detail":"插件详情",
+    "file-drag":"文件拖拽",
+    "plugin-market-index":"插件市场索引"
 }

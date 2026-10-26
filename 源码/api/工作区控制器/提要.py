@@ -1,6 +1,6 @@
 '重连安全的工作区基线与增量。replace 帧只由访问过滤发出，提要本身不产它'
 import threading#关注者唤醒
-from ...工具.双端队列 import 双端队列#帧缓冲
+from collections import deque#帧缓冲
 from ...工作区.工作区 import 工作区标识#品牌化 id
 from ...工作区.工作区.规格 import 工作区记录,工作区域状态#域记录与全局状态
 from ..网关.流协议 import 已中止,若中止则抛 as 若已中止则抛出#寿命
@@ -37,7 +37,7 @@ class 工作区关注者:
 
     def __init__(自身):
         '建立空缓冲'
-        自身.帧=双端队列()#待读帧
+        自身.帧=deque()#待读帧
         自身.锁=threading.Lock()#域写入线程和 follow 读取线程共用这一圈缓冲
         自身.唤醒=threading.Event()#有帧或已关闭
         自身.已关闭=False#本代结束
@@ -47,7 +47,7 @@ class 工作区关注者:
         with 自身.锁:#改缓冲
             if 自身.已关闭:#已结束
                 return#丢掉
-            自身.帧.尾推(帧)#入队
+            自身.帧.append(帧)#入队
         自身.唤醒.set()#唤醒
 
     def 关闭(自身):
@@ -64,7 +64,7 @@ class 工作区关注者:
             with 自身.锁:#取一帧
                 if 自身.已关闭 or 已中止(信号):#本代结束
                     return#停
-                帧=自身.帧.头弹()#可能为空
+                帧=自身.帧.popleft() if 自身.帧 else None#可能为空
             if 帧 is not None:#有帧
                 yield 帧#交出
                 continue#再取
@@ -74,7 +74,7 @@ class 工作区关注者:
         '阻塞到有帧、本代关闭或信号中止。中止最多一个轮询间隔后看见'
         while True:#直到条件成立
             with 自身.锁:#看当前
-                if 已中止(信号) or 自身.已关闭 or 自身.帧.大小>0:#可以返回
+                if 已中止(信号) or 自身.已关闭 or len(自身.帧)>0:#可以返回
                     break#停
             自身.唤醒.wait(0.05)#等推入或关闭
         自身.唤醒.clear()#这一轮已看过

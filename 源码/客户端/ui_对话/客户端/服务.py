@@ -1,8 +1,7 @@
 '按作用域发送、取消，并持有草稿附件'
-import uuid
+import base64,uuid
 from ....依赖.cordis.服务 import 服务
 from ...存储 import 创建快照存储
-from ....工具.加密 import 字节转base64
 from ..异常 import 不支持图片媒体类型,对话错误
 
 __all__=['会话控制器','是图片媒体类型']
@@ -334,7 +333,7 @@ class 会话控制器(服务):
 
     def 编码图片(自身,文件):
         '浏览器图片的线文'
-        出={'mediaType':图片媒体类型(getattr(文件,'type','')),'data':字节转base64(读取字节(文件))}
+        出={'mediaType':图片媒体类型(getattr(文件,'type','')),'data':base64.b64encode(读取字节(文件)).decode('ascii')}
         if getattr(文件,'name','')!='':
             出['name']=文件.name
         return 出

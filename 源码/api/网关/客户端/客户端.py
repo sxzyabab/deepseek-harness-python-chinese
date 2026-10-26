@@ -1,7 +1,7 @@
 '客户端拥有的网关复用 Remote 流套接字'
 import json,threading#帧与等待
+from collections import deque#收件箱
 from uuid import uuid4 as 生成标识#逻辑流标识
-from ....工具.双端队列 import 双端队列#收件箱
 from ....类型化远程调用.协议 import 是否远程上行项#上行项
 from ..异常 import 远程流载体错误#物理套接字失败
 from ..流协议 import 远程流复用路径,解析远程流服务端报文,已中止,若中止则抛#下行报文
@@ -10,7 +10,7 @@ class 流收件箱:
     '一条逻辑流的下行帧'
     def __init__(自身):
         '空队列'
-        自身.帧=双端队列()#帧
+        自身.帧=deque()#帧
         自身.失败=None#失败
         自身._条件=threading.Condition()#等待
 
@@ -19,7 +19,7 @@ class 流收件箱:
         with 自身._条件:#互斥
             if 自身.失败 is not None:#已经失败
                 return#丢
-            自身.帧.尾推(帧)#入队
+            自身.帧.append(帧)#入队
             自身._条件.notify_all()#叫醒
 
     def 失败(自身,错误):
@@ -28,24 +28,24 @@ class 流收件箱:
             if 自身.失败 is not None:#已经
                 return#停
             自身.失败=错误 if isinstance(错误,BaseException) else Exception(str(错误))#异常
-            自身.帧.清空()#丢掉
+            自身.帧.clear()#丢掉
             自身._条件.notify_all()#叫醒
 
     def 下一项(自身):
         '阻塞到有帧或失败'
         with 自身._条件:#互斥
-            while 自身.帧.大小==0:#空
+            while len(自身.帧)==0:#空
                 if 自身.失败 is not None:#失败
                     raise 自身.失败#抛
                 自身._条件.wait()#等
-            return 自身.帧.头弹()#一帧
+            return 自身.帧.popleft()#一帧
 
 class 客户端上行队列:
     '流句柄排给载体的上行。end 是半关，close 之后 push 抛'
     def __init__(自身,端点):
         '端点写进失败说明'
         自身.端点=端点#端点
-        自身.项=双端队列()#项
+        自身.项=deque()#项
         自身.已结束=False#半关
         自身.已关=False#终止
         自身._条件=threading.Condition()#读者
@@ -60,8 +60,8 @@ class 客户端上行队列:
             while True:#直到有项或结束
                 if 自身.已关:#终止
                     raise StopIteration#结束
-                if 自身.项.大小>0:#有
-                    return 自身.项.头弹()#项
+                if len(自身.项)>0:#有
+                    return 自身.项.popleft()#项
                 if 自身.已结束:#半关且空
                     raise StopIteration#结束
                 自身._条件.wait()#等
@@ -73,7 +73,7 @@ class 客户端上行队列:
                 raise Exception('client api: '+自身.端点+' stream has terminated')#拒绝
             if 自身.已结束:#半关
                 raise Exception('client api: '+自身.端点+' uplink was ended')#拒绝
-            自身.项.尾推(项)#入队
+            自身.项.append(项)#入队
             自身._条件.notify_all()#叫醒
 
     def end(自身):
@@ -90,7 +90,7 @@ class 客户端上行队列:
             if 自身.已关:#已经
                 return#停
             自身.已关=True#关
-            自身.项.清空()#丢掉
+            自身.项.clear()#丢掉
             自身._条件.notify_all()#叫醒
 
     def 交还(自身):

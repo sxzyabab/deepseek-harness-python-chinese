@@ -3,7 +3,7 @@ from ...基础设施.通用工具 import 是否正有限数,紧凑json编码,启
 from ...依赖.cordis.服务 import 服务#服务基类
 from ...依赖.工具 import 获取内部数据#读事件总线内部成员
 from ...依赖.schemastery import 枚举字段,自然数字段#配置字段
-from ..作用域 import 匿名条目,具名条目,作用域层集,获取作用域,作用域目标#导入作用域层与载体
+from ..作用域 import 匿名条目,具名条目,作用域层集,获取作用域,获取作用域链,作用域目标#导入作用域层与载体
 from ...模型后端.llm.异常 import harness错误 as 框架错误#导入框架错误
 from ...模型后端.llm import 断言永不,深冻结#穷尽检查与深冻结
 from ..会话 import 快照json值#导入无损 JSON 快照
@@ -45,7 +45,7 @@ from .呈现 import (
 )#导入呈现词汇
 
 __all__=(
-    '工具运行时',
+    '工具运行时','执行器不可用错误',
     '定义工具','值模式规格转json模式','参数模式规格转json模式','校验参数','工具参数错误',
     '断言受支持json模式','断言对象json模式','校验json模式值','json模式错误',
     'PTC派发开始','PTC派发落定','派发开始字段','派发落定字段',
@@ -286,6 +286,13 @@ class 工具层:
                 return 原因#第一条拒绝
         return None#无拒绝
 
+class 执行器不可用错误(框架错误):
+    '所选执行器缺失或已卸下；不得改落到另一个执行器'
+    def __init__(自身):
+        '用稳定错误码构造'
+        super().__init__('所选工具执行器不可用。请先在这个组合里装上执行器，再运行智能体。','TOOL_EXECUTOR_UNAVAILABLE')#给人看的说明
+        自身.name='ToolExecutorUnavailableError'#机器比对的类名
+
 class 工具运行时(服务):
     '工具注册表与执行管线'
     依赖=['systemPrompt']
@@ -316,6 +323,8 @@ class 工具运行时(服务):
             自身.ctx.广播('tools/change')#通知
         自身.层集=作用域层集(建层,层变)#作用域层
         自身.代码传输=None#run_code 传输
+        自身.根执行器=None#部署默认执行器登记；卸下后仍留着，避免落到别的执行器
+        自身.作用域执行器=weakref.WeakKeyDictionary()#作用域到执行器登记
         自身._调度器={
             'prepare':自身.准备调度执行,#准备
             'dispatch':自身.派发调度执行,#派发
@@ -323,8 +332,22 @@ class 工具运行时(服务):
             'finish':自身.收尾调度执行,#收尾
         }#调度器入口
         def 提供线模式(上下文):
-            '按作用域提供线模式'
-            return 自身.接线模式(上下文['scope'] if 'scope' in 上下文 else None)#按作用域
+            '有执行器时用它的描述，否则仍走部署 mode'
+            作用域=上下文['scope'] if 'scope' in 上下文 else None#观察作用域
+            执行器=自身.读取执行器(作用域)#未登记则为 None；已卸下则抛
+            if 执行器 is None:
+                return 自身.接线模式(作用域)#旧的 mode 路径
+            视图=自身.视图(作用域)#可见定义
+            定义列表=[]#交给描述的登记工具
+            for 定义 in 视图['visible'].values():
+                if 定义['name']==运行代码名:
+                    continue#传输不进描述输入
+                定义列表.append(定义)#登记工具
+            描述=执行器.描述(定义列表)#执行器拥有的模型输入
+            if 'knownNames' not in 描述 or 描述['knownNames'] is None:
+                描述=dict(描述)#补已知名
+                描述['knownNames']=list(视图['knownNames'])#限制前的名字
+            return 描述#执行器描述
         自身.ctx.systemPrompt.tools(提供线模式)#按作用域提供线模式
         if 自身.默认模式!='native':
             自身.ctx.systemPrompt.section(自身.折叠段())#折叠段
@@ -458,6 +481,92 @@ class 工具运行时(服务):
             raise 工具错误('dsh-tools: 运行时语言 '+紧凑json编码(语言)+' 没有已登记的 SDK 渲染器（已知: '+已知+'）')#未知语言
         return 运行时#已校验运行时
 
+    def 可见定义(自身,作用域=None):
+        '可见的已登记工具，不含 run_code 传输'
+        结果=[]#登记工具
+        for 定义 in 自身.视图(作用域)['visible'].values():
+            if 定义['name']==运行代码名:
+                continue#传输不在登记表
+            结果.append(定义)#收下
+        return 结果#可见定义
+
+    def 查找执行器记录(自身,作用域=None):
+        '最近作用域上的执行器登记；都没有则为根登记或 None'
+        if 作用域 is not None:
+            for 键 in 获取作用域链(作用域):#最近者在前
+                记录=自身.作用域执行器.get(键)#这一层
+                if 记录 is not None:
+                    return 记录#含已卸下的登记
+        return 自身.根执行器#部署默认
+
+    def 选择执行器(自身,作用域=None):
+        '解析最近的执行器；缺失或已卸下则抛出'
+        记录=自身.查找执行器记录(作用域)#登记
+        执行器=None if 记录 is None else 记录.get('executor')#实现
+        if 执行器 is None:
+            raise 执行器不可用错误()#不得改落
+        return 执行器#选中的执行器
+
+    def 读取执行器(自身,作用域=None):
+        '没有登记时返回 None；登记已卸下则抛出'
+        记录=自身.查找执行器记录(作用域)#登记
+        if 记录 is None:
+            return None#尚未挂执行器
+        执行器=记录.get('executor')#实现
+        if 执行器 is None:
+            raise 执行器不可用错误()#卸下后不回退
+        return 执行器#仍在的执行器
+
+    def 设置执行器(自身,执行器):
+        '在调用作用域挂上执行器，并登记它拥有的提示词段'
+        作用域=获取作用域(自身.ctx)#调用作用域，不是链上的最近者
+        if 作用域 is None:
+            已有=自身.根执行器#部署默认
+        else:
+            已有=自身.作用域执行器.get(作用域)#只看本层
+        if 已有 is not None and 已有.get('executor') is not None:
+            raise 工具错误('每个作用域只能登记一个工具执行器')#同一作用域一个
+        记录={'executor':执行器}#卸下时只清 executor
+        def 登记():
+            '先挂提示词段，再写入登记'
+            段落们=getattr(执行器,'段落表',None)#执行器拥有的段
+            if 段落们 is None:
+                段落们=()#没有段
+            for 段 in 段落们:
+                def 文本(上下文,段=段):
+                    '只有当前选中的仍是这个执行器时才发出段文本'
+                    观察=上下文.get('scope') if isinstance(上下文,dict) else None#组装作用域
+                    if 自身.选择执行器(观察) is not 执行器:
+                        return ''#别的执行器占着这个作用域
+                    原文=段['text']#静态文本或按定义生成
+                    if callable(原文):
+                        return 原文(自身.可见定义(观察))#已登记定义
+                    return 原文#静态文本
+                登记段={'name':段['name'],'order':段['order'],'text':文本}#段登记
+                if 'interpolate' in 段:
+                    登记段['interpolate']=段['interpolate']#显式插值开关
+                yield 自身.ctx.systemPrompt.段落(登记段)#段的拆除器
+            if 作用域 is None:
+                自身.根执行器=记录#部署默认
+            else:
+                自身.作用域执行器[作用域]=记录#本作用域
+            def 卸下():
+                '登记留下，调用不能落到另一个执行器'
+                记录['executor']=None#已卸下
+            yield 卸下#拆除时最先跑
+        return 自身.ctx.副作用(登记,'tools.setExecutor()')#拆除器
+
+    def 折叠错误(自身,名,作用域):
+        '折叠拒绝用的错误；执行器给出的消息优先'
+        记录=自身.查找执行器记录(作用域)#最近登记
+        if 记录 is not None and 记录.get('executor') is not None:
+            执行器=记录['executor']#仍在的执行器
+            if callable(getattr(执行器,'拒绝直接调用',None)):
+                错误=执行器.拒绝直接调用(名)#执行器自己的拒绝
+                if 错误 is not None:
+                    return 错误#用它的消息
+        return 工具未找到错误(名,'只能直接调用 `'+运行代码名+'` — 请在 `'+运行代码名+'` 程序内部调用 `'+名+'`')#旧 mode 文案
+
     def 登记(自身,定义):
         '全局或在调用智能体作用域注册'
         名=定义['name']#工具名
@@ -546,8 +655,15 @@ class 工具运行时(服务):
             for 名,定义 in 自己的.工具.诸条目():
                 已知名.add(名)#已知（但不进 restrictable）
                 可见[名]=定义#可见且遮蔽
-        if 自身.解析呈现(作用域)!='native':
-            可见[运行代码名]=自身.要求代码传输()#追加 run_code
+        记录=自身.查找执行器记录(作用域)#最近执行器
+        if 记录 is not None:
+            执行器=记录.get('executor')#可能已卸下
+            if 执行器 is None:
+                raise 执行器不可用错误()#卸下后不改用 mode 传输
+            if callable(getattr(执行器,'要求传输',None)):
+                可见[运行代码名]=执行器.要求传输()#执行器拥有的传输
+        elif 自身.解析呈现(作用域)!='native':
+            可见[运行代码名]=自身.要求代码传输()#旧 mode 的传输
         return {'visible':可见,'knownNames':已知名,'restrictableNames':可限制名}#完整视图
 
     def 获取(自身,名,作用域=None):
@@ -617,8 +733,18 @@ class 工具运行时(服务):
             return 派发['content']#回落原始内容
 
     def 是否折叠(自身,名,作用域,嵌套):
-        'ptc 模式折叠是否拒绝模型直接调用'
-        return (not 嵌套) and 自身.解析呈现(作用域)=='ptc' and 名!=运行代码名#非嵌套且 ptc 且不是传输
+        '直接调用是否被当前执行器或旧的 ptc mode 拒绝'
+        if 嵌套 or 名==运行代码名:
+            return False#嵌套调用和传输本身不折叠
+        记录=自身.查找执行器记录(作用域)#最近登记
+        if 记录 is not None:
+            执行器=记录.get('executor')#可能已卸下
+            if 执行器 is None:
+                raise 执行器不可用错误()#卸下后不回退到 mode
+            if callable(getattr(执行器,'拒绝直接调用',None)):
+                return 执行器.拒绝直接调用(名) is not None#执行器自己的拒绝
+            return False#已选执行器不再叠 mode 折叠
+        return 自身.解析呈现(作用域)=='ptc'#没有执行器时保留旧 mode
 
     def 执行(自身,执行输入):
         '经预策略、守卫、环绕派发、后策略、内容最终化与最终通知执行'
@@ -705,10 +831,7 @@ class 工具运行时(服务):
                 return {
                     'kind':'final-result',#跳过策略
                     'exec':执行,#已铸造执行
-                    'result':工具错误结果(工具未找到错误(
-                        名,#工具名
-                        '只能直接调用 `'+运行代码名+'` — 请在 `'+运行代码名+'` 程序内部调用 `'+名+'`',#替代路径
-                    )),#未知工具但带路径
+                    'result':工具错误结果(自身.折叠错误(名,智能体)),#执行器或旧 mode 的拒绝
                 }#折叠拒绝
             return {'kind':'ready','exec':执行}#进入策略管线
         except Exception as 错误:
@@ -1062,4 +1185,5 @@ class 工具运行时(服务):
 
 工具运行时.inject=工具运行时.依赖
 工具运行时.Config=工具运行时.配置#Cordis Config 槽
+工具运行时.setExecutor=工具运行时.设置执行器#上游插件调用名
 default=工具运行时#Cordis 默认导出槽

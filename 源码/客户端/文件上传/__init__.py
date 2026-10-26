@@ -1,7 +1,7 @@
 '宿主文件上传服务：流式接入，以及会话持有的暂存回执'
 import weakref#会话到暂存表，会话消失后表一起消失
 from ...类型化远程调用.协议 import 远程,远程服务,远程错误#远程方法与远程失败
-from ...工具.加密 import 随机uuid#铸造凭证
+from uuid import uuid4#铸造凭证
 from . import (
     http路由,#原始字节路由
     协议,#上传路径
@@ -195,7 +195,7 @@ class 文件上传服务(远程服务):
         if 表 is None:#还没有
             表={}#新建
             自身._暂存[智能体.session]=表#挂上会话
-        凭证标识=随机uuid()#这一次上传的凭证
+        凭证标识=str(uuid4())#这一次上传的凭证
         表[凭证标识]={'file':文件}#先不绑定提示
         return {'receiptId':凭证标识,'file':文件}#回执
 

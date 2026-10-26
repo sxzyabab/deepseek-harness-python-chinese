@@ -1,0 +1,12 @@
+{
+    "types": "类型",
+    "tools": "工具",
+    "repository-cache": "仓库缓存",
+    "detail-files": "详情文件",
+    "detail": "详情",
+    "worker": "工作线程",
+    "search": "搜索",
+    "parse": "解析",
+    "parse-thread": "解析线程",
+    "index-url": "索引网址"
+}

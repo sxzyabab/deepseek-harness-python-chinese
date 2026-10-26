@@ -1,0 +1,9 @@
+{
+    "invariant": "不变量",
+    "config": "配置",
+    "errors": "异常",
+    "ptc": "代码模式",
+    "ptc-calls": "代码调用",
+    "py-types": "python类型",
+    "ts-types": "ts类型"
+}

@@ -63,5 +63,9 @@
     "ui-settings-session-log":"ui_会话日志设置",
     "shortcuts":"快捷键",
     "ui-shortcuts":"ui_快捷键",
-    "ui-secret-mask":"ui_密钥掩码"
+    "ui-secret-mask":"ui_密钥掩码",
+    "ui-deepseek-model-label-1017":"ui_deepseek模型标签_1017",
+    "ui-entry-customization":"ui_入口定制",
+    "ui-file-drag":"ui_文件拖拽",
+    "ui-plugin-market":"ui_插件市场"
 }

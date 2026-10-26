@@ -2,7 +2,7 @@
 from threading import Event as 事件#画面确认与刷新汇合
 from threading import RLock as 可重入锁#输入记账
 from threading import current_thread as 当前线程#重入与拆除
-from ....工具.双端队列 import 双端队列#尚未发出的输入
+from collections import deque#尚未发出的输入
 from ....客户端.存储 import 创建快照存储#可观察状态
 from ....基础设施.通用工具 import (
     启动守护线程,#后台刷新
@@ -213,7 +213,7 @@ class 终端视图:
                 'sequence':0,#下一条序号从 1 起
                 'acknowledged':0,#已确认
                 'pending':{},#序号到字节
-                'queued':双端队列(),#还没发出
+                'queued':deque(),#还没发出
                 'window':None,#载体窗口
                 'bytes':0,#未确认的原始输入
                 'bufferedBytes':0,#未确认的帧字节
@@ -305,7 +305,7 @@ class 终端视图:
                 if 附着['bufferedBytes']+帧字节>缓冲上限 or 单帧过大:#帧预算不够
                     错误=终端视图错误('inputFull')#满了
                 else:#收下
-                    附着['queued'].尾推({'command':命令,'inputBytes':字节,'frameBytes':帧字节})#排队
+                    附着['queued'].append({'command':命令,'inputBytes':字节,'frameBytes':帧字节})#排队
                     附着['sequence']=命令['sequence']#推进
                     附着['bytes']+=字节#原始字节
                     附着['bufferedBytes']+=帧字节#帧字节
@@ -316,17 +316,17 @@ class 终端视图:
     def _刷出已锁(自身,附着):
         '锁已持有。发出队首，直到窗口满、不可写或发送失败'
         while 自身._附着 is 附着 and not 已中止(附着['signal']) and 自身.状态.getSnapshot().get('writable'):#还能发
-            下一条=附着['queued'].头弹()#队首
+            下一条=附着['queued'].popleft() if 附着['queued'] else None#队首
             if 下一条 is None:#空了
                 return None#完成
             窗口=附着['window']#载体窗口
             if isinstance(窗口,dict) and 'maxBytes' in 窗口 and 附着['inFlightBytes']+下一条['frameBytes']>窗口['maxBytes']:#在途已满
-                附着['queued'].头推(下一条)#放回去
+                附着['queued'].appendleft(下一条)#放回去
                 return None#等确认
             try:#发给载体
                 附着['handle'].send(下一条['command'])#发送
             except BaseException as 错误:#发送失败
-                附着['queued'].头推(下一条)#放回去
+                附着['queued'].appendleft(下一条)#放回去
                 return 错误#交给锁外
             附着['pending'][下一条['command']['sequence']]={'inputBytes':下一条['inputBytes'],'frameBytes':下一条['frameBytes']}#等确认
             附着['inFlightBytes']+=下一条['frameBytes']#在途

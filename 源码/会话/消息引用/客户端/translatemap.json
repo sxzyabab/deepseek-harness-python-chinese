@@ -1,0 +1,9 @@
+{
+    "index": "__init__",
+    "locales": "文案",
+    "quote-rule": "引用规则",
+    "quote-text": "引用文本",
+    "QuoteSelection": "引用选择",
+    "QuoteSelection.module": "引用选择.module",
+    "QuotedUserText": "已引用用户文本"
+}

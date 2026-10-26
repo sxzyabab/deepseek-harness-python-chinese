@@ -1,7 +1,7 @@
 '序列化偏好事务。存储所有者只发布已接受写入或读取诊断'
 from ..模块.客户端.通告 import 取握手窗口
 import json#文档序列化
-from ...工具.加密 import 随机uuid#修订身份
+from uuid import uuid4#修订身份
 from .配置文档 import 编辑快捷键文档,有效快捷键,解析快捷键文档#文档事务
 
 __all__=[#仅中文公开名
@@ -11,7 +11,7 @@ __all__=[#仅中文公开名
 def 初始快捷键配置():
     '适配器还没读到文档时的快照。命令先不启用'
     return {
-        'revision':随机uuid(),#修订
+        'revision':str(uuid4()),#修订
         'sequence':0,#序号
         'document':{'schemaVersion':1,'profiles':{}},#空文档
         'status':'loading',#加载中
@@ -108,7 +108,7 @@ class 快捷键持久化:
         自身.快照={
             **快照,
             'sequence':自身.快照['sequence']+1,#推进
-            'revision':随机uuid(),#新修订
+            'revision':str(uuid4()),#新修订
         }
         if not 自身.活跃:#已拆
             return#不发布

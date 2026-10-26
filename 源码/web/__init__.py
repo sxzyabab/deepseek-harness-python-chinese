@@ -5,6 +5,7 @@ from . import (
     web搜索_exa,
     web搜索_perplexity,
     工具_web,
+    web_deepseek_api,
 )
 __all__=[
     'http请求',
@@ -13,4 +14,5 @@ __all__=[
     'web搜索_exa',
     'web搜索_perplexity',
     '工具_web',
+    'web_deepseek_api',
 ]

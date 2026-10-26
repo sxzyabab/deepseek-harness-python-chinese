@@ -3,7 +3,7 @@ import inspect,json,math,threading#签名、报文、有限数、事件队列
 from uuid import uuid4 as 生成标识#代际与瀑布标识
 from ...依赖.cordis.服务 import 服务#服务基类
 from ...工具.超时 import 定时器延迟上限毫秒#心跳上限
-from ...工具.双端队列 import 双端队列#事件帧队列
+from collections import deque#事件帧队列
 from ...基础设施.通用工具 import 获取内部数据#解开调用方上下文壳
 from ...类型化远程调用.协议 import 取远程错误,是否远程json值,远程方法列表,远程错误#绑定、JSON 与失败
 from ...客户端.连接.rpc import 中止控制器,中止信号,登记进程内网关,投递进程内事件#调用取消与本进程客户端
@@ -243,7 +243,7 @@ class 远程事件队列:
     '一代客户端的拉取队列。中止时丢掉还没交出的帧'
     def __init__(自身):
         '空队列'
-        自身.帧=双端队列()#帧
+        自身.帧=deque()#帧
         自身.已关=False#是否关闭
         自身._条件=threading.Condition()#读者等待
 
@@ -252,7 +252,7 @@ class 远程事件队列:
         with 自身._条件:#互斥
             if 自身.已关:#关了
                 return#丢
-            自身.帧.尾推(帧)#入队
+            自身.帧.append(帧)#入队
             自身._条件.notify_all()#叫醒
 
     def 结束(自身):
@@ -271,8 +271,8 @@ class 远程事件队列:
                 下一项=None#本轮
                 有=False#是否取出
                 with 自身._条件:#互斥
-                    if 自身.帧.大小>0 and not 已中止(信号):#有帧且还活着
-                        下一项=自身.帧.头弹()#取出
+                    if len(自身.帧)>0 and not 已中止(信号):#有帧且还活着
+                        下一项=自身.帧.popleft()#取出
                         有=True#有
                     elif 自身.已关 or 已中止(信号):#结束
                         return#停

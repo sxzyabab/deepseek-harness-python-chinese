@@ -19,5 +19,6 @@
     "session-format-v2-to-v3":"会话格式_v2到v3",
     "session-format-v3-to-v4":"会话格式_v3到v4",
     "working-directory":"工作目录",
-    "tool-working-directory":"工具_工作目录"
+    "tool-working-directory":"工具_工作目录",
+    "message-quotes":"消息引用"
 }
