@@ -17,5 +17,7 @@
     "official-bundles":"官方组合包",
     "plugin-detail":"插件详情",
     "file-drag":"文件拖拽",
-    "plugin-market-index":"插件市场索引"
+    "plugin-market-index":"插件市场索引",
+    "deque":"双端队列",
+    "crypto":"加密"
 }

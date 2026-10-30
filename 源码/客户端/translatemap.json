@@ -67,5 +67,7 @@
     "ui-deepseek-model-label-1017":"ui_deepseek模型标签_1017",
     "ui-entry-customization":"ui_入口定制",
     "ui-file-drag":"ui_文件拖拽",
-    "ui-plugin-market":"ui_插件市场"
+    "ui-plugin-market":"ui_插件市场",
+    "ui-context-menu":"ui_右键菜单",
+    "ui-file-actions":"ui_文件动作"
 }

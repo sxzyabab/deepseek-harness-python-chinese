@@ -323,5 +323,14 @@
     "2026-10-21-replaceable-icon-sprite":"2026-10-21-可替换图标精灵",
     "2026-10-21-when-access":"2026-10-21-按访问状态注册when",
     "2026-10-22-deepseek-official-model-listing":"2026-10-22-deepseek官方模型列表",
-    "2026-10-23-independent-session-forks":"2026-10-23-独立会话fork"
+    "2026-10-23-independent-session-forks":"2026-10-23-独立会话fork",
+    "2026-09-17-standalone-schedules":"2026-09-17-独立计划任务",
+    "2026-10-19-cua-profile-consent-storage":"2026-10-19-cua配置授权存储",
+    "2026-10-20-ptc-script-evaluation-and-retention":"2026-10-20-ptc脚本求值与保留",
+    "2026-10-20-workspace-tree-state-per-pane":"2026-10-20-分栏工作区树状态",
+    "2026-10-21-context-menu-contributions":"2026-10-21-右键菜单贡献",
+    "2026-10-21-schedule-rule-storage":"2026-10-21-调度规则存储",
+    "2026-10-21-session-history-stream-and-snapshot":"2026-10-21-会话历史流与快照",
+    "2026-10-23-store-scoped-image-reads":"2026-10-23-存储作用域图片读取",
+    "2026-10-25-cua-bundle-id-consent":"2026-10-25-cua组合包id授权"
 }

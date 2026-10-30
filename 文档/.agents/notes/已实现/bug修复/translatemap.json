@@ -141,5 +141,10 @@
     "2026-10-11-process-specific-prompt-values-in-runtime-context":"2026-10-11-进程相关提示值走运行时上下文",
     "2026-09-17-multiline-display-dollar-math":"2026-09-17-多行展示美元数学",
     "2026-10-21-subagent-end-turn-guidance":"2026-10-21-子智能体结束本轮指导",
-    "2026-10-22-series-start-unchanged-prompt-prefix":"2026-10-22-未变序列保留系统节点"
+    "2026-10-22-series-start-unchanged-prompt-prefix":"2026-10-22-未变序列保留系统节点",
+    "2026-09-20-unambiguous-tool-arguments":"2026-09-20-无歧义工具参数",
+    "2026-10-25-shared-preset-delegation-tools":"2026-10-25-共享预设委派工具",
+    "2026-10-26-malformed-charset-declaration":"2026-10-26-畸形字符集声明",
+    "2026-10-28-forge-git-session-permissions":"2026-10-28-forge的git会话权限",
+    "2026-10-28-plugin-install-failure-diagnostics":"2026-10-28-插件安装失败诊断"
 }

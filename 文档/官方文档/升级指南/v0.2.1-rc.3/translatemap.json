@@ -1,3 +1,10 @@
 {
-    "independent-session-forks":"独立会话fork"
+    "independent-session-forks":"独立会话fork",
+    "attachment-read-access":"附件读取访问",
+    "computer-use-helper-permissions":"计算机操作助手权限",
+    "cua-bundle-id-consent":"cua组合包id授权",
+    "generated-worktree-names":"生成工作树名称",
+    "ptc-caller-cancellation":"ptc调用方取消",
+    "session-follow-activation":"会话跟随激活",
+    "web-file-downloads":"web文件下载"
 }

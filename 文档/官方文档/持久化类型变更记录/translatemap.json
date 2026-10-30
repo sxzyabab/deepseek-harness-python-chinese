@@ -35,5 +35,9 @@
     "2026-10-13-deepseek-search-thinking":"2026-10-13-deepseek搜索思考",
     "2026-10-13-deepseek-search-thinking.schema":"2026-10-13-deepseek搜索思考.schema",
     "2026-10-22-action-card-status":"2026-10-22-操作卡片状态",
-    "2026-10-22-action-card-status.schema":"2026-10-22-操作卡片状态.schema"
+    "2026-10-22-action-card-status.schema":"2026-10-22-操作卡片状态.schema",
+    "2026-10-13-liveshare-share-viewer-principal":"2026-10-13-liveshare分享查看者主体",
+    "2026-10-13-liveshare-share-viewer-principal.schema":"2026-10-13-liveshare分享查看者主体.schema",
+    "2026-10-25-skill-catalog-incomplete":"2026-10-25-技能目录不完整",
+    "2026-10-25-skill-catalog-incomplete.schema":"2026-10-25-技能目录不完整.schema"
 }

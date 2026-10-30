@@ -1,0 +1,8 @@
+{
+    "context-menu-target":"右键菜单目标",
+    "forge-git-permissions":"forge的git权限",
+    "llm-request-purpose-declarations":"llm请求用途声明",
+    "schedule-agent-tools":"日程智能体工具",
+    "schedule-remote-host-tasks":"日程远程宿主任务",
+    "sdk-run-commands":"sdk运行命令"
+}

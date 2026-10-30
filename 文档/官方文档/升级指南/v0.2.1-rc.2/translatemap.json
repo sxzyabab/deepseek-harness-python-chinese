@@ -21,5 +21,9 @@
     "session-store-writes":"会话存储写入",
     "tool-executor-plugins":"工具执行器插件",
     "web-fetch-private-destinations":"web抓取私有目标",
-    "webserver-index-peer":"webserver索引peer"
+    "webserver-index-peer":"webserver索引peer",
+    "ptc-script-format":"ptc脚本格式",
+    "model-badge-package-removal":"模型角标包移除",
+    "cua-consent-storage":"cua授权存储",
+    "context-menu-services":"右键菜单服务"
 }

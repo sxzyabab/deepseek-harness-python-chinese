@@ -270,5 +270,12 @@
     "2026-10-02-plugin-market-index-format":"2026-10-02-插件市场索引格式",
     "2026-10-14-host-release-change-refresh-prompt":"2026-10-14-宿主版本变化刷新提示",
     "2026-10-15-chat-keep-assistant-replies":"2026-10-15-对话保留助手回复",
-    "2026-10-15-deepseek-search-fetch-api":"2026-10-15-deepseek搜索抓取api"
+    "2026-10-15-deepseek-search-fetch-api":"2026-10-15-deepseek搜索抓取api",
+    "2026-09-13-liveshare-protocol-and-owner-surfaces":"2026-09-13-liveshare协议与所有者面",
+    "2026-09-28-apply-patch-file-editing":"2026-09-28-补丁文件编辑",
+    "2026-10-09-forge-panel":"2026-10-09-forge面板",
+    "2026-10-09-session-change-request-bindings":"2026-10-09-会话变更请求绑定",
+    "2026-10-20-forge-session-list":"2026-10-20-forge会话列表",
+    "2026-10-21-floating-window-edge-recovery":"2026-10-21-悬浮窗边缘收回",
+    "2026-10-22-listed-model-badges":"2026-10-22-列表模型角标"
 }

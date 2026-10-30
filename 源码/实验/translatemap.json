@@ -56,5 +56,12 @@
     "creation-recommendations":"创建推荐",
     "client-ui-plugin-recommendations":"客户端ui_插件推荐",
     "client-ui-creation-recommendations":"客户端ui_创建推荐",
-    "action-cards":"操作卡片"
+    "action-cards":"操作卡片",
+    "forge":"代码托管",
+    "forge-github":"代码托管_github",
+    "forge-session":"代码托管_会话",
+    "forge-bundle":"代码托管组合包",
+    "client-ui-forge":"客户端ui_代码托管",
+    "client-ui-stats":"客户端ui_会话统计",
+    "liveshare":"实时共享"
 }
